@@ -1,0 +1,59 @@
+[
+  {
+    "id": "89ea87ad-6e9a-45df-806d-103eb7ac107c",
+    "userId": "f22bedc9-de6f-40c4-945e-24967b5ea0ed",
+    "username": "XEK（站长）",
+    "school": "天长市炳辉中学",
+    "grade": "高一",
+    "className": "14班",
+    "content": "2",
+    "anonymous": false,
+    "timestamp": "2025-07-16T12:20:57.025Z",
+    "likes": 1,
+    "likedBy": [
+      "f22bedc9-de6f-40c4-945e-24967b5ea0ed"
+    ],
+    "comments": [
+      {
+        "id": "a3e42dff-292b-4d88-9af1-85c8113881ce",
+        "userId": "f22bedc9-de6f-40c4-945e-24967b5ea0ed",
+        "username": "XEK（站长）",
+        "content": "111",
+        "anonymous": false,
+        "timestamp": "2025-07-16T12:21:03.266Z"
+      }
+    ]
+  },
+  {
+    "id": "4d986863-60df-406a-ac3b-cb4a42d1bed5",
+    "userId": "f22bedc9-de6f-40c4-945e-24967b5ea0ed",
+    "username": "XEK（站长）",
+    "school": "天长市炳辉中学",
+    "grade": "高一",
+    "className": "14班",
+    "content": "1",
+    "anonymous": false,
+    "timestamp": "2025-07-16T12:20:54.900Z",
+    "likes": 1,
+    "likedBy": [
+      "f22bedc9-de6f-40c4-945e-24967b5ea0ed"
+    ],
+    "comments": []
+  },
+  {
+    "id": "16dd74ec-db97-4afc-8a60-b2bf9f7379d5",
+    "userId": "f22bedc9-de6f-40c4-945e-24967b5ea0ed",
+    "username": "XEK（站长）",
+    "school": "天长市炳辉中学",
+    "grade": "高一",
+    "className": "14班",
+    "content": "测试",
+    "anonymous": false,
+    "timestamp": "2025-07-12T12:28:47.304Z",
+    "likes": 1,
+    "likedBy": [
+      "f22bedc9-de6f-40c4-945e-24967b5ea0ed"
+    ],
+    "comments": []
+  }
+]

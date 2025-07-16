@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <i class="fas fa-comments"></i>
+        <h1>校园论坛</h1>
+      </div>
+      <div class="notification-area" id="notificationArea"></div>
+      <div id="user-actions">
+        <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="main-content">
+      <div>
+        <!-- 发布表单 -->
+        <div class="post-form">
+          <h2 class="section-title">发布新帖子</h2>
+          
+          <!-- 用户信息展示区 (登录后显示) -->
+          <div id="user-info-display"></div>
+          
+          <div class="form-group">
+            <label for="content">帖子内容</label>
+            <textarea id="content" rows="5" placeholder="分享你的想法、问题或校园趣事..." required></textarea>
+          </div>
+          
+          <div class="anonymous-container">
+            <input type="checkbox" id="anonymous">
+            <label for="anonymous">匿名发表</label>
+          </div>
+          
+          <button class="post-button" id="submit-post"><i class="fas fa-paper-plane"></i> 发布帖子</button>
+        </div>
+        
+        <!-- 帖子列表 -->
+        <div class="posts-section">
+          <h2 class="section-title">最新帖子</h2>
+          <div class="posts-list" id="posts-container">
+            <!-- 通过JS动态生成 -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- 侧边栏 -->
+      <div class="sidebar">
+        <!-- 用户面板 -->
+        <div class="user-panel" id="user-panel">
+          <div class="user-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="user-info">
+            <h3 id="username">访客</h3>
+            <div id="user-class">请登录查看信息</div>
+          </div>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="statistics-card">
+          <h2 class="stat-title">论坛数据统计</h2>
+          <div class="stat-item">
+            <span>今日发帖</span>
+            <span id="today-posts" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总用户数</span>
+            <span id="total-users" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总帖子数</span>
+            <span id="total-posts" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总评论数</span>
+            <span id="total-comments" class="stat-value">0</span>
+          </div>
+        </div>
+        
+        <!-- 论坛指南 -->
+        <div class="guidelines-card">
+          <h2 class="section-title">校园论坛指南</h2>
+          <ul class="guidelines-list">
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>请提供准确的学校和班级信息，便于同学交流</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>尊重他人，文明发言，共同维护良好的交流环境</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>使用匿名功能时仍需遵守论坛规范</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>禁止发布涉及敏感内容的帖子</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>遇到问题可向版主反馈</div>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- 通知 -->
+        <div class="notification">
+          <i class="fas fa-info-circle"></i> 
+          提示：本系统仅收集必要的学校信息以便校园社区交流，所有个人信息均严格保密。
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 登录/注册模态框 -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>校园论坛账户</h2>
+      
+      <div class="form-tabs">
+        <div class="tab-btn active" data-tab="login">登录</div>
+        <div class="tab-btn" data-tab="register">注册</div>
+      </div>
+      
+      <!-- 登录表单 -->
+      <div id="login-form">
+        <div class="form-group">
+          <label for="qq-login">QQ号</label>
+          <input type="text" id="qq-login" placeholder="输入QQ号" required>
+        </div>
+        <div class="form-group">
+          <label for="password-login">密码</label>
+          <input type="password" id="password-login" placeholder="输入密码" required>
+        </div>
+        <button id="confirm-login" class="login-button">立即登录</button>
+      </div>
+      
+      <!-- 注册表单 -->
+      <div id="register-form" style="display: none;">
+        <div class="form-group">
+          <label for="qq-register">QQ号</label>
+          <input type="text" id="qq-register" placeholder="输入QQ号" required>
+        </div>
+        <div class="form-group">
+          <label for="username-register">用户名</label>
+          <input type="text" id="username-register" placeholder="输入用户名" required>
+        </div>
+        <div class="form-group">
+          <label for="password-register">密码</label>
+          <input type="password" id="password-register" placeholder="设置密码" required>
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">确认密码</label>
+          <input type="password" id="confirm-password" placeholder="再次输入密码" required>
+        </div>
+        
+        <!-- 修改为横向排列 -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="school-register">学校名称</label>
+            <select id="school-register" required>
+              <option value="">请选择学校</option>
+              <option value="天长中学">天长中学</option>
+              <option value="天长市炳辉中学">天长市炳辉中学</option>
+              <option value="天长市第二中学">天长市第二中学</option>
+              <option value="天长市关塘中学">天长市关塘中学</option>
+              <option value="天长市工业学校">天长市工业学校</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="enrollment-year-register">入学年份</label>
+            <select id="enrollment-year-register" required>
+              <option value="">请选择入学年份</option>
+              <!-- 年份选项将由JS动态生成 -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="class-register">班级</label>
+            <select id="class-register" required>
+              <option value="">请选择班级</option>
+              <option value="1班">1班</option>
+              <option value="2班">2班</option>
+              <option value="3班">3班</option>
+              <option value="4班">4班</option>
+              <option value="5班">5班</option>
+              <option value="6班">6班</option>
+              <option value="7班">7班</option>
+              <option value="8班">8班</option>
+              <option value="9班">9班</option>
+              <option value="10班">10班</option>
+              <option value="11班">11班</option>
+              <option value="12班">12班</option>
+              <option value="13班">13班</option>
+              <option value="14班">14班</option>
+              <option value="15班">15班</option>
+              <option value="16班">16班</option>
+              <option value="17班">17班</option>
+              <option value="18班">18班</option>
+              <option value="19班">19班</option>
+              <option value="20班">20班</option>
+            </select>
+          </div>
+        </div>
+        
+        <button id="confirm-register" class="login-button">立即注册</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 评论模态框 -->
+  <div id="comment-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>发表评论</h2>
+      <div class="form-group">
+        <textarea id="comment-content" rows="3" placeholder="分享你的看法..." required></textarea>
+      </div>
+      <div class="anonymous-container">
+        <input type="checkbox" id="comment-anonymous">
+        <label for="comment-anonymous">匿名评论</label>
+      </div>
+      <button id="submit-comment" class="post-button">发表评论</button>
+    </div>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>
