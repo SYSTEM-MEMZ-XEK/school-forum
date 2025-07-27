@@ -3,7 +3,19 @@ const state = {
   currentUser: null,
   posts: [],
   currentPostId: null,
-  isAdminPanelVisible: false
+  isAdminPanelVisible: false,
+  selectedImages: [],
+  isAdmin: false,
+  adminView: 'posts', // 'posts', 'users'
+  adminUsers: [],
+  banDurations: [
+    { hours: 1, label: '1小时' },
+    { hours: 24, label: '1天' },
+    { hours: 72, label: '3天' },
+    { hours: 168, label: '7天' },
+    { hours: 720, label: '30天' },
+    { hours: 8760, label: '永久' }
+  ]
 };
 
 // DOM元素
@@ -36,7 +48,19 @@ const dom = {
   anonymousCheckbox: document.getElementById('anonymous'),
   passwordLogin: document.getElementById('password-login'),
   passwordRegister: document.getElementById('password-register'),
-  confirmPassword: document.getElementById('confirm-password')
+  confirmPassword: document.getElementById('confirm-password'),
+  imageUpload: document.getElementById('image-upload'),
+  imagePreview: document.getElementById('image-preview'),
+  adminPanel: document.getElementById('admin-panel'),
+  adminToggleBtn: document.getElementById('admin-toggle'),
+  adminPostsView: document.getElementById('admin-posts-view'),
+  adminUsersView: document.getElementById('admin-users-view'),
+  adminPostsContainer: document.getElementById('admin-posts-container'),
+  adminUsersContainer: document.getElementById('admin-users-container'),
+  adminViewPostsBtn: document.getElementById('admin-view-posts'),
+  adminViewUsersBtn: document.getElementById('admin-view-users'),
+  banDurationSelect: document.getElementById('ban-duration')
+
 };
 
 // 初始化函数
@@ -56,7 +80,7 @@ function initEnrollmentYearOptions() {
   const currentYear = new Date().getFullYear();
   
   // 生成从当前年份前5年到后1年的选项
-  for (let year = currentYear - 5; year <= currentYear + 1; year++) {
+  for (let year = currentYear - 3; year <= currentYear + 5; year++) {
     const option = document.createElement('option');
     option.value = year;
     option.textContent = `${year}年`;
@@ -86,6 +110,125 @@ async function initApp() {
     console.error('初始化失败:', error);
     showNotification('系统初始化失败，请刷新页面', 'error');
   }
+  if (state.currentUser) {
+    checkAdminStatus();
+  }
+}
+  
+// 添加管理员相关函数
+function checkAdminStatus() {
+  // 这里应该有从服务器获取用户角色的逻辑
+  // 为简化，我们假设管理员用户名为 "admin"
+  state.isAdmin = state.currentUser.username === "admin";
+  
+  if (state.isAdmin) {
+    dom.adminToggleBtn.style.display = 'block';
+    loadAdminData();
+  }
+}
+
+async function loadAdminData() {
+  if (state.adminView === 'posts') {
+    await loadAdminPosts();
+  } else {
+    await loadAdminUsers();
+  }
+}
+
+async function loadAdminPosts() {
+  try {
+    const response = await fetch('/posts');
+    if (!response.ok) throw new Error('加载失败');
+    
+    const posts = await response.json();
+    renderAdminPosts(posts);
+  } catch (error) {
+    console.error('加载管理员帖子失败:', error);
+  }
+}
+
+function renderAdminPosts(posts) {
+  const container = dom.adminPostsContainer;
+  container.innerHTML = '';
+  
+  posts.forEach(post => {
+    const postElement = document.createElement('div');
+    postElement.className = 'admin-post-item';
+    postElement.dataset.id = post.id;
+    
+    postElement.innerHTML = `
+      <div class="post-header">
+        <div>
+          <strong>${post.anonymous ? '匿名用户' : post.username}</strong>
+          <span>${post.school || ''} ${post.grade || ''} ${post.className || ''}</span>
+        </div>
+        <div class="post-time">${formatDate(post.timestamp)}</div>
+      </div>
+      <div class="post-content">${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</div>
+      <div class="admin-post-actions">
+        <button class="admin-delete-post" data-id="${post.id}">
+          <i class="fas fa-trash"></i> 删除
+        </button>
+        <button class="admin-ban-user" data-userid="${post.userId}" data-username="${post.username}">
+          <i class="fas fa-ban"></i> 封禁用户
+        </button>
+        <button class="admin-delete-user" data-userid="${post.userId}" data-username="${post.username}">
+          <i class="fas fa-user-slash"></i> 注销账号
+        </button>
+      </div>
+    `;
+    
+    container.appendChild(postElement);
+  });
+}
+
+async function loadAdminUsers() {
+  try {
+    const response = await fetch('/users'); // 需要添加获取所有用户的API
+    if (!response.ok) throw new Error('加载失败');
+    
+    const users = await response.json();
+    state.adminUsers = users;
+    renderAdminUsers(users);
+  } catch (error) {
+    console.error('加载用户列表失败:', error);
+  }
+}
+
+function renderAdminUsers(users) {
+  const container = dom.adminUsersContainer;
+  container.innerHTML = '';
+  
+  users.forEach(user => {
+    const userElement = document.createElement('div');
+    userElement.className = 'admin-user-item';
+    userElement.dataset.id = user.id;
+    
+    const isBanned = user.banEnd && new Date(user.banEnd) > new Date();
+    const banInfo = isBanned ? 
+      `<span class="ban-info">封禁中 (至 ${formatDate(user.banEnd)})</span>` : '';
+    
+    userElement.innerHTML = `
+      <div class="user-info">
+        <div>
+          <strong>${user.username}</strong>
+          <span>${user.school || ''} ${user.grade || ''} ${user.className || ''}</span>
+        </div>
+        <div class="user-qq">QQ: ${user.qq}</div>
+      </div>
+      <div class="admin-user-actions">
+        ${banInfo}
+        <button class="admin-ban-user" data-userid="${user.id}" data-username="${user.username}">
+          <i class="fas fa-ban"></i> ${isBanned ? '解封' : '封禁'}
+        </button>
+        <button class="admin-delete-user" data-userid="${user.id}" data-username="${user.username}">
+          <i class="fas fa-user-slash"></i> 注销账号
+        </button>
+      </div>
+    `;
+    
+    container.appendChild(userElement);
+  });
 }
 
 // 加载帖子
@@ -180,6 +323,7 @@ function renderPosts(posts) {
         `<span class="tag">${post.grade || ''}</span>
          <span class="tag">${post.className || ''}</span>`}
         ${post.content}
+        ${renderPostImages(post)}
       </div>
       
       <div class="post-footer">
@@ -205,6 +349,29 @@ function renderPosts(posts) {
     
     container.appendChild(postElement);
   });
+}
+
+// 渲染帖子图片
+function renderPostImages(post) {
+  if (!post.images || post.images.length === 0) return '';
+  
+  // 单张图片直接显示
+  if (post.images.length === 1) {
+    return `
+      <div class="post-image-container">
+        <img src="${post.images[0]}" alt="帖子图片" class="post-image" data-id="${post.id}" data-index="0">
+      </div>
+    `;
+  }
+  
+  // 多张图片用网格显示
+  return `
+    <div class="post-images-grid">
+      ${post.images.map((img, index) => `
+        <img src="${img}" alt="帖子图片" class="post-image-thumb" data-id="${post.id}" data-index="${index}">
+      `).join('')}
+    </div>
+  `;
 }
 
 // 渲染评论
@@ -247,6 +414,143 @@ function renderComments(post) {
   return commentsHTML;
 }
 
+// 处理图片上传
+function handleImageUpload(e) {
+  const files = Array.from(e.target.files);
+  const previewContainer = dom.imagePreview;
+  
+  // 清除之前的预览
+  previewContainer.innerHTML = '';
+  state.selectedImages = [];
+  
+  // 限制最多10张图片
+  if (files.length > 10) {
+    showNotification('最多只能上传10张图片', 'error');
+    return;
+  }
+  
+  files.forEach(file => {
+    if (!file.type.match('image.*')) {
+      showNotification('只能上传图片文件', 'error');
+      return;
+    }
+    
+    // 创建预览元素
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const previewItem = document.createElement('div');
+      previewItem.className = 'image-preview-item';
+      
+      previewItem.innerHTML = `
+        <img src="${event.target.result}" alt="预览">
+        <button class="remove-btn"><i class="fas fa-times"></i></button>
+      `;
+      
+      // 添加到预览区域
+      previewContainer.appendChild(previewItem);
+      
+      // 保存图片数据
+      state.selectedImages.push({
+        file,
+        preview: event.target.result
+      });
+      
+      // 添加移除按钮事件
+      const removeBtn = previewItem.querySelector('.remove-btn');
+      removeBtn.addEventListener('click', () => {
+        previewItem.remove();
+        state.selectedImages = state.selectedImages.filter(img => img.preview !== event.target.result);
+      });
+    };
+    
+    reader.readAsDataURL(file);
+  });
+}
+
+// 显示图片查看器
+function showImageViewer(images, currentIndex = 0) {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'image-viewer-modal';
+  
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 90vw; max-height: 90vh;">
+      <span class="close-modal">&times;</span>
+      
+      <div class="image-viewer-container">
+        <img id="image-viewer" src="${images[currentIndex]}" alt="图片查看">
+      </div>
+      
+      <div class="image-nav">
+        <button class="image-nav-btn prev-btn"><i class="fas fa-chevron-left"></i> 上一张</button>
+        <span id="image-counter">${currentIndex + 1} / ${images.length}</span>
+        <button class="image-nav-btn next-btn">下一张 <i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // 添加关闭事件
+  const closeBtn = modal.querySelector('.close-modal');
+  closeBtn.addEventListener('click', () => {
+    modal.remove();
+  });
+  
+  // 添加导航事件
+  let currentImgIndex = currentIndex;
+  
+  const prevBtn = modal.querySelector('.prev-btn');
+  prevBtn.addEventListener('click', () => {
+    currentImgIndex = (currentImgIndex - 1 + images.length) % images.length;
+    updateImageViewer(images, currentImgIndex);
+  });
+  
+  const nextBtn = modal.querySelector('.next-btn');
+  nextBtn.addEventListener('click', () => {
+    currentImgIndex = (currentImgIndex + 1) % images.length;
+    updateImageViewer(images, currentImgIndex);
+  });
+  
+  // 键盘导航
+  const handleKeyNavigation = (e) => {
+    if (e.key === 'ArrowLeft') {
+      currentImgIndex = (currentImgIndex - 1 + images.length) % images.length;
+      updateImageViewer(images, currentImgIndex);
+    } else if (e.key === 'ArrowRight') {
+      currentImgIndex = (currentImgIndex + 1) % images.length;
+      updateImageViewer(images, currentImgIndex);
+    } else if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', handleKeyNavigation);
+    }
+  };
+  
+  document.addEventListener('keydown', handleKeyNavigation);
+  
+  // 点击背景关闭
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+      document.removeEventListener('keydown', handleKeyNavigation);
+    }
+  });
+}
+
+// 更新图片查看器
+function updateImageViewer(images, index) {
+  const imageViewer = document.getElementById('image-viewer');
+  const imageCounter = document.getElementById('image-counter');
+  
+  if (imageViewer) {
+    imageViewer.src = images[index];
+  }
+  
+  if (imageCounter) {
+    imageCounter.textContent = `${index + 1} / ${images.length}`;
+  }
+}
+
 // 设置事件监听器
 function setupEventListeners() {
   // 发帖按钮
@@ -263,6 +567,226 @@ function setupEventListeners() {
     document.querySelector('[data-tab="register"]').click();
   });
   
+  // 图片上传事件
+  if (dom.imageUpload) {
+    dom.imageUpload.addEventListener('change', handleImageUpload);
+  }
+
+  // 管理员切换按钮
+  if (dom.adminToggleBtn) {
+    dom.adminToggleBtn.addEventListener('click', () => {
+      state.isAdminPanelVisible = !state.isAdminPanelVisible;
+      dom.adminPanel.style.display = state.isAdminPanelVisible ? 'block' : 'none';
+      
+      if (state.isAdminPanelVisible) {
+        loadAdminData();
+      }
+    });
+  }
+  
+  // 管理员视图切换
+  dom.adminViewPostsBtn?.addEventListener('click', () => {
+    state.adminView = 'posts';
+    dom.adminViewPostsBtn.classList.add('active');
+    dom.adminViewUsersBtn.classList.remove('active');
+    dom.adminPostsView.style.display = 'block';
+    dom.adminUsersView.style.display = 'none';
+    loadAdminPosts();
+  });
+  
+  dom.adminViewUsersBtn?.addEventListener('click', () => {
+    state.adminView = 'users';
+    dom.adminViewUsersBtn.classList.add('active');
+    dom.adminViewPostsBtn.classList.remove('active');
+    dom.adminPostsView.style.display = 'none';
+    dom.adminUsersView.style.display = 'block';
+    loadAdminUsers();
+  });
+  
+  // 管理员操作事件委托
+  document.addEventListener('click', async (e) => {
+    // 删除帖子
+    if (e.target.closest('.admin-delete-post')) {
+      const btn = e.target.closest('.admin-delete-post');
+      const postId = btn.dataset.id;
+      
+      if (confirm('确定要删除此帖子吗？此操作不可撤销。')) {
+        try {
+          const response = await fetch(`/posts/${postId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userId: state.currentUser.id,
+              isAdmin: true
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '操作失败');
+          }
+          
+          const data = await response.json();
+          if (data.success) {
+            showNotification('帖子已删除', 'success');
+            loadAdminPosts();
+            loadPosts(); // 刷新主帖子列表
+          }
+        } catch (error) {
+          console.error('删除帖子失败:', error);
+          showNotification(error.message || '删除失败', 'error');
+        }
+      }
+    }
+    
+    // 封禁用户
+    if (e.target.closest('.admin-ban-user')) {
+      const btn = e.target.closest('.admin-ban-user');
+      const userId = btn.dataset.userid;
+      const username = btn.dataset.username;
+      
+      const user = state.adminUsers.find(u => u.id === userId);
+      const isCurrentlyBanned = user?.banEnd && new Date(user.banEnd) > new Date();
+      
+      if (isCurrentlyBanned) {
+        // 解封用户
+        if (confirm(`确定要解封用户 ${username} 吗？`)) {
+          await unbanUser(userId);
+        }
+      } else {
+        // 封禁用户
+        const duration = parseInt(dom.banDurationSelect.value);
+        const durationLabel = state.banDurations.find(d => d.hours === duration)?.label || duration + '小时';
+        
+        if (confirm(`确定要封禁用户 ${username} 吗？封禁时长: ${durationLabel}`)) {
+          await banUser(userId, duration);
+        }
+      }
+    }
+    
+    // 注销用户
+    if (e.target.closest('.admin-delete-user')) {
+      const btn = e.target.closest('.admin-delete-user');
+      const userId = btn.dataset.userid;
+      const username = btn.dataset.username;
+      
+      if (confirm(`确定要永久注销用户 ${username} 的账号吗？此操作将删除该用户的所有帖子和数据，且不可撤销！`)) {
+        try {
+          const response = await fetch(`/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              adminId: state.currentUser.id
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '操作失败');
+          }
+          
+          const data = await response.json();
+          if (data.success) {
+            showNotification(`用户 ${username} 已被注销`, 'success');
+            
+            // 如果是注销当前用户，退出登录
+            if (userId === state.currentUser.id) {
+              logoutUser();
+            }
+            
+            loadAdminUsers();
+            loadPosts(); // 刷新帖子列表
+          }
+        } catch (error) {
+          console.error('注销用户失败:', error);
+          showNotification(error.message || '注销失败', 'error');
+        }
+      }
+    }
+  });
+}
+
+// 封禁用户函数
+async function banUser(userId, duration) {
+  try {
+    const response = await fetch('/users/ban', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId,
+        banDuration: duration,
+        adminId: state.currentUser.id
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || '操作失败');
+    }
+    
+    const data = await response.json();
+    if (data.success) {
+      showNotification(data.message, 'success');
+      loadAdminUsers();
+    }
+  } catch (error) {
+    console.error('封禁用户失败:', error);
+    showNotification(error.message || '封禁失败', 'error');
+  }
+}
+
+// 解封用户函数
+async function unbanUser(userId) {
+  try {
+    const users = []; // 这里应该有从服务器获取用户的逻辑
+    const userIndex = users.findIndex(u => u.id === userId);
+    
+    if (userIndex === -1) {
+      throw new Error('用户不存在');
+    }
+    
+    users[userIndex].banEnd = null;
+    // 这里应该有保存到服务器的逻辑
+    
+    showNotification('用户已解封', 'success');
+    loadAdminUsers();
+  } catch (error) {
+    console.error('解封用户失败:', error);
+    showNotification(error.message || '解封失败', 'error');
+  }
+}
+
+// 用户自行注销账号
+function deleteOwnAccount() {
+  if (confirm('确定要永久注销您的账号吗？此操作将删除您的所有帖子和数据，且不可撤销！')) {
+    fetch(`/users/${state.currentUser.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showNotification('您的账号已注销', 'success');
+        logoutUser();
+      }
+    })
+    .catch(error => {
+      console.error('注销账号失败:', error);
+      showNotification('注销失败，请重试', 'error');
+    });
+  }
+}
+
+
   // 登录确认按钮
   dom.confirmLoginBtn.addEventListener('click', loginUser);
   
@@ -275,6 +799,12 @@ function setupEventListeners() {
     btn.addEventListener('click', () => {
       dom.loginModal.style.display = 'none';
       dom.commentModal.style.display = 'none';
+      
+      // 移除图片查看器
+      const imageViewerModal = document.getElementById('image-viewer-modal');
+      if (imageViewerModal) {
+        imageViewerModal.remove();
+      }
     });
   });
   
@@ -295,6 +825,22 @@ function setupEventListeners() {
         document.getElementById('register-form').style.display = 'block';
       }
     });
+  });
+  
+  // 点击帖子图片
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.post-image, .post-image-thumb')) {
+      const img = e.target;
+      const postId = img.dataset.id;
+      const index = parseInt(img.dataset.index);
+      
+      // 找到对应的帖子
+      const post = state.posts.find(p => p.id === postId);
+      if (!post || !post.images || post.images.length === 0) return;
+      
+      // 显示图片查看器
+      showImageViewer(post.images, index);
+    }
   });
   
   // 点击评论按钮
@@ -452,7 +998,6 @@ function setupEventListeners() {
       isAnonymous ? 'info' : 'success'
     );
   });
-}
 
 // 提交新帖子
 async function submitNewPost() {
@@ -478,6 +1023,29 @@ async function submitNewPost() {
     const grade = state.currentUser.grade;
     const className = state.currentUser.className;
     const username = state.currentUser.username; // 获取用户名
+
+    // 如果有图片，先上传图片
+    let imageUrls = [];
+    if (state.selectedImages.length > 0) {
+      const formData = new FormData();
+      
+      state.selectedImages.forEach(img => {
+        formData.append('images', img.file);
+      });
+      
+      const uploadResponse = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.message || '图片上传失败');
+      }
+      
+      const uploadData = await uploadResponse.json();
+      imageUrls = uploadData.imageUrls;
+    }
     
     // 发布请求
     const response = await fetch('/posts', {
@@ -492,7 +1060,8 @@ async function submitNewPost() {
         grade,
         className,
         content,
-        anonymous
+        anonymous,
+        images: imageUrls // 添加图片链接
       })
     });
     
@@ -513,6 +1082,11 @@ async function submitNewPost() {
     console.error('发布失败:', error);
     showNotification(error.message || '发布失败，请稍后重试', 'error');
   } finally {
+    // 清空图片预览
+    if (dom.imagePreview) {
+      dom.imagePreview.innerHTML = '';
+    }
+    state.selectedImages = [];
     // 重新启用按钮
     dom.submitPostBtn.disabled = false;
     dom.submitPostBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布帖子';
@@ -689,6 +1263,15 @@ function updateUserUI(user) {
     // 更新按钮状态
     document.getElementById('login-btn').style.display = 'none';
     document.getElementById('register-btn').style.display = 'none';
+    if (!document.getElementById('delete-account-btn')) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.id = 'delete-account-btn';
+      deleteBtn.innerHTML = '<i class="fas fa-user-slash"></i> 注销账号';
+      deleteBtn.className = 'logout-button';
+      document.getElementById('user-actions').appendChild(deleteBtn);
+      
+      deleteBtn.addEventListener('click', deleteOwnAccount);
+    }
     
     // 添加退出按钮
     if (!document.getElementById('logout-btn')) {
@@ -711,6 +1294,9 @@ function updateUserUI(user) {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
       logoutBtn.remove();
+    // 移除注销按钮
+    const deleteBtn = document.getElementById('delete-account-btn');
+    if (deleteBtn) deleteBtn.remove();
     }
   }
 }
@@ -843,5 +1429,10 @@ window.addEventListener('click', (e) => {
   
   if (e.target === dom.commentModal) {
     dom.commentModal.style.display = 'none';
+  }
+  
+  // 移除图片查看器
+  if (e.target.matches('.modal') && e.target.id === 'image-viewer-modal') {
+    e.target.remove();
   }
 });

@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer'); // 添加 multer
 
 const app = express();
 app.use(cors());
@@ -20,12 +21,74 @@ if (!fs.existsSync(DATA_DIR)) {
   console.log(`使用现有数据目录: ${DATA_DIR}`);
 }
 
+// 确保上传目录存在
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  console.log(`创建上传目录: ${UPLOADS_DIR}`);
+} else {
+  console.log(`使用现有上传目录: ${UPLOADS_DIR}`);
+}
+
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
 
 // 初始化数据文件
 initializeDataFile(USERS_FILE, []);
 initializeDataFile(POSTS_FILE, []);
+
+// 配置 multer 存储
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOADS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB限制
+  },
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('只允许上传图片文件 (jpeg, jpg, png, gif)'));
+  }
+});
+
+// 添加上传路由
+app.post('/upload', upload.array('images', 10), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: '未选择图片' });
+    }
+    
+    // 生成图片URL
+    const imageUrls = req.files.map(file => {
+      return `/images/${file.filename}`;
+    });
+    
+    res.json({
+      success: true,
+      message: '图片上传成功',
+      imageUrls
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '服务器错误: ' + error.message });
+  }
+});
+
+// 提供图片访问
+app.use('/images', express.static(UPLOADS_DIR));
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));
@@ -103,6 +166,115 @@ app.post('/register', (req, res) => {
   });
 });
 
+app.delete('/posts/:id', (req, res) => {
+  const postId = req.params.id;
+  const { userId, isAdmin } = req.body;
+  
+  const posts = readData(POSTS_FILE);
+  const postIndex = posts.findIndex(p => p.id === postId);
+  
+  if (postIndex === -1) {
+    return res.status(404).json({ success: false, message: '帖子不存在' });
+  }
+  
+  const post = posts[postIndex];
+  
+  // 检查权限：管理员或发帖人本人
+  if (!isAdmin && post.userId !== userId) {
+    return res.status(403).json({ 
+      success: false, 
+      message: '无权删除此帖子' 
+    });
+  }
+  
+  // 删除帖子
+  posts.splice(postIndex, 1);
+  writeData(POSTS_FILE, posts);
+  
+  res.json({ 
+    success: true,
+    message: '帖子已删除'
+  });
+});
+
+// 封禁用户
+app.post('/users/ban', (req, res) => {
+  const { userId, banDuration, adminId } = req.body;
+  
+  // 验证管理员身份
+  const users = readData(USERS_FILE);
+  const admin = users.find(u => u.id === adminId);
+  
+  if (!admin || admin.role !== 'admin') {
+    return res.status(403).json({ 
+      success: false, 
+      message: '无权执行此操作' 
+    });
+  }
+  
+  const user = users.find(u => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ 
+      success: false, 
+      message: '用户不存在' 
+    });
+  }
+  
+  // 计算封禁结束时间
+  const banEnd = new Date();
+  banEnd.setHours(banEnd.getHours() + banDuration);
+  
+  user.banEnd = banEnd.toISOString();
+  writeData(USERS_FILE, users);
+  
+  res.json({ 
+    success: true,
+    message: `用户 ${user.username} 已被封禁 ${banDuration} 小时`,
+    banEnd: user.banEnd
+  });
+});
+
+// 注销用户（管理员强制注销或用户自行注销）
+app.delete('/users/:id', (req, res) => {
+  const userId = req.params.id;
+  const { adminId } = req.body;
+  
+  const users = readData(USERS_FILE);
+  const userIndex = users.findIndex(u => u.id === userId);
+  
+  if (userIndex === -1) {
+    return res.status(404).json({ 
+      success: false, 
+      message: '用户不存在' 
+    });
+  }
+  
+  // 如果是管理员操作，验证管理员身份
+  if (adminId) {
+    const admin = users.find(u => u.id === adminId);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: '无权执行此操作' 
+      });
+    }
+  }
+  
+  // 删除用户
+  const deletedUser = users.splice(userIndex, 1)[0];
+  writeData(USERS_FILE, users);
+  
+  // 删除该用户的所有帖子
+  const posts = readData(POSTS_FILE);
+  const filteredPosts = posts.filter(p => p.userId !== userId);
+  writeData(POSTS_FILE, filteredPosts);
+  
+  res.json({ 
+    success: true,
+    message: `用户 ${deletedUser.username} 已被注销`
+  });
+});
+
 // 用户登录
 app.post('/login', (req, res) => {
   const { qq, password } = req.body;
@@ -154,7 +326,23 @@ app.post('/login', (req, res) => {
     // 更新当前用户对象
     user.grade = currentGrade;
   }
-  
+  // 在返回用户信息前添加封禁检查
+  if (user.banEnd) {
+    const banEnd = new Date(user.banEnd);
+    const now = new Date();
+    
+    if (banEnd > now) {
+      const hoursLeft = Math.ceil((banEnd - now) / (1000 * 60 * 60));
+      return res.status(403).json({ 
+        success: false,
+        message: `您的账号已被封禁，剩余时间: ${hoursLeft} 小时`
+      });
+    } else {
+      // 封禁已过期，清除封禁信息
+      user.banEnd = null;
+      writeData(USERS_FILE, users);
+    }
+  }
   // 返回用户信息（不包含密码）
   const { password: _, ...safeUser } = user;
   
@@ -172,7 +360,7 @@ app.get('/posts', (req, res) => {
 
 // 发布新帖子
 app.post('/posts', (req, res) => {
-  const { userId, username, school, grade, className, content, anonymous } = req.body;
+  const { userId, username, school, grade, className, content, anonymous, images } = req.body;
   
   // 验证必填字段
   if (!userId || !username || !school || !grade || !className || !content) {
@@ -204,6 +392,7 @@ app.post('/posts', (req, res) => {
     className,
     content,
     anonymous: anonymous || false,
+    images: images || [], // 添加图片URL数组
     timestamp: new Date().toISOString(),
     likes: 0,
     likedBy: [],
@@ -369,3 +558,21 @@ function writeData(filePath, data) {
     console.error(`写入数据错误: ${filePath}`, error);
   }
 }
+
+// 错误处理中间件
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    // Multer错误处理
+    return res.status(400).json({ 
+      success: false, 
+      message: err.message || '文件上传错误' 
+    });
+  } else if (err) {
+    // 其他错误
+    return res.status(500).json({ 
+      success: false, 
+      message: err.message || '服务器错误' 
+    });
+  }
+  next();
+});
