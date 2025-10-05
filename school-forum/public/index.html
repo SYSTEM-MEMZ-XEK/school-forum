@@ -18,9 +18,6 @@
       <div id="user-actions">
         <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
         <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
-        <button id="admin-toggle" style="display: none;">
-    <i class="fas fa-shield-alt"></i> 管理员面板
-  </button>
       </div>
     </div>
   </header>
@@ -40,24 +37,23 @@
             <textarea id="content" rows="5" placeholder="分享你的想法、问题或校园趣事..." required></textarea>
           </div>
           
+          <!-- 图片上传区域 -->
+          <div class="form-group">
+            <label for="image-upload">上传图片（最多20张，每张不超过10MB）</label>
+            <input type="file" id="image-upload" multiple accept="image/*" style="display: none;">
+            <div class="image-upload-area" id="image-upload-area">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>点击或拖拽图片到这里上传</p>
+              <small>支持 JPG, PNG, GIF, WebP 格式</small>
+            </div>
+            <div id="image-preview" class="image-preview"></div>
+          </div>
+          
           <div class="anonymous-container">
             <input type="checkbox" id="anonymous">
             <label for="anonymous">匿名发表</label>
           </div>
-          <!-- 在匿名复选框下面添加图片上传区域 -->
-        <div class="form-group">
-        <label>上传图片</label>
-        <div class="file-upload-container">
-          <input type="file" id="image-upload" accept="image/*" multiple>
-          <label for="image-upload" class="custom-file-upload">
-        <i class="fas fa-image"></i> 选择图片
-        </label>
-    <span id="file-chosen">最多可选10张</span>
-  </div>
-  
-  <!-- 图片预览区域 -->
-  <div class="image-preview" id="image-preview"></div>
-</div>
+          
           <button class="post-button" id="submit-post"><i class="fas fa-paper-plane"></i> 发布帖子</button>
         </div>
         
@@ -104,51 +100,6 @@
           </div>
         </div>
         
-        <div class="admin-panel" id="admin-panel" style="display: none;">
-  <div class="admin-header">
-    <h2><i class="fas fa-shield-alt"></i> 管理员面板</h2>
-    <div class="admin-view-switcher">
-      <button id="admin-view-posts" class="active">帖子管理</button>
-      <button id="admin-view-users">用户管理</button>
-    </div>
-  </div>
-  
-  <!-- 帖子管理视图 -->
-  <div id="admin-posts-view">
-    <div class="admin-filters">
-      <div class="form-group">
-        <input type="text" placeholder="搜索帖子内容..." id="admin-post-search">
-      </div>
-    </div>
-    <div class="admin-posts-list" id="admin-posts-container">
-      <!-- 帖子将通过JS动态生成 -->
-    </div>
-  </div>
-  
-  <!-- 用户管理视图 -->
-  <div id="admin-users-view" style="display: none;">
-    <div class="admin-filters">
-      <div class="form-group">
-        <input type="text" placeholder="搜索用户名..." id="admin-user-search">
-      </div>
-      <div class="form-group">
-        <label>封禁时长</label>
-        <select id="ban-duration">
-          <option value="1">1小时</option>
-          <option value="24">1天</option>
-          <option value="72">3天</option>
-          <option value="168">7天</option>
-          <option value="720">30天</option>
-          <option value="8760">永久</option>
-        </select>
-      </div>
-    </div>
-    <div class="admin-users-list" id="admin-users-container">
-      <!-- 用户将通过JS动态生成 -->
-    </div>
-  </div>
-</div>
-
         <!-- 论坛指南 -->
         <div class="guidelines-card">
           <h2 class="section-title">校园论坛指南</h2>
@@ -185,101 +136,7 @@
     </div>
   </div>
   
-  <!-- 登录/注册模态框 -->
-  <div id="login-modal" class="modal">
-    <div class="modal-content">
-      <span class="close-modal">&times;</span>
-      <h2>校园论坛账户</h2>
-      
-      <div class="form-tabs">
-        <div class="tab-btn active" data-tab="login">登录</div>
-        <div class="tab-btn" data-tab="register">注册</div>
-      </div>
-      
-      <!-- 登录表单 -->
-      <div id="login-form">
-        <div class="form-group">
-          <label for="qq-login">QQ号</label>
-          <input type="text" id="qq-login" placeholder="输入QQ号" required>
-        </div>
-        <div class="form-group">
-          <label for="password-login">密码</label>
-          <input type="password" id="password-login" placeholder="输入密码" required>
-        </div>
-        <button id="confirm-login" class="login-button">立即登录</button>
-      </div>
-      
-      <!-- 注册表单 -->
-      <div id="register-form" style="display: none;">
-        <div class="form-group">
-          <label for="qq-register">QQ号</label>
-          <input type="text" id="qq-register" placeholder="输入QQ号" required>
-        </div>
-        <div class="form-group">
-          <label for="username-register">用户名</label>
-          <input type="text" id="username-register" placeholder="输入用户名" required>
-        </div>
-        <div class="form-group">
-          <label for="password-register">密码</label>
-          <input type="password" id="password-register" placeholder="设置密码" required>
-        </div>
-        <div class="form-group">
-          <label for="confirm-password">确认密码</label>
-          <input type="password" id="confirm-password" placeholder="再次输入密码" required>
-        </div>
-        
-        <!-- 修改为横向排列 -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="school-register">学校名称</label>
-            <select id="school-register" required>
-              <option value="">请选择学校</option>
-              <option value="天长中学">天长中学</option>
-              <option value="天长市炳辉中学">天长市炳辉中学</option>
-              <option value="天长市第二中学">天长市第二中学</option>
-              <option value="天长市关塘中学">天长市关塘中学</option>
-              <option value="天长市工业学校">天长市工业学校</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="enrollment-year-register">入学年份</label>
-            <select id="enrollment-year-register" required>
-              <option value="">请选择入学年份</option>
-              <!-- 年份选项将由JS动态生成 -->
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="class-register">班级</label>
-            <select id="class-register" required>
-              <option value="">请选择班级</option>
-              <option value="1班">1班</option>
-              <option value="2班">2班</option>
-              <option value="3班">3班</option>
-              <option value="4班">4班</option>
-              <option value="5班">5班</option>
-              <option value="6班">6班</option>
-              <option value="7班">7班</option>
-              <option value="8班">8班</option>
-              <option value="9班">9班</option>
-              <option value="10班">10班</option>
-              <option value="11班">11班</option>
-              <option value="12班">12班</option>
-              <option value="13班">13班</option>
-              <option value="14班">14班</option>
-              <option value="15班">15班</option>
-              <option value="16班">16班</option>
-              <option value="17班">17班</option>
-              <option value="18班">18班</option>
-              <option value="19班">19班</option>
-              <option value="20班">20班</option>
-            </select>
-          </div>
-        </div>
-        
-        <button id="confirm-register" class="login-button">立即注册</button>
-      </div>
-    </div>
-  </div>
+  
   
   <!-- 评论模态框 -->
   <div id="comment-modal" class="modal">
@@ -297,6 +154,19 @@
     </div>
   </div>
   
-  <script src="app.js"></script>
+  <!-- 图片预览模态框 -->
+  <div id="image-modal" class="image-modal">
+    <div class="image-modal-content">
+      <img src="" alt="预览图片">
+    </div>
+    <div class="image-modal-close">&times;</div>
+  </div>
+  
+  <script src="js/utils.js"></script>
+  <script src="js/user.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/posts.js"></script>
+  <script src="js/comments.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

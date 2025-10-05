@@ -1,0 +1,49 @@
+<!-- unauthorized.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>权限不足 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .unauthorized-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      padding: 20px;
+    }
+    .unauthorized-card {
+      background: var(--background-card);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 40px;
+      text-align: center;
+      max-width: 500px;
+    }
+    .unauthorized-icon {
+      font-size: 64px;
+      color: var(--error-color);
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="unauthorized-container">
+    <div class="unauthorized-card">
+      <div class="unauthorized-icon">
+        <i class="fas fa-ban"></i>
+      </div>
+      <h2>权限不足</h2>
+      <p>您没有权限访问管理员面板。</p>
+      <p>如果您是管理员，请确保使用正确的账号登录。</p>
+      <button onclick="window.location.href='index.html'" class="post-button" style="margin-top: 20px;">
+        <i class="fas fa-home"></i> 返回首页
+      </button>
+    </div>
+  </div>
+</body>
+</html>

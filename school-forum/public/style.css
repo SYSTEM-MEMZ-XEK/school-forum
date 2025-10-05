@@ -77,7 +77,21 @@ header {
   gap: 10px;
 }
 
-#user-actions button,
+#user-actions button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#user-actions button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .logout-button {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -89,7 +103,6 @@ header {
   transition: background 0.3s;
 }
 
-#user-actions button:hover,
 .logout-button:hover {
   background: rgba(255, 255, 255, 0.3);
 }
@@ -179,7 +192,7 @@ textarea {
   resize: vertical;
 }
 
-/* 表单行布局 */
+/* 新增：横向排列的表单行 */
 .form-row {
   display: flex;
   flex-wrap: wrap;
@@ -216,7 +229,7 @@ textarea {
   background: var(--secondary-color);
 }
 
-/* 复选框 */
+/* 复选框容器 */
 .anonymous-container {
   display: flex;
   align-items: center;
@@ -234,7 +247,7 @@ textarea {
   color: var(--text-light);
 }
 
-/* 通知消息 */
+/* 通知消息 - 改进动画效果 */
 .notification-message {
   padding: 12px 15px;
   border-radius: 8px;
@@ -356,6 +369,88 @@ textarea {
 .notification i {
   margin-right: 8px;
   font-size: 18px;
+}
+
+/* 图片上传区域 */
+.image-upload-area {
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 10px;
+}
+
+.image-upload-area:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.image-upload-area.dragover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.image-upload-area i {
+  font-size: 48px;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.image-upload-area p {
+  font-size: 16px;
+  color: var(--text-color);
+  margin-bottom: 5px;
+}
+
+.image-upload-area small {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 图片预览区域 */
+.image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.image-preview-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.remove-image:hover {
+  background: rgba(0, 0, 0, 0.9);
 }
 
 /* 帖子列表 */
@@ -609,7 +704,7 @@ textarea {
   border-bottom: 3px solid var(--primary-color);
 }
 
-/* 用户信息卡片 */
+/* 用户信息显示 */
 .user-info-card {
   display: flex;
   align-items: center;
@@ -635,7 +730,6 @@ textarea {
 
 .user-info-details {
   flex: 1;
-  overflow: hidden;
 }
 
 .user-info-name {
@@ -647,9 +741,6 @@ textarea {
   font-size: 14px;
   color: var(--text-light);
   margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .user-info-note {
@@ -688,183 +779,6 @@ textarea {
   font-size: 16px;
 }
 
-/* 图片预览区域 */
-.image-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.image-preview-item {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.image-preview-item:hover {
-  transform: scale(1.05);
-}
-
-.image-preview-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.image-preview-item .remove-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: rgba(255, 255, 255, 0.7);
-  border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-/* 图片查看器 */
-.image-viewer-container {
-  width: 100%;
-  height: 70vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  margin-bottom: 15px;
-}
-
-#image-viewer {
-  max-width: 100%;
-  max-height: 100%;
-  transition: transform 0.3s ease;
-  cursor: move;
-}
-
-.image-details {
-  flex: 1;
-  padding: 15px;
-  background: var(--background-light);
-  border-radius: 8px;
-}
-
-.image-details h3 {
-  margin-bottom: 15px;
-  color: var(--primary-color);
-}
-
-#image-meta {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px dashed var(--border-color);
-  font-size: 14px;
-  color: var(--text-light);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.image-controls {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  gap: 10px;
-  z-index: 10;
-}
-
-.image-control-btn {
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.image-control-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.image-nav {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-top: 15px;
-}
-
-.image-nav-btn {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.image-nav-btn:hover {
-  background: var(--secondary-color);
-}
-
-#image-counter {
-  font-size: 14px;
-  color: var(--text-light);
-}
-
-/* 帖子中的图片 */
-.post-image {
-  max-width: 100%;
-  max-height: 300px;
-  border-radius: 8px;
-  margin: 10px 0;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-  display: block;
-}
-
-.post-image:hover {
-  transform: scale(1.02);
-}
-
-.post-images-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin: 15px 0;
-}
-
-.post-image-thumb {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.post-image-thumb:hover {
-  transform: scale(1.05);
-}
-
-/* 响应式调整 */
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;
@@ -873,232 +787,181 @@ textarea {
   .form-row .form-group {
     min-width: 100%;
   }
-  
-  .image-viewer-container {
-    flex-direction: column;
-  }
-  
-  #image-viewer {
-    max-width: 100%;
-    max-height: 50vh;
-  }
-  
-  .image-details {
-    width: 100%;
-  }
-  
-  .post-images-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
-@media (max-width: 480px) {
-  .post-images-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .image-preview-item {
-    width: 80px;
-    height: 80px;
-  }
-  
-  .header-content {
-    flex-direction: column;
-    gap: 15px;
-    padding: 15px 20px;
-  }
-  
-  #user-actions {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-/* 文件上传区域 */
-.file-upload-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.custom-file-upload {
-  display: inline-block;
-  background: var(--primary-color);
-  color: white !important;
-  border: none;
-  padding: 10px 16px;
+/* 用户信息卡片样式优化 */
+.user-info-card {
+  padding: 12px;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
+}
+
+.user-info-details {
+  overflow: hidden;
+}
+
+.user-info-class {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 图片上传样式 */
+.image-upload-area {
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 40px 20px;
   text-align: center;
-}
-
-.custom-file-upload:hover {
-  background: var(--secondary-color);
-  color: white !important;
-}
-
-.custom-file-upload i {
-  margin-right: 6px;
-  color: white !important;
-}
-
-#file-chosen {
-  font-size: 13px;
-  color: var(--text-light);
-}
-
-#image-upload {
-  display: none;
-}
-
-/* 管理员面板 */
-.admin-panel {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: var(--shadow);
-  margin-top: 20px;
-}
-
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 15px;
-}
-
-.admin-header h2 {
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.admin-view-switcher {
-  display: flex;
-  gap: 10px;
-}
-
-.admin-view-switcher button {
-  background: var(--primary-light);
-  border: none;
-  padding: 8px 15px;
-  border-radius: 6px;
-  font-size: 14px;
   cursor: pointer;
   transition: var(--transition);
-}
-
-.admin-view-switcher button.active {
-  background: var(--primary-color);
-  color: white;
-}
-
-.admin-view-switcher button:hover {
-  background: var(--secondary-color);
-  color: white;
-}
-
-.admin-filters {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.admin-filters .form-group {
-  flex: 1;
-  min-width: 200px;
-}
-
-.admin-post-item, .admin-user-item {
   background: var(--background-light);
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
-  border: 1px solid var(--border-color);
 }
 
-.post-header, .user-info {
-  display: flex;
-  justify-content: space-between;
+.image-upload-area:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.image-upload-area.dragover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.image-upload-area i {
+  font-size: 40px;
+  color: var(--text-light);
   margin-bottom: 10px;
 }
 
-.post-header strong, .user-info strong {
-  display: block;
+.image-upload-area p {
+  font-size: 16px;
+  color: var(--text-color);
   margin-bottom: 5px;
 }
 
-.post-time {
+.image-upload-area small {
+  color: var(--text-light);
   font-size: 13px;
-  color: var(--text-light);
 }
 
-.post-content {
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 15px;
-  color: var(--text-light);
-}
-
-.admin-post-actions, .admin-user-actions {
+.image-preview {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
 }
 
-.admin-post-actions button, .admin-user-actions button {
-  background: #f5f7fb;
-  border: 1px solid var(--border-color);
-  padding: 6px 12px;
+.preview-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
   border-radius: 6px;
-  font-size: 13px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-item .remove-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+}
+
+.preview-item .remove-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* 图片在帖子中的显示 */
+.post-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.post-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 6px;
+  cursor: pointer;
   transition: var(--transition);
 }
 
-.admin-post-actions button:hover, .admin-user-actions button:hover {
-  background: #eef0f5;
+.post-image:hover {
+  transform: scale(1.05);
 }
 
-.admin-delete-post, .admin-delete-user {
-  color: #e74c3c;
-  border-color: #fadbd8;
+/* 图片预览模态框 */
+.image-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
 }
 
-.admin-delete-post:hover, .admin-delete-user:hover {
-  background: #fadbd8 !important;
+.image-modal-content {
+  max-width: 90%;
+  max-height: 90%;
 }
 
-.admin-ban-user {
-  color: #f39c12;
-  border-color: #fdebd0;
+.image-modal-content img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
 }
 
-.admin-ban-user:hover {
-  background: #fdebd0 !important;
+.image-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.5);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.ban-info {
-  background: #fdebd0;
-  color: #f39c12;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin-right: 10px;
+.image-modal-close:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 
-.user-qq {
+/* 上传状态指示器 */
+.upload-status {
   font-size: 13px;
   color: var(--text-light);
+  margin-top: 5px;
+}
+
+.upload-status.error {
+  color: var(--error-color);
+}
+
+.upload-status.success {
+  color: var(--success-color);
 }

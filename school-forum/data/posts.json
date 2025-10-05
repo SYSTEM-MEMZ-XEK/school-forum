@@ -1,0 +1,30 @@
+[
+  {
+    "id": "40aa1b7e-f428-4144-b1de-75ef0b3bef9a",
+    "userId": "cc99c0f3-7cb9-423a-b2d4-d328a6f33293",
+    "username": "XEK（站长）",
+    "school": "天长市炳辉中学",
+    "grade": "高二",
+    "className": "14班",
+    "content": "烦人的论坛\r\n",
+    "anonymous": false,
+    "images": [],
+    "timestamp": "2025-10-01T12:49:51.326Z",
+    "likes": 1,
+    "likedBy": [
+      "cc99c0f3-7cb9-423a-b2d4-d328a6f33293"
+    ],
+    "comments": [
+      {
+        "id": "15eb024d-eb6d-4849-9bfd-589d1ac6b286",
+        "userId": "cc99c0f3-7cb9-423a-b2d4-d328a6f33293",
+        "username": "XEK（站长）",
+        "content": "是烦",
+        "anonymous": false,
+        "timestamp": "2025-10-01T12:50:06.646Z"
+      }
+    ],
+    "viewCount": 0,
+    "isDeleted": false
+  }
+]
