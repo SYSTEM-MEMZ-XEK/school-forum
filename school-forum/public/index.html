@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Markdown-it 渲染支持（本地版本） -->
+  <script defer src="/libs/markdown-it/markdown-it.min.js"></script>
+  <link rel="stylesheet" href="/libs/highlight.js/styles/github-dark.min.css">
+  <script src="/libs/highlight.js/highlight.min.js"></script>
+  <!-- MathJax LaTeX 公式渲染支持（本地版本） -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      startup: {
+        typeset: false,
+        pageReady: () => {
+          return MathJax.startup.defaultPageReady().then(() => {
+            console.log('MathJax initial typesetting complete');
+            // 手动触发初始渲染
+            if (typeof MathJax.typesetPromise === 'function') {
+              MathJax.typesetPromise().catch((err) => console.error('MathJax initial typeset failed:', err));
+            }
+          });
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" src="/libs/mathjax/tex-mml-chtml.js"></script>
+  <script>
+    // 等待 highlight.js 加载完成
+    if (window.hljs) {
+      hljs.highlightAll();
+    } else {
+      // 如果未立即加载，等待一小段时间
+      setTimeout(function() {
+        if (window.hljs) {
+          hljs.highlightAll();
+        } else {
+          console.warn('highlight.js 未加载，跳过代码高亮初始化');
+        }
+      }, 100);
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <i class="fas fa-comments"></i>
+        <h1>校园论坛</h1>
+      </div>
+      <div class="notification-area" id="notificationArea"></div>
+      <div id="user-actions">
+        <!-- 用户头像（登录后显示） -->
+        <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+          <i class="fas fa-user-circle"></i>
+          <div class="header-user-dropdown">
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-username">用户名</div>
+              <div class="header-user-class" id="header-user-class">班级信息</div>
+            </div>
+            <div class="header-user-menu">
+              <a href="profile.html" class="header-menu-item">
+                <i class="fas fa-user"></i> 个人资料
+              </a>
+              <a href="settings.html" class="header-menu-item">
+                <i class="fas fa-cog"></i> 设置
+              </a>
+              <a href="message.html" class="header-menu-item">
+                <i class="fas fa-bell"></i> 消息
+              </a>
+              <div class="header-menu-divider"></div>
+              <button id="header-logout-btn" class="header-menu-item logout">
+                <i class="fas fa-sign-out-alt"></i> 退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 登录/注册按钮（未登录时显示） -->
+        <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="main-content">
+      <div>
+        <!-- 发布按钮区域 -->
+        <div class="post-form-simple">
+          <h2 class="section-title">分享你的想法</h2>
+          
+          <!-- 用户信息展示区 (登录后显示) -->
+          <div id="user-info-display"></div>
+          
+          <div class="new-post-card">
+            <div class="new-post-avatar">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="new-post-content">
+              <div class="new-post-placeholder" id="new-post-placeholder">
+                有什么新鲜事想和大家分享？
+              </div>
+              <div class="new-post-actions">
+                <button class="new-post-btn" id="new-post-btn">
+                  <i class="fas fa-edit"></i> 发布新帖子
+                </button>
+                <div class="new-post-hint">
+                  <i class="fas fa-info-circle"></i> 支持Markdown格式、图片上传和文本文件上传
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 帖子列表 -->
+        <div class="posts-section">
+          <h2 class="section-title">最新帖子</h2>
+          <div class="posts-list" id="posts-container">
+            <!-- 通过JS动态生成 -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- 侧边栏 -->
+      <div class="sidebar">
+        <!-- 统计卡片 -->
+        <div class="statistics-card">
+          <h2 class="stat-title">论坛数据统计</h2>
+          <div class="stat-item">
+            <span>今日发帖</span>
+            <span id="today-posts" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总用户数</span>
+            <span id="total-users" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总帖子数</span>
+            <span id="total-posts" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总评论数</span>
+            <span id="total-comments" class="stat-value">0</span>
+          </div>
+        </div>
+        
+        <!-- 论坛指南 -->
+        <div class="guidelines-card">
+          <h2 class="section-title">校园论坛指南</h2>
+          <ul class="guidelines-list">
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>请提供准确的学校和班级信息，便于同学交流</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>尊重他人，文明发言，共同维护良好的交流环境</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>使用匿名功能时仍需遵守论坛规范</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>禁止发布涉及敏感内容的帖子</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>遇到问题可向版主反馈</div>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- 通知 -->
+        <div class="notification">
+          <i class="fas fa-info-circle"></i> 
+          提示：本系统仅收集必要的学校信息以便校园社区交流，所有个人信息均严格保密。
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  
+  
+  <!-- 评论模态框 -->
+  <div id="comment-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>发表评论</h2>
+      <div class="form-group">
+        <textarea id="comment-content" rows="3" placeholder="分享你的看法..." required></textarea>
+      </div>
+      <div class="anonymous-container">
+        <input type="checkbox" id="comment-anonymous">
+        <label for="comment-anonymous">匿名评论</label>
+      </div>
+      <button id="submit-comment" class="post-button">发表评论</button>
+    </div>
+  </div>
+  
+  <!-- 图片预览模态框 -->
+  <div id="image-modal" class="image-modal">
+    <div class="image-modal-content">
+      <img src="" alt="预览图片">
+    </div>
+    <div class="image-modal-close">&times;</div>
+  </div>
+  
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/user.js"></script>
+  <script defer src="js/stats.js"></script>
+  <script defer src="js/posts.js"></script>
+  <script defer src="js/comments.js"></script>
+  <script defer src="js/levelSystem.js"></script>
+  <script defer src="js/main.js"></script>
+  <script>
+    // 页面初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化用户管理
+      userManager.init();
+      
+      // 设置登录/注册按钮事件监听器
+      userManager.setupEventListeners();
+      
+      // 帖子管理器已在 main.js 中初始化，此处不再重复初始化
+      
+      // 新帖子按钮事件
+      const newPostBtn = document.getElementById('new-post-btn');
+      const newPostPlaceholder = document.getElementById('new-post-placeholder');
+      
+      if (newPostBtn) {
+        newPostBtn.addEventListener('click', function() {
+          // 检查是否已登录
+          const savedUser = localStorage.getItem('forumUser');
+          if (savedUser) {
+            window.location.href = 'edit-simple.html';
+          } else {
+            utils.showNotification('请先登录后再发布帖子', 'error');
+            window.location.href = 'login.html';
+          }
+        });
+      }
+      
+      if (newPostPlaceholder) {
+        newPostPlaceholder.addEventListener('click', function() {
+          const savedUser = localStorage.getItem('forumUser');
+          if (savedUser) {
+            window.location.href = 'edit-simple.html';
+          } else {
+            utils.showNotification('请先登录后再发布帖子', 'error');
+            window.location.href = 'login.html';
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

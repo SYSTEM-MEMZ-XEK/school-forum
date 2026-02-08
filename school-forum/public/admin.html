@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>论坛管理后台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- KaTeX数学公式支持（本地版本） -->
+    <link rel="stylesheet" href="/libs/katex/katex.min.css">
+    <script defer src="/libs/katex/katex.min.js"></script>
+    <script defer src="/libs/katex/auto-render.min.js"></script>
+    <!-- Markdown-it 渲染支持（本地版本） -->
+    <script src="/libs/markdown-it/markdown-it.min.js"></script>
+</head>
+<body>
+    <!-- 在 admin-header 部分添加管理员信息 -->
+<div class="admin-header">
+  <div class="admin-header-content">
+    <div class="admin-header-title">
+      <h1><i class="fas fa-cogs"></i> 论坛管理后台</h1>
+      <p>欢迎使用论坛管理面板，请谨慎操作</p>
+      <div id="admin-info" style="margin-top: 10px; font-size: 14px; opacity: 0.8;">
+        <!-- 管理员信息将通过JS动态显示 -->
+      </div>
+    </div>
+    
+    <div id="user-actions" class="admin-header-actions">
+      <!-- 用户头像（登录后显示） -->
+      <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+        <i class="fas fa-user-circle"></i>
+        <div class="header-user-dropdown">
+          <div class="header-user-info">
+            <div class="header-user-name" id="header-username">用户名</div>
+            <div class="header-user-class" id="header-user-class">班级信息</div>
+          </div>
+          <div class="header-user-menu">
+            <a href="profile.html" class="header-menu-item">
+              <i class="fas fa-user"></i> 个人资料
+            </a>
+            <a href="settings.html" class="header-menu-item">
+              <i class="fas fa-cog"></i> 设置
+            </a>
+            <a href="message.html" class="header-menu-item">
+              <i class="fas fa-bell"></i> 消息
+            </a>
+            <div class="header-menu-divider"></div>
+            <button id="header-logout-btn" class="header-menu-item logout">
+              <i class="fas fa-sign-out-alt"></i> 退出登录
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 登录/注册按钮（未登录时显示） -->
+      <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+      <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+    </div>
+  </div>
+</div>
+        
+        <div class="admin-nav">
+            <button onclick="showSection('dashboard')" class="active">
+                <i class="fas fa-tachometer-alt"></i> 仪表盘
+            </button>
+            <button onclick="showSection('posts')">
+                <i class="fas fa-file-alt"></i> 帖子管理
+            </button>
+            <button onclick="showSection('comments')">
+                <i class="fas fa-comments"></i> 评论管理
+            </button>
+            <button onclick="showSection('users')">
+                <i class="fas fa-users"></i> 用户管理
+            </button>
+            <button onclick="showSection('banned-users')">
+                <i class="fas fa-ban"></i> 封禁用户
+            </button>
+            <button onclick="showSection('logs')">
+                <i class="fas fa-file-alt"></i> 系统日志
+            </button>
+            <button onclick="showSection('stats')">
+                <i class="fas fa-chart-bar"></i> 详细统计
+            </button>
+            <button onclick="showSection('settings')">
+                <i class="fas fa-cog"></i> 系统配置
+            </button>
+            <button onclick="logout()" style="margin-left: auto; background: var(--error-color); color: white;">
+                <i class="fas fa-sign-out-alt"></i> 退出管理
+            </button>
+        </div>
+        
+        <!-- 仪表盘 -->
+        <div id="dashboard" class="admin-section active">
+            <div class="section-header">
+                <h2><i class="fas fa-tachometer-alt"></i> 系统概览</h2>
+                <button onclick="refreshDashboard()" class="action-btn btn-info">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+            
+            <div class="stats-grid" id="dashboard-stats">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                <div class="distribution-card">
+                    <h4><i class="fas fa-clock"></i> 最近帖子</h4>
+                    <div id="recent-posts" class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+                <div class="distribution-card">
+                    <h4><i class="fas fa-user-plus"></i> 新注册用户</h4>
+                    <div id="recent-users" class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 帖子管理 -->
+        <div id="posts" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-file-alt"></i> 帖子管理</h2>
+                <div class="search-box">
+                    <input type="text" id="posts-search" placeholder="搜索帖子内容...">
+                    <button onclick="searchPosts()"><i class="fas fa-search"></i> 搜索</button>
+                </div>
+            </div>
+            
+            <div class="data-table-container">
+                <table class="data-table">
+                    <!-- 帖子管理表格头 -->
+                    <thead>
+                        <tr>
+                            <th>帖子内容</th>
+                            <th>作者</th>
+                            <th>时间</th>
+                            <th>点赞/评论</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="posts-list">
+                        <tr>
+                            <td colspan="6" class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="posts-pagination">
+                <!-- 分页按钮将通过JS生成 -->
+            </div>
+        </div>
+        
+        <!-- 评论管理 -->
+        <div id="comments" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-comments"></i> 评论管理</h2>
+                <div class="search-box">
+                    <input type="text" id="comments-search" placeholder="搜索评论内容...">
+                    <button onclick="searchComments()"><i class="fas fa-search"></i> 搜索</button>
+                </div>
+            </div>
+            
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>评论内容</th>
+                            <th>评论者</th>
+                            <th>所属帖子</th>
+                            <th>时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comments-list">
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="comments-pagination">
+                <!-- 分页按钮将通过JS生成 -->
+            </div>
+        </div>
+        
+        <!-- 用户管理 -->
+        <div id="users" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> 用户管理</h2>
+                <div class="search-box">
+                    <input type="text" id="users-search" placeholder="搜索用户名...">
+                    <button onclick="searchUsers()"><i class="fas fa-search"></i> 搜索</button>
+                </div>
+            </div>
+            
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>QQ号</th>
+                            <th>学校信息</th>
+                            <th>注册时间</th>
+                            <th>发帖/评论</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list">
+                        <tr>
+                            <td colspan="7" class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="users-pagination">
+                <!-- 分页按钮将通过JS生成 -->
+            </div>
+        </div>
+        
+        <!-- 封禁用户 -->
+        <div id="banned-users" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-ban"></i> 封禁用户管理</h2>
+                <button onclick="loadBannedUsers()" class="action-btn btn-info">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+            
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>QQ号</th>
+                            <th>封禁原因</th>
+                            <th>封禁时间</th>
+                            <th>解封时间</th>
+                            <th>操作人</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="banned-users-list">
+                        <tr>
+                            <td colspan="7" class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 系统日志 -->
+        <div id="logs" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-file-alt"></i> 系统日志</h2>
+                <div class="log-actions">
+                    <button onclick="adminManager.refreshLogs()" class="action-btn btn-info" title="刷新日志">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                    <button onclick="adminManager.showClearLogsModal()" class="action-btn btn-warning" title="清空当前日期日志">
+                        <i class="fas fa-eraser"></i> 清空
+                    </button>
+                    <button onclick="adminManager.showDeleteLogsModal()" class="action-btn btn-danger" title="删除当前日期日志文件">
+                        <i class="fas fa-trash-alt"></i> 删除
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 日志统计和筛选 -->
+            <div class="log-filters-container">
+                <div class="log-date-selector">
+                    <label><i class="fas fa-calendar-alt"></i> 选择日期：</label>
+                    <select id="log-date-select" onchange="adminManager.loadLogs()">
+                        <option value="">加载中...</option>
+                    </select>
+                    <span class="log-date-info" id="log-date-info"></span>
+                </div>
+                
+                <div class="log-level-filters">
+                    <button class="log-level-btn active" data-level="ALL" onclick="adminManager.filterLogsByLevel('ALL')">
+                        <i class="fas fa-list"></i> 全部
+                    </button>
+                    <button class="log-level-btn log-info" data-level="INFO" onclick="adminManager.filterLogsByLevel('INFO')">
+                        <i class="fas fa-info-circle"></i> 信息
+                    </button>
+                    <button class="log-level-btn log-warn" data-level="WARN" onclick="adminManager.filterLogsByLevel('WARN')">
+                        <i class="fas fa-exclamation-triangle"></i> 警告
+                    </button>
+                    <button class="log-level-btn log-error" data-level="ERROR" onclick="adminManager.filterLogsByLevel('ERROR')">
+                        <i class="fas fa-times-circle"></i> 错误
+                    </button>
+                    <button class="log-level-btn log-success" data-level="SUCCESS" onclick="adminManager.filterLogsByLevel('SUCCESS')">
+                        <i class="fas fa-check-circle"></i> 成功
+                    </button>
+                </div>
+                
+                <div class="log-search-box">
+                    <input type="text" id="logs-search" placeholder="搜索日志内容..." onkeyup="adminManager.handleLogSearch(event)">
+                    <button onclick="adminManager.loadLogs()" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 日志统计信息 -->
+            <div class="log-stats-container" id="log-stats">
+                <div class="log-stat-item">
+                    <span class="stat-label">总日志数：</span>
+                    <span class="stat-value" id="stat-total">0</span>
+                </div>
+                <div class="log-stat-item stat-info">
+                    <span class="stat-label">信息：</span>
+                    <span class="stat-value" id="stat-info">0</span>
+                </div>
+                <div class="log-stat-item stat-warn">
+                    <span class="stat-label">警告：</span>
+                    <span class="stat-value" id="stat-warn">0</span>
+                </div>
+                <div class="log-stat-item stat-error">
+                    <span class="stat-label">错误：</span>
+                    <span class="stat-value" id="stat-error">0</span>
+                </div>
+                <div class="log-stat-item stat-success">
+                    <span class="stat-label">成功：</span>
+                    <span class="stat-value" id="stat-success">0</span>
+                </div>
+            </div>
+            
+            <!-- 日志列表 -->
+            <div class="log-list-container">
+                <div id="logs-list" class="log-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination" id="logs-pagination">
+                <!-- 分页按钮将通过JS生成 -->
+            </div>
+        </div>
+        
+        <!-- 详细统计 -->
+        <div id="stats" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-bar"></i> 详细统计</h2>
+                <button onclick="loadDetailedStats()" class="action-btn btn-info">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+            
+            <div class="stats-grid" id="detailed-stats-basic">
+                <!-- 基础统计将通过JS加载 -->
+            </div>
+            
+            <div class="distribution-grid">
+                <div class="distribution-card">
+                    <h4><i class="fas fa-graduation-cap"></i> 年级分布</h4>
+                    <div id="grade-distribution">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> 加载中...
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="distribution-card">
+                    <h4><i class="fas fa-school"></i> 学校分布</h4>
+                    <div id="school-distribution">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> 加载中...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="distribution-card" style="margin-top: 20px;">
+                <h4><i class="fas fa-fire"></i> 活跃用户排行</h4>
+                <div id="active-users-ranking">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 系统配置 -->
+        <div id="settings" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-cog"></i> 系统配置</h2>
+                <button onclick="adminManager.loadConfig()" class="action-btn btn-info">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+            
+            <div class="config-container">
+                <!-- 管理员管理 -->
+                <div class="config-section">
+                    <h3><i class="fas fa-user-shield"></i> 管理员管理</h3>
+                    <div class="config-content">
+                        <div class="admin-list" id="admin-list">
+                            <div class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </div>
+                        </div>
+                        <button onclick="adminManager.showAddAdminModal()" class="action-btn btn-success">
+                            <i class="fas fa-plus"></i> 添加管理员
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 文件上传配置 -->
+                <div class="config-section">
+                    <h3><i class="fas fa-upload"></i> 文件上传配置</h3>
+                    <div class="config-content">
+                        <div class="form-group">
+                            <label>允许的文件类型</label>
+                            <input type="text" id="upload-allowed-types" 
+                                   placeholder="image/jpeg,image/png,image/gif,image/webp"
+                                   class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>最大文件大小 (MB)</label>
+                            <input type="number" id="upload-max-size" 
+                                   min="1" max="100" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>最大文件数量</label>
+                            <input type="number" id="upload-max-files" 
+                                   min="1" max="50" class="config-input">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 内容长度限制 -->
+                <div class="config-section">
+                    <h3><i class="fas fa-text-width"></i> 内容长度限制</h3>
+                    <div class="config-content">
+                        <div class="form-group">
+                            <label>帖子最大长度</label>
+                            <input type="number" id="content-post-limit" 
+                                   min="100" max="50000" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>评论最大长度</label>
+                            <input type="number" id="content-comment-limit" 
+                                   min="10" max="5000" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>用户名最小长度</label>
+                            <input type="number" id="content-username-min" 
+                                   min="2" max="10" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>用户名最大长度</label>
+                            <input type="number" id="content-username-max" 
+                                   min="10" max="50" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>QQ号最小长度</label>
+                            <input type="number" id="content-qq-min" 
+                                   min="5" max="10" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>QQ号最大长度</label>
+                            <input type="number" id="content-qq-max" 
+                                   min="10" max="20" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>密码最小长度</label>
+                            <input type="number" id="content-password-min" 
+                                   min="4" max="20" class="config-input">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 分页配置 -->
+                <div class="config-section">
+                    <h3><i class="fas fa-list-ol"></i> 分页配置</h3>
+                    <div class="config-content">
+                        <div class="form-group">
+                            <label>默认页码</label>
+                            <input type="number" id="pagination-default-page" 
+                                   min="1" max="10" class="config-input">
+                        </div>
+                        <div class="form-group">
+                            <label>默认每页数量</label>
+                            <input type="number" id="pagination-default-limit" 
+                                   min="5" max="100" class="config-input">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 保存按钮 -->
+                <div class="config-actions">
+                    <button onclick="adminManager.saveConfig()" class="action-btn btn-success">
+                        <i class="fas fa-save"></i> 保存配置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 封禁用户模态框 -->
+    <div id="banModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>封禁用户</h3>
+                <button class="close-modal" onclick="closeModal('banModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>封禁时长</label>
+                <select id="banDuration">
+                    <option value="1">1天</option>
+                    <option value="3">3天</option>
+                    <option value="7" selected>7天</option>
+                    <option value="30">30天</option>
+                    <option value="365">永久封禁</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>封禁原因</label>
+                <textarea id="banReason" rows="3" placeholder="请输入封禁原因..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('banModal')">取消</button>
+                <button class="btn-danger" onclick="confirmBan()">确认封禁</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 删除帖子模态框 -->
+    <div id="deletePostModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>删除帖子</h3>
+                <button class="close-modal" onclick="closeModal('deletePostModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>删除原因</label>
+                <textarea id="deleteReason" rows="3" placeholder="请输入删除原因..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('deletePostModal')">取消</button>
+                <button class="btn-danger" onclick="confirmDeletePost()">确认删除</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 删除评论模态框 -->
+    <div id="deleteCommentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>删除评论</h3>
+                <button class="close-modal" onclick="closeModal('deleteCommentModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>删除原因</label>
+                <textarea id="deleteCommentReason" rows="3" placeholder="请输入删除原因..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('deleteCommentModal')">取消</button>
+                <button class="btn-danger" onclick="confirmDeleteComment()">确认删除</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加管理员模态框 -->
+    <div id="addAdminModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加管理员</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('addAdminModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>用户ID或QQ号</label>
+                <input type="text" id="newAdminId" placeholder="请输入用户ID或QQ号..." 
+                       class="config-input">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('addAdminModal')">取消</button>
+                <button class="btn-success" onclick="adminManager.confirmAddAdmin()">添加</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 删除管理员模态框 -->
+    <div id="deleteAdminModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>删除管理员</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('deleteAdminModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <p>确定要删除管理员 <strong id="deleteAdminName"></strong> 吗？</p>
+                <input type="hidden" id="deleteAdminId">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('deleteAdminModal')">取消</button>
+                <button class="btn-danger" onclick="adminManager.confirmDeleteAdmin()">删除</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 查看帖子详情模态框 -->
+    <div id="viewPostModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>帖子详情</h3>
+                <button class="close-modal" onclick="closeModal('viewPostModal')">&times;</button>
+            </div>
+            <div id="post-detail-content" class="post-detail-view">
+                <!-- 帖子详情内容将通过JS动态加载 -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('viewPostModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 解封用户模态框 -->
+    <div id="unbanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>解封用户</h3>
+                <button class="close-modal" onclick="closeModal('unbanModal')">&times;</button>
+            </div>
+            <p>确定要解封用户 <strong id="unban-username"></strong> 吗？</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('unbanModal')">取消</button>
+                <button class="btn-success" onclick="confirmUnban()">确认解封</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 清空日志模态框 -->
+    <div id="clearLogsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>清空日志</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('clearLogsModal')">&times;</button>
+            </div>
+            <p>确定要清空 <strong id="clear-logs-date"></strong> 的所有日志吗？</p>
+            <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> 此操作将清空该日期的所有日志内容，但保留日志文件。</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('clearLogsModal')">取消</button>
+                <button class="btn-warning" onclick="adminManager.confirmClearLogs()">确认清空</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除日志文件模态框 -->
+    <div id="deleteLogsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>删除日志文件</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('deleteLogsModal')">&times;</button>
+            </div>
+            <p>确定要删除 <strong id="delete-logs-date"></strong> 的日志文件吗？</p>
+            <p class="text-danger"><i class="fas fa-exclamation-circle"></i> 此操作将永久删除该日期的日志文件，无法恢复！</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('deleteLogsModal')">取消</button>
+                <button class="btn-danger" onclick="adminManager.confirmDeleteLogs()">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/user.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+      // 页面加载完成后初始化
+      document.addEventListener('DOMContentLoaded', function() {
+        // 初始化用户管理
+        userManager.init();
+        
+        // 设置登录/注册按钮事件监听器
+        userManager.setupEventListeners();
+        
+        // 管理员后台初始化已在admin.js中处理
+      });
+    </script>
+</body>
+</html>

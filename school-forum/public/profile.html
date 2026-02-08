@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人主页 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <!-- KaTeX数学公式支持（本地版本） -->
+  <link rel="stylesheet" href="/libs/katex/katex.min.css">
+  <script defer src="/libs/katex/katex.min.js"></script>
+  <script defer src="/libs/katex/auto-render.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <i class="fas fa-comments"></i>
+        <h1>校园论坛</h1>
+      </div>
+      <div class="notification-area" id="notificationArea"></div>
+      <div id="user-actions">
+        <!-- 用户头像（登录后显示） -->
+        <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+          <i class="fas fa-user-circle"></i>
+          <div class="header-user-dropdown">
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-username">用户名</div>
+              <div class="header-user-class" id="header-user-class">班级信息</div>
+            </div>
+            <div class="header-user-menu">
+              <a href="profile.html" class="header-menu-item">
+                <i class="fas fa-user"></i> 个人资料
+              </a>
+              <a href="settings.html" class="header-menu-item">
+                <i class="fas fa-cog"></i> 设置
+              </a>
+              <a href="message.html" class="header-menu-item">
+                <i class="fas fa-bell"></i> 消息
+              </a>
+              <div class="header-menu-divider"></div>
+              <button id="header-logout-btn" class="header-menu-item logout">
+                <i class="fas fa-sign-out-alt"></i> 退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 登录/注册按钮（未登录时显示） -->
+        <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="main-content">
+      <div>
+        <!-- 返回按钮 -->
+        <div class="back-button-container">
+          <a href="index.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> 返回首页
+          </a>
+        </div>
+        
+        <!-- 用户信息卡片 -->
+        <div class="profile-header">
+          <div class="profile-avatar" id="profile-avatar">
+            <!-- 通过JS动态生成 -->
+          </div>
+          <div class="profile-info">
+            <div class="profile-header">
+              <h1 id="profile-username">加载中...</h1>
+              <div class="profile-class" id="profile-class">加载中...</div>
+              <div class="profile-level" id="profile-level"></div>
+            </div>
+            <div class="profile-stats">
+              <div class="stat-item">
+                <span class="stat-label">帖子</span>
+                <span class="stat-value" id="post-count">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">评论</span>
+                <span class="stat-value" id="comment-count">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">获赞</span>
+                <span class="stat-value" id="like-count">0</span>
+              </div>
+            </div>
+            <div class="profile-stats">
+              <div class="stat-item">
+                <span class="stat-label">活跃度</span>
+                <span class="stat-value" id="activity-count">0</span>
+              </div>
+            </div>
+            <div class="profile-meta">
+              <div class="meta-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="join-date">加入时间：加载中...</span>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-clock"></i>
+                <span id="last-login">最后登录：加载中...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 用户帖子列表 -->
+        <div class="profile-posts-section">
+          <h2 class="section-title">
+            <i class="fas fa-file-alt"></i> 发布的帖子
+            <span class="posts-count" id="posts-count">(0)</span>
+          </h2>
+          
+          <div class="posts-filter">
+            <button class="filter-btn active" data-filter="all">全部帖子</button>
+            <button class="filter-btn" data-filter="recent">最近发布</button>
+            <button class="filter-btn" data-filter="popular">最受欢迎</button>
+          </div>
+          
+          <div class="profile-posts-list" id="profile-posts-container">
+            <div class="loading">
+              <i class="fas fa-spinner fa-spin"></i> 加载帖子中...
+            </div>
+          </div>
+          
+          <div class="empty-state" id="no-posts-message" style="display: none;">
+            <i class="fas fa-file-alt"></i>
+            <p>该用户还没有发布过任何帖子</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 侧边栏 -->
+      <div class="sidebar">
+        <!-- 用户面板 -->
+        <div class="user-panel" id="user-panel">
+          <div class="user-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="user-info">
+            <h3 id="username">访客</h3>
+            <div id="user-class">请登录查看信息</div>
+            <div id="user-level-progress" class="user-level-info"></div>
+          </div>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="statistics-card">
+          <h2 class="stat-title">论坛数据统计</h2>
+          <div class="stat-item">
+            <span>今日发帖</span>
+            <span id="today-posts" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总用户数</span>
+            <span id="total-users" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总帖子数</span>
+            <span id="total-posts" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span>总评论数</span>
+            <span id="total-comments" class="stat-value">0</span>
+          </div>
+        </div>
+        
+        <!-- 论坛指南 -->
+        <div class="guidelines-card">
+          <h2 class="section-title">校园论坛指南</h2>
+          <ul class="guidelines-list">
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>请提供准确的学校和班级信息，便于同学交流</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>尊重他人，文明发言，共同维护良好的交流环境</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>使用匿名功能时仍需遵守论坛规范</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>禁止发布涉及敏感内容的帖子</div>
+            </li>
+            <li>
+              <i class="fas fa-check-circle"></i>
+              <div>遇到问题可向版主反馈</div>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- 通知 -->
+        <div class="notification">
+          <i class="fas fa-info-circle"></i> 
+          提示：本系统仅收集必要的学校信息以便校园社区交流，所有个人信息均严格保密。
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 图片预览模态框 -->
+  <div id="image-modal" class="image-modal">
+    <div class="image-modal-content">
+      <img src="" alt="预览图片">
+    </div>
+    <div class="image-modal-close">&times;</div>
+  </div>
+  
+  <script src="js/utils.js"></script>
+  <script src="js/user.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/levelSystem.js"></script>
+  <script src="js/profile.js"></script>
+  <script>
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化用户管理
+      userManager.init();
+      
+      // 初始化统计
+      statsManager.init();
+      
+      // 初始化个人主页
+      profileManager.init();
+      
+      // 设置登录/注册按钮事件
+      userManager.setupEventListeners();
+      
+      // 调试：检查主题是否已应用
+      setTimeout(function() {
+        console.log('当前主题:', userManager.state.settings.theme);
+        console.log('下拉菜单背景色:', getComputedStyle(document.documentElement).getPropertyValue('--background-card'));
+        console.log('下拉菜单文字颜色:', getComputedStyle(document.documentElement).getPropertyValue('--text-color'));
+        
+        // 如果用户已登录且有主题设置，确保主题已应用
+        if (userManager.state.currentUser && userManager.state.settings.theme) {
+          console.log('重新应用主题:', userManager.state.settings.theme);
+          userManager.applyTheme(userManager.state.settings.theme);
+        }
+      }, 100);
+    });
+  </script>
+</body>
+</html>

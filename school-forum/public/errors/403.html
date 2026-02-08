@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>访问被拒绝 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/error-styles.css">
+</head>
+<body class="error-403">
+  <!-- 顶栏 -->
+  <div class="error-header">
+    <div class="error-header-left">
+      <a href="../index.html" class="error-home-link">
+        <i class="fas fa-home"></i> 返回首页
+      </a>
+    </div>
+    
+    <div id="user-actions" class="error-header-actions">
+      <!-- 用户头像（登录后显示） -->
+      <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+        <i class="fas fa-user-circle"></i>
+        <div class="header-user-dropdown">
+          <div class="header-user-info">
+            <div class="header-user-name" id="header-username">用户名</div>
+            <div class="header-user-class" id="header-user-class">班级信息</div>
+          </div>
+          <div class="header-user-menu">
+            <a href="../profile.html" class="header-menu-item">
+              <i class="fas fa-user"></i> 个人资料
+            </a>
+            <a href="../settings.html" class="header-menu-item">
+              <i class="fas fa-cog"></i> 设置
+            </a>
+            <a href="../message.html" class="header-menu-item">
+              <i class="fas fa-bell"></i> 消息
+            </a>
+            <div class="header-menu-divider"></div>
+            <button id="header-logout-btn" class="header-menu-item logout">
+              <i class="fas fa-sign-out-alt"></i> 退出登录
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 登录/注册按钮（未登录时显示） -->
+      <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+      <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+    </div>
+  </div>
+  
+  <div class="error-container">
+    <div class="error-card">
+      <div class="error-icon">
+        <i class="fas fa-user-lock"></i>
+      </div>
+      <div class="error-code">403</div>
+      <h2 class="error-title">访问被拒绝</h2>
+      <p class="error-message">
+        抱歉，您没有权限访问此页面。<br>
+        此页面需要管理员权限才能访问。
+      </p>
+      
+      <div class="user-info" id="userInfo">
+        <i class="fas fa-user"></i>
+        <span>正在检测登录状态...</span>
+      </div>
+      
+      <div class="error-details">
+        <h4><i class="fas fa-info-circle"></i> 权限要求：</h4>
+        <ul>
+          <li>需要管理员账号登录</li>
+          <li>需要有效的管理员权限</li>
+          <li>需要正确的访问令牌</li>
+        </ul>
+        <h4><i class="fas fa-lightbulb"></i> 解决方案：</h4>
+        <ul>
+          <li>使用管理员账号登录</li>
+          <li>联系系统管理员获取权限</li>
+          <li>检查您的用户角色</li>
+        </ul>
+      </div>
+      
+      <div class="error-actions">
+        <button onclick="checkLoginStatus()" class="error-button login-button">
+          <i class="fas fa-sign-in-alt"></i> 重新登录
+        </button>
+        <button onclick="window.location.href='../index.html'" class="error-button">
+          <i class="fas fa-home"></i> 返回首页
+        </button>
+        <button onclick="window.history.back()" class="error-button secondary">
+          <i class="fas fa-arrow-left"></i> 返回上一页
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 检查用户登录状态
+    function checkLoginStatus() {
+      try {
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        
+        if (token && user) {
+          // 用户已登录，但可能不是管理员
+          const userData = JSON.parse(user);
+          const userInfo = document.getElementById('userInfo');
+          
+          userInfo.innerHTML = `
+            <i class="fas fa-user"></i>
+            <span>当前用户: ${userData.username || '未知用户'}</span>
+            <span style="color: var(--error-color); margin-left: 10px;">(非管理员)</span>
+          `;
+          
+          // 提供重新登录选项
+          if (confirm('您当前不是管理员账号。是否要重新登录？')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '../login.html';
+          }
+        } else {
+          // 用户未登录，跳转到登录页面
+          window.location.href = '../login.html';
+        }
+      } catch (error) {
+        console.error('检查登录状态时出错:', error);
+        window.location.href = '../login.html';
+      }
+    }
+    
+    // 页面加载时检查登录状态
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        const userInfo = document.getElementById('userInfo');
+        
+        if (token && user) {
+          const userData = JSON.parse(user);
+          userInfo.innerHTML = `
+            <i class="fas fa-user"></i>
+            <span>当前用户: ${userData.username || '未知用户'}</span>
+            <span style="color: var(--error-color); margin-left: 10px;">(非管理员)</span>
+          `;
+        } else {
+          userInfo.innerHTML = `
+            <i class="fas fa-user-times"></i>
+            <span>未登录</span>
+          `;
+        }
+      } catch (error) {
+        console.error('初始化用户信息时出错:', error);
+      }
+    });
+    
+    // 自动跳转到登录页面的倒计时
+    let redirectTimer = null;
+    function startRedirectTimer() {
+      let seconds = 10;
+      const timerElement = document.createElement('div');
+      timerElement.style.cssText = `
+        margin-top: 15px;
+        font-size: 14px;
+        color: var(--text-light);
+      `;
+      document.querySelector('.error-actions').parentNode.insertBefore(timerElement, document.querySelector('.error-actions'));
+      
+      redirectTimer = setInterval(() => {
+        seconds--;
+        timerElement.innerHTML = `<i class="fas fa-clock"></i> ${seconds}秒后自动跳转到登录页面...`;
+        
+        if (seconds <= 0) {
+          clearInterval(redirectTimer);
+          window.location.href = '../login.html';
+        }
+      }, 1000);
+    }
+    
+    // 如果用户未登录，启动倒计时
+    setTimeout(() => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        startRedirectTimer();
+      }
+    }, 5000);
+  </script>
+  
+  <!-- 用户管理系统 -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/user.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化用户管理
+      if (typeof userManager !== 'undefined') {
+        userManager.init();
+        userManager.setupEventListeners();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>页面未找到 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/error-styles.css">
+</head>
+<body class="error-404">
+  <!-- 顶栏 -->
+  <div class="error-header">
+    <div class="error-header-left">
+      <a href="../index.html" class="error-home-link">
+        <i class="fas fa-home"></i> 返回首页
+      </a>
+    </div>
+    
+    <div id="user-actions" class="error-header-actions">
+      <!-- 用户头像（登录后显示） -->
+      <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+        <i class="fas fa-user-circle"></i>
+        <div class="header-user-dropdown">
+          <div class="header-user-info">
+            <div class="header-user-name" id="header-username">用户名</div>
+            <div class="header-user-class" id="header-user-class">班级信息</div>
+          </div>
+          <div class="header-user-menu">
+            <a href="../profile.html" class="header-menu-item">
+              <i class="fas fa-user"></i> 个人资料
+            </a>
+            <a href="../settings.html" class="header-menu-item">
+              <i class="fas fa-cog"></i> 设置
+            </a>
+            <a href="../message.html" class="header-menu-item">
+              <i class="fas fa-bell"></i> 消息
+            </a>
+            <div class="header-menu-divider"></div>
+            <button id="header-logout-btn" class="header-menu-item logout">
+              <i class="fas fa-sign-out-alt"></i> 退出登录
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 登录/注册按钮（未登录时显示） -->
+      <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+      <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+    </div>
+  </div>
+  
+  <div class="error-container">
+    <div class="error-card">
+      <div class="error-icon">
+        <i class="fas fa-search"></i>
+      </div>
+      <div class="error-code">404</div>
+      <h2 class="error-title">页面未找到</h2>
+      <p class="error-message">
+        抱歉，您访问的页面不存在或已被移除。<br>
+        请检查URL是否正确，或使用搜索功能查找相关内容。
+      </p>
+      
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索论坛内容...">
+        <button onclick="searchForum()">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+      
+      <div class="error-actions">
+        <button onclick="window.location.href='../index.html'" class="error-button">
+          <i class="fas fa-home"></i> 返回首页
+        </button>
+        <button onclick="window.history.back()" class="error-button secondary">
+          <i class="fas fa-arrow-left"></i> 返回上一页
+        </button>
+        <button onclick="window.location.href='../admin.html'" class="error-button secondary">
+          <i class="fas fa-cog"></i> 管理面板
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function searchForum() {
+      const searchTerm = document.getElementById('searchInput').value.trim();
+      if (searchTerm) {
+        window.location.href = `../index.html?search=${encodeURIComponent(searchTerm)}`;
+      }
+    }
+    
+    // 允许按Enter键搜索
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchForum();
+      }
+    });
+    
+    // 自动聚焦搜索框
+    document.getElementById('searchInput').focus();
+  </script>
+  
+  <!-- 用户管理系统 -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/user.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化用户管理
+      if (typeof userManager !== 'undefined') {
+        userManager.init();
+        userManager.setupEventListeners();
+      }
+    });
+  </script>
+</body>
+</html>

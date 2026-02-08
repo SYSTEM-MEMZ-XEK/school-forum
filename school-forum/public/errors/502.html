@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>服务器错误 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/error-styles.css">
+</head>
+<body class="error-502">
+  <!-- 顶栏 -->
+  <div class="error-header">
+    <div class="error-header-left">
+      <a href="../index.html" class="error-home-link">
+        <i class="fas fa-home"></i> 返回首页
+      </a>
+    </div>
+    
+    <div id="user-actions" class="error-header-actions">
+      <!-- 用户头像（登录后显示） -->
+      <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+        <i class="fas fa-user-circle"></i>
+        <div class="header-user-dropdown">
+          <div class="header-user-info">
+            <div class="header-user-name" id="header-username">用户名</div>
+            <div class="header-user-class" id="header-user-class">班级信息</div>
+          </div>
+          <div class="header-user-menu">
+            <a href="../profile.html" class="header-menu-item">
+              <i class="fas fa-user"></i> 个人资料
+            </a>
+            <a href="../settings.html" class="header-menu-item">
+              <i class="fas fa-cog"></i> 设置
+            </a>
+            <a href="../message.html" class="header-menu-item">
+              <i class="fas fa-bell"></i> 消息
+            </a>
+            <div class="header-menu-divider"></div>
+            <button id="header-logout-btn" class="header-menu-item logout">
+              <i class="fas fa-sign-out-alt"></i> 退出登录
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 登录/注册按钮（未登录时显示） -->
+      <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+      <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+    </div>
+  </div>
+  
+  <div class="error-container">
+    <div class="error-card">
+      <div class="error-icon">
+        <i class="fas fa-server"></i>
+      </div>
+      <div class="error-code">502</div>
+      <h2 class="error-title">服务器网关错误</h2>
+      <p class="error-message">
+        抱歉，服务器暂时无法处理您的请求。<br>
+        这可能是由于服务器维护或网络连接问题导致的。
+      </p>
+      
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>正在检测服务器状态...</span>
+      </div>
+      
+      <div class="error-details">
+        <h4><i class="fas fa-info-circle"></i> 可能的原因：</h4>
+        <ul>
+          <li>服务器正在进行维护或更新</li>
+          <li>后端服务暂时不可用</li>
+          <li>网络连接出现问题</li>
+          <li>请求超时</li>
+        </ul>
+        <h4><i class="fas fa-lightbulb"></i> 您可以尝试：</h4>
+        <ul>
+          <li>稍后重试</li>
+          <li>刷新页面</li>
+          <li>检查网络连接</li>
+          <li>联系管理员</li>
+        </ul>
+      </div>
+      
+      <div class="error-actions">
+        <button onclick="retryConnection()" class="error-button retry-button">
+          <i class="fas fa-redo"></i> 重试连接
+        </button>
+        <button onclick="window.location.href='../index.html'" class="error-button">
+          <i class="fas fa-home"></i> 返回首页
+        </button>
+        <button onclick="window.location.reload()" class="error-button secondary">
+          <i class="fas fa-sync-alt"></i> 刷新页面
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function retryConnection() {
+      const retryBtn = document.querySelector('.retry-button');
+      const originalText = retryBtn.innerHTML;
+      
+      // 显示重试状态
+      retryBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在重试...';
+      retryBtn.disabled = true;
+      
+      // 模拟重试过程
+      setTimeout(() => {
+        // 检查服务器状态
+        fetch('/health')
+          .then(response => {
+            if (response.ok) {
+              // 服务器恢复正常，刷新页面
+              window.location.reload();
+            } else {
+              throw new Error('服务器仍未就绪');
+            }
+          })
+          .catch(error => {
+            // 显示错误信息
+            alert('服务器暂时无法连接，请稍后再试。');
+            retryBtn.innerHTML = originalText;
+            retryBtn.disabled = false;
+          });
+      }, 2000);
+    }
+    
+    // 自动检测服务器状态
+    function checkServerStatus() {
+      fetch('/health')
+        .then(response => {
+          if (response.ok) {
+            // 服务器正常，自动刷新
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          }
+        })
+        .catch(error => {
+          // 服务器仍然不可用，继续显示错误页面
+          console.log('服务器状态检查失败');
+        });
+    }
+    
+    // 每30秒检查一次服务器状态
+    setInterval(checkServerStatus, 30000);
+    
+    // 页面加载后立即检查一次
+    setTimeout(checkServerStatus, 5000);
+  </script>
+  
+  <!-- 用户管理系统 -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/user.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化用户管理
+      if (typeof userManager !== 'undefined') {
+        userManager.init();
+        userManager.setupEventListeners();
+      }
+    });
+  </script>
+</body>
+</html>

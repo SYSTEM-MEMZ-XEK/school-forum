@@ -1,0 +1,394 @@
+/* 个人主页样式 */
+
+/* 返回按钮 */
+.back-button-container {
+  margin-bottom: 20px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--background-card);
+  color: var(--text-color);
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+}
+
+.back-button:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.back-button i {
+  font-size: 16px;
+}
+
+/* 个人主页头部 */
+.profile-header {
+  background: var(--background-card);
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.profile-info h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.profile-class {
+  font-size: 16px;
+  color: var(--text-light);
+  margin-bottom: 20px;
+  padding: 8px 16px;
+  background: var(--primary-light);
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.profile-level {
+  margin-top: 10px;
+}
+
+.profile-level .level-badge {
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+
+.profile-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-stats .stat-label {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 5px;
+}
+
+.profile-stats .stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.meta-item i {
+  color: var(--primary-color);
+}
+
+/* 帖子筛选 */
+.posts-filter {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--background-card);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.filter-btn {
+  padding: 8px 20px;
+  background: var(--background-light);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--text-light);
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.filter-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.filter-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* 个人主页帖子列表 */
+.profile-posts-section {
+  background: var(--background-card);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: var(--shadow);
+}
+
+.profile-posts-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.posts-count {
+  font-size: 14px;
+  color: var(--text-light);
+  font-weight: normal;
+}
+
+.profile-posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 个人主页帖子卡片 */
+.profile-post {
+  background: var(--background-light);
+  border-radius: 10px;
+  padding: 20px;
+  transition: var(--transition);
+  border: 1px solid var(--border-color);
+}
+
+.profile-post:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--primary-light);
+}
+
+.profile-post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.profile-post-time {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.profile-post-content {
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.profile-post-content .tag {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-right: 8px;
+  margin-bottom: 10px;
+}
+
+.profile-post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+.profile-post-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.profile-post-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.profile-post-stat i {
+  font-size: 16px;
+}
+
+.profile-post-stat.likes i {
+  color: var(--error-color);
+}
+
+.profile-post-stat.comments i {
+  color: var(--primary-color);
+}
+
+.profile-post-stat.views i {
+  color: var(--text-light);
+}
+
+.profile-post-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.profile-post-action {
+  padding: 6px 15px;
+  background: var(--background-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-post-action:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.profile-post-action.view {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.profile-post-action.view:hover {
+  background: var(--secondary-color);
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: var(--border-color);
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+    font-size: 36px;
+  }
+  
+  .profile-stats {
+    justify-content: center;
+    gap: 20px;
+  }
+  
+  .profile-meta {
+    justify-content: center;
+  }
+  
+  .profile-post-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .profile-post-footer {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .profile-post-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-stats {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .profile-stats .stat-item {
+    flex: 0 0 calc(50% - 15px);
+  }
+  
+  .posts-filter {
+    flex-wrap: wrap;
+  }
+  
+  .filter-btn {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+  }
+}

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>发布新帖子 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/edit-simple.css">
+  <!-- Markdown-it 渲染支持（本地版本） -->
+  <script defer src="/libs/markdown-it/markdown-it.min.js"></script>
+</head>
+<body>
+  <!-- 通知区域 -->
+  <div class="notification-area" id="notificationArea"></div>
+
+  <div class="simple-edit-page">
+    <!-- 页面头部 -->
+    <div class="simple-header">
+      <div class="simple-header-left">
+        <h1><i class="fas fa-edit"></i> 发布新帖子</h1>
+      </div>
+      
+      <div id="user-actions" class="simple-header-actions">
+        <!-- 用户头像（登录后显示） -->
+        <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+          <i class="fas fa-user-circle"></i>
+          <div class="header-user-dropdown">
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-username">用户名</div>
+              <div class="header-user-class" id="header-user-class">班级信息</div>
+            </div>
+            <div class="header-user-menu">
+              <a href="profile.html" class="header-menu-item">
+                <i class="fas fa-user"></i> 个人资料
+              </a>
+              <a href="settings.html" class="header-menu-item">
+                <i class="fas fa-cog"></i> 设置
+              </a>
+              <a href="message.html" class="header-menu-item">
+                <i class="fas fa-bell"></i> 消息
+              </a>
+              <div class="header-menu-divider"></div>
+              <button id="header-logout-btn" class="header-menu-item logout">
+                <i class="fas fa-sign-out-alt"></i> 退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 登录/注册按钮（未登录时显示） -->
+        <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+      
+      <button class="back-btn" id="back-btn">
+        <i class="fas fa-arrow-left"></i> 返回首页
+      </button>
+    </div>
+    
+    <!-- 编辑器与预览 -->
+    <div class="editor-preview-container">
+      <!-- 编辑器区域 -->
+      <div class="editor-section">
+        <div class="section-header">
+          <h3><i class="fas fa-edit"></i> 编辑区域</h3>
+          <div class="char-count">
+            字数: <span id="char-count">0</span>
+          </div>
+        </div>
+        <div class="editor-area">
+          <textarea 
+            id="content" 
+            class="editor-textarea" 
+            placeholder="在这里输入你的帖子内容...支持Markdown格式"
+            rows="20"
+          ></textarea>
+        </div>
+      </div>
+      
+      <!-- 预览区域 -->
+      <div class="preview-section">
+        <div class="section-header">
+          <h3><i class="fas fa-eye"></i> 实时预览</h3>
+          <div class="preview-status">
+            <span id="preview-status">已更新</span>
+          </div>
+        </div>
+        <div class="preview-area" id="preview-area">
+          <div class="empty-preview">
+            <i class="fas fa-file-alt"></i>
+            <p>预览将在这里显示</p>
+            <small>开始输入内容以查看预览效果</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 上传区域 -->
+    <div class="upload-section">
+      <div class="section-header">
+        <h3><i class="fas fa-upload"></i> 上传附件</h3>
+      </div>
+      
+      <div class="upload-options">
+        <!-- 图片上传 -->
+        <div class="upload-option">
+          <div class="form-group">
+            <label for="image-upload">上传图片（最多20张）</label>
+            <input type="file" id="image-upload" multiple accept="image/*" style="display: none;">
+            <div class="image-upload-area disabled" id="image-upload-area" title="请先登录后再上传图片">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>点击或拖拽图片到这里</p>
+              <small>支持 JPG, PNG, GIF, WebP</small>
+            </div>
+            <div id="image-preview" class="image-preview"></div>
+          </div>
+        </div>
+        
+        <!-- 文本文件上传 -->
+        <div class="upload-option">
+          <div class="form-group">
+            <label for="text-file-upload">上传文本文件</label>
+            <input type="file" id="text-file-upload" accept=".txt,.md" style="display: none;" disabled>
+            <div class="text-upload-area disabled" id="text-upload-area" title="请先登录后再上传文件">
+              <i class="fas fa-file-upload"></i>
+              <p>点击上传.txt或.md文件</p>
+              <small>文件内容将加载到编辑器</small>
+            </div>
+            <div id="text-file-info" class="text-file-info" style="display: none;">
+              <i class="fas fa-file"></i>
+              <span id="text-file-name"></span>
+              <button type="button" class="remove-text-btn" id="remove-text-file">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 提交按钮 -->
+    <div class="submit-section">
+      <button class="submit-btn" id="submit-post" disabled>
+        <i class="fas fa-paper-plane"></i> 发布帖子
+      </button>
+      <p class="help-text" style="margin-top: 10px;">
+        发布前请确认内容符合论坛规范
+      </p>
+    </div>
+  </div>
+  
+  <!-- 加载必要的JavaScript文件 -->
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/user.js"></script>
+  <script defer src="js/posts.js"></script>
+  <script defer src="js/edit-simple.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化用户管理
+      if (typeof userManager !== 'undefined') {
+        userManager.init();
+        userManager.setupEventListeners();
+      }
+    });
+  </script>
+</body>
+</html>

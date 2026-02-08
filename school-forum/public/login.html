@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录/注册 - 校园论坛</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+  <!-- KaTeX数学公式支持（本地版本） -->
+  <link rel="stylesheet" href="/libs/katex/katex.min.css">
+  <script defer src="/libs/katex/katex.min.js"></script>
+  <script defer src="/libs/katex/auto-render.min.js"></script>
+</head>
+<body>
+  <div id="notificationArea" class="notification-area"></div>
+  
+  <div class="login-container">
+    <div class="login-wrapper">
+      <!-- 左侧欢迎区域 -->
+      <div class="login-welcome">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h1 class="welcome-title">欢迎来到校园论坛</h1>
+          <p class="welcome-subtitle">
+            连接校园，分享知识，交流思想<br>
+            加入我们的社区，与同学们一起成长
+          </p>
+          
+          <ul class="features-list">
+            <li><i class="fas fa-check-circle"></i> 安全的校园社区环境</li>
+            <li><i class="fas fa-check-circle"></i> 实时交流与讨论</li>
+            <li><i class="fas fa-check-circle"></i> 学习资源共享</li>
+            <li><i class="fas fa-check-circle"></i> 活动信息发布</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 右侧表单区域 -->
+      <div class="login-form-area">
+        <div class="form-header">
+          <h2 class="form-title">加入校园论坛</h2>
+          <p class="form-subtitle">登录或注册账号，开始您的校园交流之旅</p>
+        </div>
+
+        <div class="form-tabs">
+          <div class="tab-btn active" data-tab="login">用户登录</div>
+          <div class="tab-btn" data-tab="register">用户注册</div>
+          <div class="tab-btn admin-tab" data-tab="admin-login">管理员登录</div>
+        </div>
+
+        <!-- 用户登录表单 -->
+        <div id="login-form" class="form-section active">
+          <div class="form-group">
+            <label for="qq-login">QQ号</label>
+            <input type="text" id="qq-login" placeholder="请输入您的QQ号" required>
+          </div>
+          <div class="form-group">
+            <label for="password-login">密码</label>
+            <input type="password" id="password-login" placeholder="请输入密码" required>
+          </div>
+          <button id="confirm-login" class="login-button">立即登录</button>
+        </div>
+
+        <!-- 管理员登录表单 -->
+        <div id="admin-login-form" class="form-section">
+          <div class="admin-login-notice">
+            <i class="fas fa-shield-alt"></i>
+            <span>管理员登录需要管理员权限验证</span>
+          </div>
+          <div class="form-group">
+            <label for="qq-admin">管理员QQ号</label>
+            <input type="text" id="qq-admin" placeholder="请输入管理员QQ号" required>
+          </div>
+          <div class="form-group">
+            <label for="password-admin">管理员密码</label>
+            <input type="password" id="password-admin" placeholder="请输入管理员密码" required>
+          </div>
+          <button id="confirm-admin-login" class="login-button admin-button">管理员登录</button>
+        </div>
+
+        <!-- 注册表单 -->
+        <div id="register-form" class="form-section">
+          <div class="form-group">
+            <label for="qq-register">QQ号</label>
+            <input type="text" id="qq-register" placeholder="请输入QQ号" required>
+          </div>
+          <div class="form-group">
+            <label for="username-register">用户名</label>
+            <input type="text" id="username-register" placeholder="设置您的用户名" required>
+          </div>
+          <div class="form-group">
+            <label for="password-register">密码</label>
+            <input type="password" id="password-register" placeholder="设置登录密码" required>
+          </div>
+          <div class="form-group">
+            <label for="confirm-password">确认密码</label>
+            <input type="password" id="confirm-password" placeholder="再次输入密码" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="school-register">学校名称</label>
+              <select id="school-register" required>
+                <option value="">请选择学校</option>
+                <option value="天长中学">天长中学</option>
+                <option value="天长市炳辉中学">天长市炳辉中学</option>
+                <option value="天长市第二中学">天长市第二中学</option>
+                <option value="天长市关塘中学">天长市关塘中学</option>
+                <option value="天长市工业学校">天长市工业学校</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="enrollment-year-register">入学年份</label>
+              <select id="enrollment-year-register" required>
+                <option value="">请选择入学年份</option>
+                <!-- 年份选项将由JS动态生成 -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="class-register">班级</label>
+              <select id="class-register" required>
+                <option value="">请选择班级</option>
+                <option value="1班">1班</option>
+                <option value="2班">2班</option>
+                <option value="3班">3班</option>
+                <option value="4班">4班</option>
+                <option value="5班">5班</option>
+                <option value="6班">6班</option>
+                <option value="7班">7班</option>
+                <option value="8班">8班</option>
+                <option value="9班">9班</option>
+                <option value="10班">10班</option>
+                <option value="11班">11班</option>
+                <option value="12班">12班</option>
+                <option value="13班">13班</option>
+                <option value="14班">14班</option>
+                <option value="15班">15班</option>
+                <option value="16班">16班</option>
+                <option value="17班">17班</option>
+                <option value="18班">18班</option>
+                <option value="19班">19班</option>
+                <option value="20班">20班</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="confirm-register" class="login-button">立即注册</button>
+        </div>
+
+        <div class="back-link">
+          <a href="/"><i class="fas fa-arrow-left"></i> 返回论坛首页</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

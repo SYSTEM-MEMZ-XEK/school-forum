@@ -1,0 +1,396 @@
+/* 消息通知页面样式 */
+
+/* 返回按钮 */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--background-card);
+  color: var(--text-color);
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+}
+
+.back-button:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.back-button i {
+  font-size: 16px;
+}
+
+/* 页面头部 */
+.message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+  flex: 1;
+}
+
+.message-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 通知筛选 */
+.notification-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background: var(--background-card);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.filter-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.filter-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* 次要按钮样式 */
+.btn-secondary {
+  padding: 8px 16px;
+  background: var(--background-card);
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-light);
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* 通知容器 */
+.notifications-container {
+  background: var(--background-card);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+/* 通知项 */
+.notification-item {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.notification-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.notification-item.unread {
+  background: rgba(74, 144, 226, 0.05);
+}
+
+.notification-item.unread:hover {
+  background: rgba(74, 144, 226, 0.08);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+/* 通知图标 */
+.notification-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-icon.like {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--error-color);
+}
+
+.notification-icon.comment {
+  background: rgba(25, 135, 84, 0.1);
+  color: var(--success-color);
+}
+
+.notification-icon.system {
+  background: rgba(253, 126, 20, 0.1);
+  color: #fd7e14;
+}
+
+.notification-icon i {
+  font-size: 18px;
+}
+
+/* 通知内容 */
+.notification-content {
+  flex: 1;
+  min-width: 0; /* 防止文本溢出 */
+}
+
+.notification-user {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.notification-text {
+  color: var(--text-light);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.notification-text .post-title {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.notification-text .post-title:hover {
+  color: var(--primary-dark);
+}
+
+.notification-comment {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-top: 10px;
+  border-left: 3px solid var(--border-color);
+  font-size: 14px;
+  color: var(--text-color);
+  line-height: 1.4;
+}
+
+.notification-time {
+  font-size: 13px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notification-time i {
+  font-size: 12px;
+}
+
+/* 通知操作 */
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.notification-item:hover .notification-actions {
+  opacity: 1;
+}
+
+.notification-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-card);
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.notification-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.notification-btn.mark-read:hover {
+  background: rgba(25, 135, 84, 0.1);
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.notification-btn.delete:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--error-color);
+  border-color: var(--error-color);
+}
+
+/* 未读标记 */
+.unread-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error-color);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--background-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.empty-state i {
+  font-size: 64px;
+  color: var(--text-light);
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 24px;
+  color: var(--text-color);
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: var(--text-light);
+  font-size: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .message-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .message-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .notification-item {
+    padding: 15px;
+    flex-direction: column;
+  }
+  
+  .notification-actions {
+    opacity: 1;
+    margin-top: 10px;
+    justify-content: flex-end;
+  }
+  
+  .unread-badge {
+    top: 15px;
+    right: 15px;
+  }
+}
+
+/* 加载状态 */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-light);
+}
+
+.loading i {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+/* 系统消息样式 */
+.notification-user.system-message {
+  color: #fd7e14;
+  font-weight: 600;
+}
+
+.notification-system-content {
+  background: rgba(253, 126, 20, 0.05);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 10px;
+  border-left: 3px solid #fd7e14;
+}
+
+.notification-system-content > div {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+.notification-system-content > div:last-child {
+  margin-bottom: 0;
+}
+
+.notification-system-content strong {
+  color: var(--text-color);
+  font-weight: 600;
+}
