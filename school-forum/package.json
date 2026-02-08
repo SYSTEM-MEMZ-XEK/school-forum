@@ -7,10 +7,15 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@playwright/test": "^1.57.0",
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.27",
+    "markdown-it": "^14.1.0",
+    "mathjax": "^3.2.2",
     "multer": "^2.0.2",
     "uuid": "^11.1.0"
   }
