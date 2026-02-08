@@ -1,257 +1,286 @@
-# 校园论坛系统
+# 校园论坛 (School Forum)
 
-一个功能完整的校园论坛系统，专为学生社区设计，支持用户注册、发帖、评论、点赞、图片上传等功能。
+一个功能完整的校园论坛系统，支持用户注册登录、帖子发布、评论互动、等级系统、管理员管理等功能。
 
-## 项目简介
+## 功能特性
 
-这是一个基于 Node.js + Express 的校园论坛系统，具有以下特点：
+### 用户功能
+- 用户注册与登录（支持 QQ 号作为账号）
+- 个人资料管理（头像、昵称、简介等）
+- 用户等级系统（基于发帖和评论数量）
+- 消息通知系统
+- 密码修改
+- 账号设置
 
-- **用户系统**: 支持QQ号注册登录，包含学校、年级、班级信息
-- **帖子管理**: 发布、浏览、点赞、评论帖子
-- **匿名功能**: 支持匿名发帖和评论
-- **图片上传**: 支持多图片上传，自动生成预览
-- **管理员功能**: 帖子管理、用户管理、数据统计
-- **响应式设计**: 适配各种设备屏幕
+### 帖子功能
+- 帖子发布与编辑（支持 Markdown 和 LaTeX 数学公式）
+- 代码高亮显示（支持多种编程语言）
+- 图片上传（支持 JPEG、PNG、GIF、WebP 格式）
+- 帖子评论
+- 帖子搜索
+- 帖子浏览统计
+
+### 管理员功能
+- 用户管理（查看、封禁、解封用户）
+- 帖子管理（查看、删除、恢复帖子）
+- 已删除帖子管理
+- 封禁用户管理
+- 系统统计（用户数、帖子数、评论数等）
+- 配置管理（管理员账号、上传配置等）
+
+### 其他功能
+- 自定义错误页面（403、404、502）
+- 请求日志记录
+- 文件上传大小限制
+- 内容长度限制
 
 ## 技术栈
 
 ### 后端
-- **Node.js**: 运行时环境
-- **Express.js**: Web框架
-- **bcryptjs**: 密码加密
-- **multer**: 文件上传处理
-- **uuid**: 唯一标识符生成
-- **cors**: 跨域支持
+- Node.js
+- Express.js
+- bcryptjs（密码加密）
+- multer（文件上传）
+- uuid（唯一标识符生成）
 
 ### 前端
-- **原生HTML/CSS/JavaScript**: 无框架依赖
-- **Font Awesome**: 图标库
-- **响应式设计**: 适配移动端
+- HTML5
+- CSS3
+- JavaScript（原生）
+- Bootstrap（UI 框架）
+
+### 功能库
+- markdown-it（Markdown 解析）
+- highlight.js（代码高亮）
+- KaTeX（LaTeX 数学公式渲染）
+- MathJax（数学公式渲染）
 
 ## 项目结构
 
 ```
 school-forum/
-├── server.js              # 主服务器文件
-├── package.json           # 项目配置和依赖
-├── package-lock.json      # 依赖锁文件
-├── README.md              # 项目说明文档
-├── data/                  # 数据存储目录
-│   ├── users.json         # 用户数据
-│   ├── posts.json         # 帖子数据
-│   ├── banned_users.json  # 封禁用户数据
-│   └── deleted_posts.json # 删除帖子备份
-└── public/                # 前端静态文件
-    ├── index.html         # 主页面
-    ├── login.html         # 登录页面
-    ├── admin.html         # 管理员页面
-    ├── unauthorized.html  # 无权限页面
-    ├── style.css          # 样式文件
-    └── js/                # JavaScript文件
-        ├── main.js        # 主逻辑
-        ├── auth.js        # 认证相关
-        ├── user.js        # 用户管理
-        ├── posts.js       # 帖子功能
-        ├── comments.js    # 评论功能
-        ├── stats.js       # 统计功能
-        ├── admin.js       # 管理员功能
-        └── utils.js       # 工具函数
+├── data/                          # 数据文件目录
+│   ├── users.json                # 用户数据
+│   ├── posts.json                # 帖子数据
+│   ├── notifications.json        # 通知数据
+│   ├── deleted_posts.json        # 已删除帖子
+│   ├── banned_users.json         # 封禁用户
+│   ├── config.json               # 系统配置
+│   └── server-*.log              # 服务器日志
+├── public/                        # 静态资源
+│   ├── *.html                    # 前端页面
+│   ├── css/                      # 样式文件
+│   ├── js/                       # JavaScript 文件
+│   ├── libs/                     # 第三方库
+│   │   ├── highlight.js/        # 代码高亮库
+│   │   ├── katex/               # 数学公式库
+│   │   ├── markdown-it/         # Markdown 解析库
+│   │   └── mathjax/             # 数学公式渲染库
+│   ├── images/                   # 图片资源
+│   │   ├── avatars/             # 用户头像
+│   │   └── default-avatar.svg   # 默认头像
+│   └── errors/                   # 错误页面
+│       ├── 403.html
+│       ├── 404.html
+│       └── 502.html
+├── src/                           # 源代码
+│   ├── config/                   # 配置
+│   │   └── constants.js         # 常量配置
+│   ├── controllers/              # 控制器
+│   │   ├── adminController.js   # 管理员控制器
+│   │   ├── configController.js  # 配置控制器
+│   │   ├── notificationController.js # 通知控制器
+│   │   ├── postController.js    # 帖子控制器
+│   │   ├── statsController.js   # 统计控制器
+│   │   └── userController.js    # 用户控制器
+│   ├── middleware/               # 中间件
+│   │   ├── adminAuth.js         # 管理员认证
+│   │   └── uploadMiddleware.js  # 文件上传
+│   ├── routes/                   # 路由
+│   │   ├── adminRoutes.js       # 管理员路由
+│   │   ├── configRoutes.js      # 配置路由
+│   │   ├── notificationRoutes.js # 通知路由
+│   │   ├── postRoutes.js        # 帖子路由
+│   │   ├── statsRoutes.js       # 统计路由
+│   │   ├── userRoutes.js        # 用户路由
+│   │   └── index.js             # 路由入口
+│   └── utils/                    # 工具函数
+│       ├── authUtils.js         # 认证工具
+│       ├── configUtils.js       # 配置工具
+│       ├── dataUtils.js         # 数据工具
+│       ├── levelSystem.js       # 等级系统
+│       ├── logger.js            # 日志工具
+│       └── validationUtils.js   # 验证工具
+├── package.json                  # 项目配置
+├── package-lock.json             # 依赖锁定
+└── server.js                     # 服务器入口
 ```
 
-## 功能特性
-
-### 用户功能
-- ✅ 用户注册（QQ号、用户名、密码、学校、入学年份、班级）
-- ✅ 用户登录（支持自动登录）
-- ✅ 匿名发帖和评论
-- ✅ 帖子点赞和取消点赞
-- ✅ 图片上传和预览
-- ✅ 个人资料查看和编辑
-- ✅ 密码修改
-
-### 管理员功能
-- ✅ 帖子管理（查看、删除）
-- ✅ 用户管理（查看、封禁、解封）
-- ✅ 数据统计（用户活跃度、帖子统计）
-- ✅ 搜索功能（用户、帖子）
-- ✅ 封禁记录管理
-
-### 系统特性
-- ✅ 响应式设计
-- ✅ 数据验证和错误处理
-- ✅ 自动年级计算
-- ✅ 分页加载
-- ✅ 实时统计
-- ✅ 文件上传限制
-
-## 安装部署
+## 安装与运行
 
 ### 环境要求
 - Node.js 14.0 或更高版本
-- npm 或 yarn 包管理器
+- npm 6.0 或更高版本
 
-### 步骤1: 下载项目
-```bash
-# 克隆项目或下载压缩包
-# 进入项目目录
-cd school-forum
-```
+### 安装步骤
 
-### 步骤2: 安装依赖
+1. 克隆或下载项目
+
+2. 安装依赖
 ```bash
-# 使用npm
 npm install
-
-# 或使用yarn
-yarn install
 ```
 
-### 步骤3: 配置管理员
-在 `server.js` 文件的第3行附近，找到管理员配置：
-```javascript
-const ADMIN_USERS = [
-  '1635075096', // 替换为你的QQ号
-  // 可以添加更多管理员QQ号或用户ID
-];
-```
-将 `'1635075096'` 替换为你自己的QQ号，或者添加其他管理员用户的QQ号或用户ID。
-
-### 步骤4: 启动服务
+3. 启动服务器
 ```bash
-# 开发环境启动
 npm start
-
-# 或直接运行
-node server.js
 ```
 
-### 步骤5: 访问系统
-服务器启动后，访问以下地址：
-- 用户界面: http://localhost:3000
-- 管理员界面: http://localhost:3000/admin.html
-
-## 端口配置
-
-默认端口为3000，如需修改端口，可以通过环境变量设置：
-
-```bash
-# Linux/macOS
-export PORT=8080
-npm start
-
-# Windows (PowerShell)
-$env:PORT=8080
-npm start
-
-# 或者直接修改 server.js 中的 PORT 常量
+4. 访问论坛
 ```
+http://localhost:3000
+```
+
+## 配置说明
+
+系统配置位于 `data/config.json` 文件中，包含以下配置项：
+
+### 管理员配置
+```json
+"adminUsers": ["1145141919810"]
+```
+设置管理员 QQ 号列表
+
+### 文件上传配置
+```json
+"upload": {
+  "allowedTypes": ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"],
+  "maxFileSize": 33554432,
+  "maxFiles": 32
+}
+```
+- `allowedTypes`: 允许的文件类型
+- `maxFileSize`: 最大文件大小（字节）
+- `maxFiles`: 最大文件数量
+
+### 密码配置
+```json
+"password": {
+  "saltRounds": 10
+}
+```
+密码加密的 salt rounds
+
+### 分页配置
+```json
+"pagination": {
+  "defaultPage": 1,
+  "defaultLimit": 999999
+}
+```
+默认分页参数
+
+### 内容长度限制
+```json
+"contentLimits": {
+  "post": 10000,
+  "comment": 500,
+  "username": {
+    "min": 2,
+    "max": 20
+  },
+  "qq": {
+    "min": 5,
+    "max": 15
+  },
+  "password": {
+    "min": 6
+  }
+}
+```
+各种内容长度的限制
+
+## API 路由
+
+### 用户路由
+- `POST /api/users/register` - 用户注册
+- `POST /api/users/login` - 用户登录
+- `GET /api/users/profile` - 获取用户信息
+- `PUT /api/users/profile` - 更新用户信息
+- `POST /api/users/change-password` - 修改密码
+- `GET /api/users/:id` - 获取指定用户信息
+
+### 帖子路由
+- `GET /api/posts` - 获取帖子列表
+- `POST /api/posts` - 创建帖子
+- `GET /api/posts/:id` - 获取帖子详情
+- `PUT /api/posts/:id` - 更新帖子
+- `DELETE /api/posts/:id` - 删除帖子
+- `POST /api/posts/:id/comments` - 添加评论
+
+### 管理员路由
+- `GET /api/admin/users` - 获取所有用户
+- `POST /api/admin/users/:id/ban` - 封禁用户
+- `POST /api/admin/users/:id/unban` - 解封用户
+- `GET /api/admin/posts` - 获取所有帖子
+- `DELETE /api/admin/posts/:id` - 删除帖子
+- `GET /api/admin/deleted-posts` - 获取已删除帖子
+- `POST /api/admin/deleted-posts/:id/restore` - 恢复帖子
+- `GET /api/admin/banned-users` - 获取封禁用户列表
+
+### 统计路由
+- `GET /api/stats` - 获取系统统计信息
+
+### 通知路由
+- `GET /api/notifications` - 获取通知列表
+- `PUT /api/notifications/:id/read` - 标记通知为已读
+
+### 配置路由
+- `GET /api/config` - 获取系统配置
+- `PUT /api/config` - 更新系统配置
 
 ## 数据存储
 
-系统使用 JSON 文件存储数据：
-- `data/users.json`: 用户信息
-- `data/posts.json`: 帖子数据
-- `data/banned_users.json`: 封禁用户记录
-- `data/deleted_posts.json`: 删除帖子备份
+系统使用 JSON 文件存储数据，数据文件位于 `data/` 目录：
 
-首次启动时会自动创建这些文件。
-
-## 管理员功能说明
-
-### 管理员权限
-- 只有配置在 `ADMIN_USERS` 数组中的用户才能访问管理员功能
-- 管理员可以：
-  - 查看所有帖子（包括已删除的）
-  - 永久删除帖子和评论
-  - 封禁和解封用户
-  - 查看详细统计数据
-  - 管理用户信息
-
-### 管理员界面访问
-访问 `http://localhost:3000/admin.html`，使用管理员账号登录即可进入管理员界面。
-
-## API接口
-
-### 用户相关
-- `POST /register` - 用户注册
-- `POST /login` - 用户登录
-- `GET /users/:id` - 获取用户信息
-- `PUT /users/:id` - 修改用户资料
-
-### 帖子相关
-- `GET /posts` - 获取帖子列表（支持分页和搜索）
-- `POST /posts` - 发布新帖子
-- `GET /posts/:id` - 获取帖子详情
-- `POST /posts/:id/like` - 点赞/取消点赞
-- `POST /posts/:id/comments` - 添加评论
-- `DELETE /posts/:postId/comments/:commentId` - 删除评论
-
-### 统计相关
-- `GET /stats` - 获取论坛统计数据
-
-### 管理员相关
-- `GET /admin/posts` - 获取所有帖子（管理员）
-- `DELETE /admin/posts/:id` - 永久删除帖子
-- `GET /admin/users` - 获取所有用户
-- `POST /admin/users/:id/ban` - 封禁用户
-- `POST /admin/users/:id/unban` - 解封用户
-- `GET /admin/stats` - 获取详细统计数据
-- `GET /admin/recent-activity` - 获取最近活动
+- `users.json` - 用户数据
+- `posts.json` - 帖子数据
+- `notifications.json` - 通知数据
+- `deleted_posts.json` - 已删除帖子
+- `banned_users.json` - 封禁用户
+- `config.json` - 系统配置
 
 ## 安全特性
 
 - 密码使用 bcryptjs 加密存储
+- 管理员操作需要身份验证
 - 文件上传类型和大小限制
-- 输入数据验证和清理
-- 管理员权限验证
-- 用户状态检查
+- 内容长度限制
+- 请求日志记录
+- 错误处理中间件
 
-## 故障排除
+## 浏览器支持
 
-### 常见问题
-
-1. **端口被占用**
-   ```bash
-   # 修改端口号
-   export PORT=8080
-   npm start
-   ```
-
-2. **图片上传失败**
-   - 检查 `public/images/` 目录权限
-   - 确保磁盘空间充足
-   - 检查文件大小限制（最大10MB）
-
-3. **数据文件损坏**
-   - 系统会自动尝试修复损坏的JSON文件
-   - 备份文件位于 `data/` 目录
-
-4. **管理员权限问题**
-   - 确认 `ADMIN_USERS` 配置正确
-   - 使用正确的QQ号或用户ID登录
-
-### 日志查看
-服务器启动后会显示以下信息：
-```
-服务器运行中: http://localhost:3000
-数据目录: /path/to/data/
-图片目录: /path/to/public/images/
-```
-
-## 开发说明
-
-### 扩展功能建议
-- 添加数据库支持（MySQL/MongoDB）
-- 实现实时通知功能
-- 添加文件下载功能
-- 支持表情包和富文本编辑
-- 添加私信系统
-
-### 代码结构
-- 前端使用原生JavaScript，便于理解和修改
-- 后端采用模块化设计，便于扩展
-- 统一错误处理和响应格式
+- Chrome（推荐）
+- Firefox
+- Safari
+- Edge
 
 ## 许可证
 
-本项目仅供学习和教育用途。
+MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 联系方式
+
+如有问题或建议，请通过以下方式联系：
+
+- 提交 Issue
+- 发送邮件
+
+---
+
+**注意**: 本系统仅供学习和交流使用，请勿用于非法用途。
