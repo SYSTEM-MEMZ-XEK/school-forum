@@ -1,0 +1,219 @@
+{
+  "adminUsers": [
+    "1635075096"
+  ],
+  "mongodb": {
+    "uri": "mongodb://localhost:27017/school-forum"
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "password": "",
+    "db": 0
+  },
+  "upload": {
+    "allowedTypes": [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp"
+    ],
+    "maxFileSize": 33554432,
+    "maxFiles": 32
+  },
+  "password": {
+    "saltRounds": 10
+  },
+  "pagination": {
+    "defaultPage": 1,
+    "defaultLimit": 100
+  },
+  "contentLimits": {
+    "post": 10000,
+    "comment": 500,
+    "username": {
+      "min": 2,
+      "max": 20
+    },
+    "qq": {
+      "min": 5,
+      "max": 15
+    },
+    "password": {
+      "min": 6
+    }
+  },
+  "schools": [
+    {
+      "id": "TCZX",
+      "name": "天长中学",
+      "classInfo": [
+        {
+          "year": 2020,
+          "classCount": 18
+        },
+        {
+          "year": 2021,
+          "classCount": 19
+        },
+        {
+          "year": 2022,
+          "classCount": 20
+        },
+        {
+          "year": 2023,
+          "classCount": 22
+        },
+        {
+          "year": 2024,
+          "classCount": 25
+        },
+        {
+          "year": 2025,
+          "classCount": 28
+        },
+        {
+          "year": 2026,
+          "classCount": 30
+        }
+      ]
+    },
+    {
+      "id": "BHZX",
+      "name": "炳辉中学",
+      "classInfo": [
+        {
+          "year": 2020,
+          "classCount": 12
+        },
+        {
+          "year": 2021,
+          "classCount": 13
+        },
+        {
+          "year": 2022,
+          "classCount": 15
+        },
+        {
+          "year": 2023,
+          "classCount": 16
+        },
+        {
+          "year": 2024,
+          "classCount": 18
+        },
+        {
+          "year": 2025,
+          "classCount": 20
+        },
+        {
+          "year": 2026,
+          "classCount": 22
+        }
+      ]
+    },
+    {
+      "id": "DEXZ",
+      "name": "天长市第二中学",
+      "classInfo": [
+        {
+          "year": 2020,
+          "classCount": 12
+        },
+        {
+          "year": 2021,
+          "classCount": 13
+        },
+        {
+          "year": 2022,
+          "classCount": 15
+        },
+        {
+          "year": 2023,
+          "classCount": 16
+        },
+        {
+          "year": 2024,
+          "classCount": 17
+        },
+        {
+          "year": 2025,
+          "classCount": 19
+        },
+        {
+          "year": 2026,
+          "classCount": 21
+        }
+      ]
+    },
+    {
+      "id": "GTZX",
+      "name": "天长市关塘中学",
+      "classInfo": [
+        {
+          "year": 2020,
+          "classCount": 8
+        },
+        {
+          "year": 2021,
+          "classCount": 9
+        },
+        {
+          "year": 2022,
+          "classCount": 10
+        },
+        {
+          "year": 2023,
+          "classCount": 11
+        },
+        {
+          "year": 2024,
+          "classCount": 12
+        },
+        {
+          "year": 2025,
+          "classCount": 13
+        },
+        {
+          "year": 2026,
+          "classCount": 15
+        }
+      ]
+    },
+    {
+      "id": "GYXX",
+      "name": "天长市工业学校",
+      "classInfo": [
+        {
+          "year": 2020,
+          "classCount": 25
+        },
+        {
+          "year": 2021,
+          "classCount": 27
+        },
+        {
+          "year": 2022,
+          "classCount": 30
+        },
+        {
+          "year": 2023,
+          "classCount": 32
+        },
+        {
+          "year": 2024,
+          "classCount": 35
+        },
+        {
+          "year": 2025,
+          "classCount": 38
+        },
+        {
+          "year": 2026,
+          "classCount": 40
+        }
+      ]
+    }
+  ]
+}

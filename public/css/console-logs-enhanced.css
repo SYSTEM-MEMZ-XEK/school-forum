@@ -1,0 +1,472 @@
+/* 控制台风格日志增强样式 */
+/* 日志列表容器 */
+.log-list-container {
+    background: #0d1117 !important;
+    border: 1px solid #333 !important;
+    border-radius: 6px !important;
+    overflow: hidden;
+    margin-top: 20px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.log-list {
+    max-height: 600px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.log-list::-webkit-scrollbar {
+    width: 12px !important;
+}
+
+.log-list::-webkit-scrollbar-track {
+    background: #0d1117 !important;
+}
+
+.log-list::-webkit-scrollbar-thumb {
+    background: #444 !important;
+    border-radius: 6px;
+}
+
+.log-list::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+
+/* 控制台风格日志项 - 强调颜色区分 */
+.console-log-item {
+    border-bottom: 1px solid #2a2a2a !important;
+    background: #0d1117 !important;
+    transition: background 0.15s ease;
+}
+
+.console-log-item:last-child {
+    border-bottom: none !important;
+}
+
+.console-log-item:hover {
+    background: #1a1a1a !important;
+}
+
+/* INFO - 蓝色 */
+.console-log-item.log-info {
+    border-left: 3px solid #60a5fa !important;
+}
+
+.console-log-item.log-info .console-level [INFO] {
+    color: #60a5fa !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(96, 165, 250, 0.3) !important;
+}
+
+/* WARN - 橙色 */
+.console-log-item.log-warn {
+    border-left: 3px solid #fb923c !important;
+}
+
+.console-log-item.log-warn .console-level [WARN] {
+    color: #fb923c !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(251, 146, 60, 0.3) !important;
+}
+
+/* ERROR - 红色 */
+.console-log-item.log-error {
+    border-left: 3px solid #f87171 !important;
+}
+
+.console-log-item.log-error .console-level [ERROR] {
+    color: #f87171 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(248, 113, 71, 0.3) !important;
+}
+
+/* SUCCESS - 绿色 */
+.console-log-item.log-success {
+    border-left: 3px solid #4ade80 !important;
+}
+
+.console-log-item.log-success .console-level [SUCCESS] {
+    color: #4ade80 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(74, 222, 128, 0.3) !important;
+}
+
+/* USER - 紫色 */
+.console-log-item.log-user {
+    border-left: 3px solid #c084fc !important;
+}
+
+.console-log-item.log-user .console-level [USER] {
+    color: #c084fc !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(192, 132, 252, 0.3) !important;
+}
+
+/* SYSTEM - 青色 */
+.console-log-item.log-system {
+    border-left: 3px solid #2dd4bf !important;
+}
+
+.console-log-item.log-system .console-level [SYSTEM] {
+    color: #2dd4bf !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(45, 212, 191, 0.3) !important;
+}
+
+/* SECURITY - 粉红色 */
+.console-log-item.log-security {
+    border-left: 3px solid #f472b6 !important;
+}
+
+.console-log-item.log-security .console-level [SECURITY] {
+    color: #f472b6 !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(244, 114, 182, 0.3) !important;
+}
+
+/* 控制台日志行 */
+.console-log-line {
+    padding: 8px 12px !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.console-log-line:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.console-timestamp {
+    color: #6b7280 !important;
+    font-size: 12px;
+    min-width: 90px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.console-level {
+    color: #60a5fa !important;
+    font-weight: 700;
+    min-width: 70px;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.console-level [INFO] { 
+    color: #60a5fa !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(96, 165, 250, 0.3) !important;
+}
+
+.console-level [WARN] { 
+    color: #fb923c !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(251, 146, 60, 0.3) !important;
+}
+
+.console-level [ERROR] { 
+    color: #f87171 !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(248, 113, 71, 0.3) !important;
+}
+
+.console-level [SUCCESS] { 
+    color: #4ade80 !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(74, 222, 128, 0.3) !important;
+}
+
+.console-level [USER] { 
+    color: #c084fc !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(192, 132, 252, 0.3) !important;
+}
+
+.console-level [SYSTEM] { 
+    color: #2dd4bf !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(45, 212, 191, 0.3) !important;
+}
+
+.console-level [SECURITY] { 
+    color: #f472b6 !important; 
+    font-weight: 700 !important;
+    text-shadow: 0 0 4px rgba(244, 114, 182, 0.3) !important;
+}
+
+.console-message {
+    color: #e2e8f0 !important;
+    flex: 1;
+    word-break: break-all;
+}
+
+.console-expand-icon {
+    color: #6b7280 !important;
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    margin-left: 8px;
+}
+
+.console-expand-icon:hover {
+    color: #d1d5db !important;
+}
+
+.console-log-item.expanded .console-expand-icon i {
+    transform: rotate(180deg) !important;
+}
+
+/* 控制台数据区域 - 增强数据展示 */
+.console-log-data {
+    display: none;
+    padding: 0 16px 16px 16px;
+    background: #0a0a0a !important;
+    border: 1px solid #444;
+    border-radius: 6px;
+    margin-top: 4px;
+}
+
+.console-log-item.expanded .console-log-data,
+.console-log-data.show {
+    display: block !important;
+}
+
+.console-data-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 4px;
+}
+
+.console-data-toggle:hover {
+    background: #333333 !important;
+    border-color: #555 !important;
+    color: #d1d5db !important;
+}
+
+.console-data-title {
+    font-weight: 600;
+    color: #e2e8f0 !important;
+}
+
+.console-data-content {
+    margin-top: 8px;
+    padding: 14px;
+    background: #000000 !important;
+    border: 1px solid #444;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.6;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #e2e8f0 !important;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* 数据类型颜色增强 */
+[data-type="string"] {
+    color: #a5d6ff !important;
+}
+
+[data-type="number"] {
+    color: #fbbf24 !important;
+}
+
+[data-type="boolean"] {
+    color: #f87171 !important;
+}
+
+[data-type="object"] {
+    color: #fca5a5 !important;
+}
+
+[data-type="array"] {
+    color: #4ade80 !important;
+}
+
+[data-type="null"] {
+    color: #9ca3af !important;
+}
+
+[data-type="undefined"] {
+    color: #94a3b8 !important;
+}
+
+[data-type="true"] {
+    color: #4ade80 !important;
+}
+
+[data-type="false"] {
+    color: #f87171 !important;
+}
+
+/* JSON键值颜色 */
+.console-data-content .key {
+    color: #a5d6ff !important;
+}
+
+.console-data-content .string {
+    color: #a5d6ff !important;
+}
+
+.console-data-content .number {
+    color: #fbbf24 !important;
+}
+
+.console-data-content .boolean {
+    color: #f87171 !important;
+}
+
+/* 暗色模式 */
+[data-theme="dark"] .log-list-container {
+    background: #000000 !important;
+    border-color: #333 !important;
+}
+
+[data-theme="dark"] .log-item {
+    background: #000000 !important;
+}
+
+[data-theme="dark"] .log-item:hover {
+    background: #141414 !important;
+}
+
+[data-theme="dark"] .log-data {
+    background: #000000 !important;
+    border-color: #333 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .log-data-content::-webkit-scrollbar-track {
+    background: #000000 !important;
+}
+
+[data-theme="dark"] .log-data-content::-webkit-scrollbar-thumb {
+    background: #333 !important;
+}
+
+[data-theme="dark"] .log-data-content::-webkit-scrollbar-thumb:hover {
+    background: #444 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-track {
+    background: #000000 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-thumb {
+    background: #333 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-thumb:hover {
+    background: #444 !important;
+}
+
+[data-theme="dark"] .log-stats-container {
+    background: #161616 !important;
+    border-color: #333 !important;
+}
+
+[data-theme="dark"] .log-stat-item {
+    background: #252525 !important;
+}
+
+[data-theme="dark"] .log-date-selector {
+    background: #252525 !important;
+    border-color: #333 !important;
+}
+
+[data-theme="dark"] .log-date-selector select {
+    background: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .log-level-btn {
+    background: #1e293b !important;
+    border-color: #475569 !important;
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .log-level-btn:hover {
+    background: #334155 !important;
+}
+
+[data-theme="dark"] .log-level-btn.active {
+    background: #60a5fa !important;
+    color: white !important;
+    border-color: #60a5fa !important;
+}
+
+[data-theme="dark"] .log-search-box input {
+    background: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .log-search-box .search-btn {
+    background: #4361ee !important;
+    color: white;
+}
+
+[data-theme="dark"] .log-search-box .search-btn:hover {
+    background: #3b82f6 !important;
+}
+
+[data-theme="dark"] .log-data-toggle {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .log-data-toggle:hover {
+    background: #475569 !important;
+    border-color: #64748b !important;
+    color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .console-data-content {
+    background: #000000 !important;
+    border-color: #333 !important;
+    color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-track {
+    background: #000000 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-thumb {
+    background: #333 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-thumb:hover {
+    background: #444 !important;
+}
+
+[data-theme="dark"] .console-data-content::-webkit-scrollbar-thumb:hover {
+    background: #444 !important;
+}
+
+[data-theme="dark"] .console-timestamp {
+    color: #6b7280 !important;
+}
+
+[data-theme="dark"] .console-message {
+    color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .console-expand-icon {
+    color: #6b7280 !important;
+}
