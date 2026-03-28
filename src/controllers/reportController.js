@@ -1,0 +1,399 @@
+const { v4: uuidv4 } = require('uuid');
+const {
+  getPosts,
+  getUsers,
+  updateUser,
+  getReports,
+  createReport,
+  updateReportStatus,
+  banUser: createBanRecord
+} = require('../utils/dataUtils');
+const {
+  generateErrorResponse,
+  generateSuccessResponse
+} = require('../utils/validationUtils');
+const { getPaginationConfig } = require('../config/constants');
+const logger = require('../utils/logger');
+const notificationController = require('./notificationController');
+
+// 举报类型
+const REPORT_TYPES = {
+  SPAM: '垃圾广告',
+  HARASSMENT: '骚扰辱骂',
+  INAPPROPRIATE: '不当内容',
+  FALSE_INFO: '虚假信息',
+  COPYRIGHT: '侵权内容',
+  OTHER: '其他'
+};
+
+// 封禁时长映射（天数）
+const BAN_DURATION_MAP = {
+  SPAM: 3,
+  HARASSMENT: 7,
+  INAPPROPRIATE: 14,
+  FALSE_INFO: 7,
+  COPYRIGHT: 14,
+  OTHER: 3
+};
+
+const reportController = {
+  // 提交举报
+  async submitReport(req, res) {
+    try {
+      const { reporterId, targetType, targetId, reason, description } = req.body;
+
+      // 验证必填字段
+      if (!reporterId || !targetType || !targetId || !reason) {
+        return res.status(400).json(generateErrorResponse('缺少必要参数'));
+      }
+
+      // 验证举报类型
+      if (!['post', 'comment'].includes(targetType)) {
+        return res.status(400).json(generateErrorResponse('无效的举报目标类型'));
+      }
+
+      // 验证举报原因
+      if (!Object.keys(REPORT_TYPES).includes(reason)) {
+        return res.status(400).json(generateErrorResponse('无效的举报原因'));
+      }
+
+      // 获取被举报内容信息
+      const posts = await getPosts(true);
+      let targetContent = null;
+      let targetUserId = null;
+      let targetUsername = null;
+      let postId = null;
+      let commentId = null;
+
+      if (targetType === 'post') {
+        const post = posts.find(p => p.id === targetId);
+        if (!post) {
+          return res.status(404).json(generateErrorResponse('帖子不存在'));
+        }
+        targetContent = post.content;
+        targetUserId = post.userId;
+        targetUsername = post.username;
+        postId = targetId;
+      } else if (targetType === 'comment') {
+        let foundComment = false;
+        for (const post of posts) {
+          if (post.comments) {
+            const comment = post.comments.find(c => c.id === targetId);
+            if (comment) {
+              targetContent = comment.content;
+              targetUserId = comment.userId;
+              targetUsername = comment.username || '匿名用户';
+              postId = post.id;
+              commentId = targetId;
+              foundComment = true;
+              break;
+            }
+          }
+        }
+        if (!foundComment) {
+          return res.status(404).json(generateErrorResponse('评论不存在'));
+        }
+      }
+
+      // 不能举报自己
+      if (targetUserId === reporterId) {
+        return res.status(400).json(generateErrorResponse('不能举报自己的内容'));
+      }
+
+      // 检查是否已举报过
+      const reports = await getReports('pending');
+      const existingReport = reports.find(r => 
+        r.reporterId === reporterId && 
+        r.targetId === targetId && 
+        r.targetType === targetType
+      );
+
+      if (existingReport) {
+        return res.status(400).json(generateErrorResponse('您已举报过此内容，请等待处理'));
+      }
+
+      // 创建举报记录
+      const newReport = {
+        id: uuidv4(),
+        reporterId,
+        targetType,
+        targetId,
+        targetUserId,
+        targetUsername,
+        targetContent: targetContent.substring(0, 500) + (targetContent.length > 500 ? '...' : ''),
+        reason,
+        reasonText: REPORT_TYPES[reason],
+        description: description || '',
+        postId,
+        commentId,
+        status: 'pending',
+        createdAt: new Date(),
+        processedAt: null,
+        processedBy: null,
+        result: null,
+        banDuration: null
+      };
+
+      await createReport(newReport);
+
+      logger.logUserAction('提交举报', reporterId, null, {
+        reportId: newReport.id,
+        targetType,
+        targetId,
+        reason: REPORT_TYPES[reason]
+      });
+
+      res.json(generateSuccessResponse({ report: newReport }, '举报已提交，我们会尽快处理'));
+    } catch (error) {
+      logger.logError('提交举报失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 获取举报列表（管理员）
+  async getReportsList(req, res) {
+    try {
+      const paginationConfig = getPaginationConfig();
+      const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, status } = req.query;
+      const reports = await getReports(status || null);
+
+      // 分页
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + parseInt(limit);
+      const paginatedReports = reports.slice(startIndex, endIndex);
+
+      // 获取举报人信息
+      const users = await getUsers();
+      const reportsWithReporter = paginatedReports.map(report => {
+        const reporter = users.find(u => u.id === report.reporterId);
+        return {
+          ...report,
+          reporterUsername: reporter ? reporter.username : '未知用户'
+        };
+      });
+
+      res.json(generateSuccessResponse({
+        reports: reportsWithReporter,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(reports.length / limit),
+          totalReports: reports.length,
+          hasNext: endIndex < reports.length,
+          hasPrev: startIndex > 0
+        }
+      }));
+    } catch (error) {
+      logger.logError('获取举报列表失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 获取举报统计（管理员）
+  async getReportStats(req, res) {
+    try {
+      const reports = await getReports();
+
+      const stats = {
+        total: reports.length,
+        pending: reports.filter(r => r.status === 'pending').length,
+        processed: reports.filter(r => r.status === 'processed').length,
+        rejected: reports.filter(r => r.status === 'rejected').length,
+        byReason: {},
+        byType: {
+          post: reports.filter(r => r.targetType === 'post').length,
+          comment: reports.filter(r => r.targetType === 'comment').length
+        }
+      };
+
+      // 按原因统计
+      Object.keys(REPORT_TYPES).forEach(key => {
+        stats.byReason[key] = {
+          label: REPORT_TYPES[key],
+          count: reports.filter(r => r.reason === key).length
+        };
+      });
+
+      res.json(generateSuccessResponse({ stats }));
+    } catch (error) {
+      logger.logError('获取举报统计失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 处理举报（管理员）
+  async processReport(req, res) {
+    try {
+      const { reportId } = req.params;
+      const { adminId, action, banDuration, note } = req.body;
+
+      if (!adminId || !action) {
+        return res.status(400).json(generateErrorResponse('缺少必要参数'));
+      }
+
+      if (!['approve', 'reject'].includes(action)) {
+        return res.status(400).json(generateErrorResponse('无效的处理操作'));
+      }
+
+      const reports = await getReports();
+      const report = reports.find(r => r.id === reportId);
+
+      if (!report) {
+        return res.status(404).json(generateErrorResponse('举报记录不存在'));
+      }
+
+      if (report.status !== 'pending') {
+        return res.status(400).json(generateErrorResponse('该举报已被处理'));
+      }
+
+      const banDays = action === 'approve' ? (banDuration || BAN_DURATION_MAP[report.reason]) : null;
+
+      // 更新举报状态
+      await updateReportStatus(reportId, {
+        status: action === 'approve' ? 'processed' : 'rejected',
+        processedAt: new Date(),
+        processedBy: adminId,
+        result: action === 'approve' ? 'violation_confirmed' : 'no_violation',
+        note: note || '',
+        banDuration: banDays
+      });
+
+      if (action === 'approve') {
+        // 举报通过 - 封禁被举报用户
+        const users = await getUsers();
+        const targetUser = users.find(u => u.id === report.targetUserId);
+        
+        if (targetUser) {
+          const banEndTime = new Date();
+          
+          if (banDays === 365) {
+            banEndTime.setFullYear(banEndTime.getFullYear() + 100);
+          } else {
+            banEndTime.setDate(banEndTime.getDate() + banDays);
+          }
+
+          // 更新用户状态
+          await updateUser(report.targetUserId, {
+            isActive: false,
+            banStartTime: new Date().toISOString(),
+            banEndTime: banEndTime.toISOString(),
+            banReason: `因举报违规被封禁：${report.reasonText}`,
+            bannedBy: adminId
+          });
+
+          // 记录封禁信息
+          const admin = users.find(u => u.id === adminId);
+          await createBanRecord({
+            id: uuidv4(),
+            userId: targetUser.id,
+            username: targetUser.username,
+            qq: targetUser.qq,
+            reason: `因举报违规被封禁：${report.reasonText}`,
+            bannedAt: new Date(),
+            bannedBy: adminId,
+            bannedByName: admin ? admin.username : '',
+            banDuration: banDays,
+            unbanAt: banEndTime,
+            isActive: true
+          });
+
+          // 删除违规内容
+          const { updatePost, Post } = require('../utils/dataUtils');
+          if (report.targetType === 'post') {
+            await updatePost(report.targetId, {
+              isDeleted: true,
+              deletedAt: new Date(),
+              deletedBy: adminId,
+              deleteReason: `举报违规：${report.reasonText}`
+            });
+          } else if (report.targetType === 'comment') {
+            const posts = await getPosts();
+            for (const post of posts) {
+              if (post.comments) {
+                const commentIndex = post.comments.findIndex(c => c.id === report.targetId);
+                if (commentIndex !== -1) {
+                  post.comments.splice(commentIndex, 1);
+                  await updatePost(post.id, { comments: post.comments });
+                  break;
+                }
+              }
+            }
+          }
+
+          // 发送通知给被举报用户
+          await notificationController.createReportResultNotification(
+            report.targetUserId,
+            true,
+            report.reasonText,
+            banDays,
+            report.targetType,
+            report.targetContent
+          );
+        }
+
+        // 发送通知给举报人 - 举报成功
+        await notificationController.createReporterResultNotification(
+          report.reporterId,
+          true,
+          report.reasonText,
+          report.targetUsername,
+          banDays,
+          report.targetType,
+          report.targetContent
+        );
+
+        logger.logUserAction('处理举报-通过', adminId, null, {
+          reportId,
+          targetUserId: report.targetUserId,
+          targetUsername: report.targetUsername,
+          banDuration: banDays,
+          reason: report.reasonText
+        });
+      } else {
+        // 举报被驳回 - 发送通知给举报人
+        await notificationController.createReporterResultNotification(
+          report.reporterId,
+          false,
+          report.reasonText,
+          report.targetUsername,
+          0,
+          report.targetType,
+          report.targetContent,
+          note
+        );
+
+        logger.logUserAction('处理举报-驳回', adminId, null, {
+          reportId,
+          reporterId: report.reporterId,
+          reason: report.reasonText,
+          note
+        });
+      }
+
+      res.json(generateSuccessResponse({ report }, '举报已处理'));
+    } catch (error) {
+      logger.logError('处理举报失败', { error: error.message, reportId: req.params.reportId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 获取用户举报历史
+  async getUserReports(req, res) {
+    try {
+      const { userId } = req.params;
+      const reports = await getReports();
+      const userReports = reports.filter(r => r.reporterId === userId);
+
+      res.json(generateSuccessResponse({ reports: userReports }));
+    } catch (error) {
+      logger.logError('获取用户举报历史失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 获取举报类型列表
+  getReportTypes(req, res) {
+    res.json(generateSuccessResponse({ types: REPORT_TYPES }));
+  }
+};
+
+module.exports = reportController;
