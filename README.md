@@ -399,7 +399,10 @@ school-forum/
 {
   "adminUsers": ["1635075096"],
   "mongodb": {
-    "uri": "mongodb://localhost:27017/school-forum"
+    "uri": "mongodb://localhost:27017/school-forum",
+    "username": "",
+    "password": "",
+    "authSource": "admin"
   },
   "redis": {
     "host": "localhost",
@@ -450,6 +453,9 @@ school-forum/
 |-------|------|------|
 | `adminUsers` | `string[]` | 管理员 QQ 号列表 |
 | `mongodb.uri` | `string` | MongoDB 连接字符串 |
+| `mongodb.username` | `string` | MongoDB 用户名（可选，用于认证） |
+| `mongodb.password` | `string` | MongoDB 密码（可选，用于认证） |
+| `mongodb.authSource` | `string` | MongoDB 认证数据库（默认 admin） |
 | `redis.host` | `string` | Redis 服务器地址 |
 | `redis.port` | `number` | Redis 端口 |
 | `redis.password` | `string` | Redis 密码（无密码留空） |
@@ -517,6 +523,9 @@ npm start
 |-------|------|-------|
 | `PORT` | 服务端口 | `3000` |
 | `MONGODB_URI` | MongoDB 连接字符串 | 配置文件中的值 |
+| `MONGODB_USERNAME` | MongoDB 用户名 | 配置文件中的值 |
+| `MONGODB_PASSWORD` | MongoDB 密码 | 配置文件中的值 |
+| `MONGODB_AUTHSOURCE` | MongoDB 认证数据库 | `admin` |
 
 ---
 
