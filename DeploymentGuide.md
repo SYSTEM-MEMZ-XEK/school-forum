@@ -265,9 +265,16 @@ sudo ufw enable   # 如果 UFW 未启用
 - 检查 MongoDB 是否运行：`sudo systemctl status mongod`
 - 确认项目配置文件（如 `config.json`）中的数据库连接字符串是否正确，例如：
   ```json
-  "mongodb": "mongodb://localhost:27017/forum"
+  "mongodb": {
+    "uri": "mongodb://localhost:27017/school-forum",
+    "username": "",
+    "password": "",
+    "authSource": "admin"
+  }
   ```
-- 检查 MongoDB 端口（默认 27017）是否被占用或防火墙阻止。
+- 如果 MongoDB 启用了认证，需要填写 `username` 和 `password` 字段
+- 检查 MongoDB 端口（默认 27017）是否被占用或防火墙阻止
+- 可通过环境变量覆盖配置：`MONGODB_URI`、`MONGODB_USERNAME`、`MONGODB_PASSWORD`
 
 ### 14.2 邮件发送失败
 - 确认 QQ 邮箱已开启 SMTP 服务并生成授权码，已在配置文件中正确填写。
