@@ -1,0 +1,1864 @@
+# 校园论坛 API 文档
+
+本文档详细描述了校园论坛系统的所有 API 接口，供客户端开发者参考。
+
+## 基础信息
+
+- **Base URL**: `http://your-domain:3000`
+- **Content-Type**: `application/json`
+- **响应格式**: JSON
+
+### 统一响应格式
+
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "data": { ... }
+}
+```
+
+错误响应：
+```json
+{
+  "success": false,
+  "message": "错误信息"
+}
+```
+
+---
+
+## 目录
+
+- [基础接口](#基础接口)
+- [用户模块](#用户模块)
+- [帖子模块](#帖子模块)
+- [关注模块](#关注模块)
+- [收藏模块](#收藏模块)
+- [通知模块](#通知模块)
+- [举报模块](#举报模块)
+- [统计模块](#统计模块)
+- [配置模块](#配置模块)
+- [管理后台](#管理后台)
+
+---
+
+## 基础接口
+
+### 健康检查
+
+```
+GET /health
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "服务器运行正常",
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+---
+
+## 用户模块
+
+### 发送注册验证码
+
+```
+POST /send-verification-code
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| email | string | 是 | 邮箱地址 |
+
+**请求示例**：
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "验证码已发送到您的邮箱"
+}
+```
+
+---
+
+### 发送登录验证码
+
+```
+POST /send-login-verification-code
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| email | string | 是 | 邮箱地址 |
+
+---
+
+### 发送密码修改验证码
+
+```
+POST /send-password-change-code
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| currentPassword | string | 是 | 当前密码 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "验证码已发送到您的邮箱",
+  "data": {
+    "email": "u***@example.com"
+  }
+}
+```
+
+---
+
+### 验证密码修改验证码
+
+```
+POST /verify-password-change-code
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| verificationCode | string | 是 | 6位验证码 |
+
+---
+
+### 用户注册
+
+```
+POST /register
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| qq | string | 是 | QQ号 |
+| username | string | 是 | 用户名（2-20字符） |
+| password | string | 是 | 密码（至少6位） |
+| email | string | 是 | 邮箱地址 |
+| verificationCode | string | 是 | 6位验证码 |
+| school | string | 是 | 学校ID |
+| enrollmentYear | number | 是 | 入学年份 |
+| className | string | 是 | 班级名称 |
+
+**请求示例**：
+```json
+{
+  "qq": "12345678",
+  "username": "张三",
+  "password": "password123",
+  "email": "user@example.com",
+  "verificationCode": "123456",
+  "school": "TCZX",
+  "enrollmentYear": 2024,
+  "className": "高一(1)班"
+}
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "注册成功",
+  "data": {
+    "user": {
+      "id": "uuid-string",
+      "qq": "12345678",
+      "username": "张三",
+      "email": "user@example.com",
+      "school": "TCZX",
+      "enrollmentYear": 2024,
+      "className": "高一(1)班",
+      "grade": "高一",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "postCount": 0,
+      "commentCount": 0,
+      "isActive": true
+    }
+  }
+}
+```
+
+---
+
+### 用户登录
+
+```
+POST /login
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| email | string | 是 | 邮箱地址 |
+| qq | string | 是 | QQ号 |
+| password | string | 是 | 密码 |
+| verificationCode | string | 是 | 6位验证码 |
+
+**请求示例**：
+```json
+{
+  "email": "user@example.com",
+  "qq": "12345678",
+  "password": "password123",
+  "verificationCode": "123456"
+}
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "登录成功",
+  "data": {
+    "user": {
+      "id": "uuid-string",
+      "qq": "12345678",
+      "username": "张三",
+      "email": "user@example.com",
+      "school": "TCZX",
+      "grade": "高一",
+      "className": "高一(1)班",
+      "avatar": "/images/avatars/xxx.jpg",
+      "lastLogin": "2024-01-01T00:00:00.000Z"
+    },
+    "isAdmin": false
+  }
+}
+```
+
+---
+
+### 验证登录状态
+
+```
+POST /auth/verify
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "用户验证通过",
+  "data": {
+    "user": { ... },
+    "isAdmin": false,
+    "isBanned": false,
+    "valid": true
+  }
+}
+```
+
+---
+
+### 获取用户资料
+
+```
+GET /users/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "uuid-string",
+      "qq": "12345678",
+      "username": "张三",
+      "school": "TCZX",
+      "grade": "高一",
+      "className": "高一(1)班",
+      "avatar": "/images/avatars/xxx.jpg",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    "stats": {
+      "postCount": 10,
+      "commentCount": 25,
+      "totalLikes": 50,
+      "totalViews": 200,
+      "joinDate": "2024-01-01T00:00:00.000Z",
+      "lastLogin": "2024-01-15T00:00:00.000Z"
+    },
+    "recentPosts": [ ... ]
+  }
+}
+```
+
+---
+
+### 修改用户资料
+
+```
+PUT /users/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 用户ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| currentPassword | string | 否 | 当前密码（修改密码时必填） |
+| newPassword | string | 否 | 新密码 |
+| username | string | 否 | 新用户名 |
+| settings | object | 否 | 用户设置 |
+
+**请求示例**：
+```json
+{
+  "currentPassword": "oldpassword",
+  "newPassword": "newpassword123",
+  "username": "新用户名"
+}
+```
+
+---
+
+### 更新用户设置
+
+```
+PUT /users/:id/settings
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| settings | object | 是 | 设置对象 |
+
+**请求示例**：
+```json
+{
+  "settings": {
+    "theme": "dark",
+    "notifications": true
+  }
+}
+```
+
+---
+
+### 上传头像
+
+```
+POST /users/:id/avatar
+```
+
+**请求格式**: `multipart/form-data`
+
+**参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| avatar | file | 是 | 头像图片（JPG/PNG/GIF/WebP，最大2MB） |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "头像上传成功",
+  "data": {
+    "user": { ... },
+    "avatarUrl": "/images/avatars/xxx.jpg"
+  }
+}
+```
+
+---
+
+### 删除头像
+
+```
+DELETE /users/:id/avatar
+```
+
+**请求参数**：无（通过路径参数指定用户）
+
+---
+
+## 帖子模块
+
+### 获取帖子列表
+
+```
+GET /posts
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 100 | 每页数量 |
+| search | string | 否 | - | 搜索关键词 |
+| sortBy | string | 否 | latest | 排序方式 |
+
+**sortBy 可选值**：
+| 值 | 说明 |
+|---|------|
+| latest | 最新发布（默认） |
+| relevance | 综合热度 |
+| likes | 点赞数排序 |
+| favorites | 收藏数排序 |
+| views | 浏览量排序 |
+| comments | 评论数排序 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "posts": [
+      {
+        "id": "uuid-string",
+        "userId": "user-uuid",
+        "username": "张三",
+        "userAvatar": "/images/avatars/xxx.jpg",
+        "school": "TCZX",
+        "grade": "高一",
+        "className": "高一(1)班",
+        "content": "帖子内容...",
+        "images": [
+          { "url": "/images/xxx.jpg", "filename": "xxx.jpg" }
+        ],
+        "anonymous": false,
+        "timestamp": "2024-01-01T00:00:00.000Z",
+        "likes": 10,
+        "dislikes": 0,
+        "viewCount": 100,
+        "comments": [ ... ]
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 10,
+      "totalPosts": 100,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+---
+
+### 发布帖子
+
+```
+POST /posts
+```
+
+**请求格式**: `multipart/form-data`
+
+**参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| school | string | 是 | 学校ID |
+| grade | string | 是 | 年级 |
+| className | string | 是 | 班级 |
+| content | string | 否* | 帖子内容（无图片时必填） |
+| anonymous | string | 否 | 是否匿名（"true"） |
+| images | file[] | 否* | 图片文件（最多20张） |
+
+> *内容和图片至少提供一项
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "帖子发布成功",
+  "data": {
+    "post": {
+      "id": "uuid-string",
+      "userId": "user-uuid",
+      "username": "张三",
+      "content": "帖子内容...",
+      "images": [ ... ],
+      "timestamp": "2024-01-01T00:00:00.000Z",
+      "likes": 0,
+      "likedBy": [],
+      "comments": [],
+      "viewCount": 0,
+      "isDeleted": false
+    }
+  }
+}
+```
+
+---
+
+### 获取帖子详情
+
+```
+GET /posts/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 帖子ID |
+
+---
+
+### 编辑帖子
+
+```
+PUT /posts/:id
+```
+
+**请求格式**: `multipart/form-data`
+
+**参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| content | string | 否 | 新内容 |
+| deletedImages | string | 否 | JSON数组，要删除的图片URL |
+| images | file[] | 否 | 新增图片 |
+
+---
+
+### 删除帖子
+
+```
+DELETE /posts/:id
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID（必须是帖子作者） |
+
+---
+
+### 增加浏览量
+
+```
+POST /posts/:id/view
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "viewCount": 101
+  }
+}
+```
+
+---
+
+### 点赞帖子
+
+```
+POST /posts/:id/like
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "点赞成功",
+  "data": {
+    "likes": 11,
+    "liked": true,
+    "dislikes": 0,
+    "disliked": false
+  }
+}
+```
+
+---
+
+### 点踩帖子
+
+```
+POST /posts/:id/dislike
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "点踩成功",
+  "data": {
+    "dislikes": 1,
+    "disliked": true,
+    "likes": 10,
+    "liked": false
+  }
+}
+```
+
+---
+
+### 添加评论
+
+```
+POST /posts/:id/comments
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 帖子ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| content | string | 是 | 评论内容（最多500字） |
+| anonymous | boolean | 否 | 是否匿名 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "评论添加成功",
+  "data": {
+    "comment": {
+      "id": "uuid-string",
+      "userId": "user-uuid",
+      "username": "张三",
+      "content": "评论内容",
+      "anonymous": false,
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+### 回复评论
+
+```
+POST /posts/:id/comments/:commentId/replies
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 帖子ID |
+| commentId | string | 评论ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| username | string | 是 | 用户名 |
+| content | string | 是 | 回复内容 |
+| anonymous | boolean | 否 | 是否匿名 |
+| replyToId | string | 否 | 被回复的回复ID（嵌套回复） |
+
+---
+
+### 删除评论
+
+```
+DELETE /posts/:id/comments/:commentId
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| replyId | string | 否 | 回复ID（删除回复时） |
+| nestedReplyId | string | 否 | 嵌套回复ID |
+
+---
+
+## 关注模块
+
+### 关注用户
+
+```
+POST /follow
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| followerId | string | 是 | 关注者ID |
+| followingId | string | 是 | 被关注者ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "关注成功",
+  "data": {
+    "following": true
+  }
+}
+```
+
+---
+
+### 取消关注
+
+```
+DELETE /follow
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| followerId | string | 是 | 关注者ID |
+| followingId | string | 是 | 被关注者ID |
+
+---
+
+### 检查关注状态
+
+```
+GET /follow/status
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| followerId | string | 是 | 关注者ID |
+| followingId | string | 是 | 被关注者ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "isFollowing": true
+  }
+}
+```
+
+---
+
+### 获取关注统计
+
+```
+GET /follow/stats/:userId
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "followingCount": 10,
+    "followerCount": 25
+  }
+}
+```
+
+---
+
+### 获取关注列表
+
+```
+GET /following/:userId
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 20 | 每页数量 |
+| currentUserId | string | 否 | - | 当前用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "list": [
+      {
+        "id": "user-uuid",
+        "username": "张三",
+        "avatar": "/images/avatars/xxx.jpg",
+        "school": "TCZX",
+        "grade": "高一",
+        "className": "高一(1)班",
+        "followedAt": "2024-01-01T00:00:00.000Z",
+        "isAdmin": false,
+        "isFollowing": true
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "total": 100,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+---
+
+### 获取粉丝列表
+
+```
+GET /followers/:userId
+```
+
+参数同关注列表。
+
+---
+
+### 获取关注用户的帖子
+
+```
+GET /following/posts/:userId
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 10 | 每页数量 |
+
+---
+
+### 获取新帖子数量
+
+```
+GET /follow/new-posts/:userId
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "count": 5
+  }
+}
+```
+
+---
+
+### 标记已查看关注动态
+
+```
+POST /follow/mark-viewed
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+## 收藏模块
+
+### 收藏帖子
+
+```
+POST /favorites/:postId
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| postId | string | 帖子ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| tagId | string | 否 | 标签ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "收藏成功",
+  "data": {
+    "favorited": true,
+    "favorite": {
+      "userId": "user-uuid",
+      "postId": "post-uuid",
+      "tagId": null,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+### 取消收藏
+
+```
+DELETE /favorites/:postId
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+### 检查是否已收藏
+
+```
+GET /favorites/:postId/check
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "favorited": true,
+    "favoriteCount": 10,
+    "tagId": "tag-uuid"
+  }
+}
+```
+
+---
+
+### 获取用户收藏列表
+
+```
+GET /favorites/user/:userId
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 10 | 每页数量 |
+| tagId | string | 否 | - | 按标签筛选 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "posts": [
+      {
+        "id": "post-uuid",
+        "content": "帖子内容...",
+        "isDeleted": false,
+        "userAvatar": "/images/avatars/xxx.jpg",
+        "favoriteAt": "2024-01-01T00:00:00.000Z",
+        "tagId": "tag-uuid"
+      }
+    ],
+    "pagination": { ... }
+  }
+}
+```
+
+---
+
+### 获取收藏数量
+
+```
+GET /favorites/user/:userId/count
+```
+
+---
+
+### 更新收藏标签
+
+```
+PUT /favorites/:postId/tag
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| tagId | string | 否 | 标签ID（null表示取消标签） |
+
+---
+
+### 批量删除收藏
+
+```
+POST /favorites/batch/delete
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| postIds | string[] | 是 | 帖子ID数组 |
+
+---
+
+### 批量移动到标签
+
+```
+POST /favorites/batch/move
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| postIds | string[] | 是 | 帖子ID数组 |
+| tagId | string | 否 | 目标标签ID |
+
+---
+
+### 获取用户标签
+
+```
+GET /favorites/tags/:userId
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "tags": [
+      {
+        "_id": "tag-uuid",
+        "userId": "user-uuid",
+        "name": "学习资料",
+        "color": "#4361ee",
+        "order": 0,
+        "favoriteCount": 5
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 创建标签
+
+```
+POST /favorites/tags
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| name | string | 是 | 标签名称 |
+| color | string | 否 | 标签颜色（默认 #4361ee） |
+
+---
+
+### 更新标签
+
+```
+PUT /favorites/tags/:tagId
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| name | string | 否 | 标签名称 |
+| color | string | 否 | 标签颜色 |
+
+---
+
+### 删除标签
+
+```
+DELETE /favorites/tags/:tagId
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+### 更新标签排序
+
+```
+PUT /favorites/tags/order
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| tagOrders | array | 是 | 排序数据 `[{id, order}, ...]` |
+
+---
+
+## 通知模块
+
+### 获取通知列表
+
+```
+GET /notifications
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "notifications": [
+      {
+        "id": "notification-uuid",
+        "userId": "user-uuid",
+        "type": "like",
+        "postId": "post-uuid",
+        "postTitle": "帖子标题...",
+        "fromUserId": "from-user-uuid",
+        "fromUsername": "张三",
+        "timestamp": "2024-01-01T00:00:00.000Z",
+        "read": false,
+        "postExists": true
+      }
+    ]
+  }
+}
+```
+
+**通知类型**：
+| type | 说明 |
+|------|------|
+| like | 点赞通知 |
+| comment | 评论通知 |
+| comment_reply | 回复通知 |
+| follow | 关注通知 |
+| system | 系统通知 |
+
+---
+
+### 标记通知已读
+
+```
+POST /notifications/:id/read
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 通知ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+### 标记全部已读
+
+```
+POST /notifications/read-all
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+## 举报模块
+
+### 获取举报类型
+
+```
+GET /reports/types
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "types": {
+      "SPAM": "垃圾广告",
+      "HARASSMENT": "骚扰辱骂",
+      "INAPPROPRIATE": "不当内容",
+      "FALSE_INFO": "虚假信息",
+      "COPYRIGHT": "侵权内容",
+      "OTHER": "其他"
+    }
+  }
+}
+```
+
+---
+
+### 提交举报
+
+```
+POST /reports
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| reporterId | string | 是 | 举报人ID |
+| targetType | string | 是 | 目标类型：post/comment |
+| targetId | string | 是 | 目标ID |
+| reason | string | 是 | 举报原因（见类型列表） |
+| description | string | 否 | 详细描述 |
+
+**请求示例**：
+```json
+{
+  "reporterId": "user-uuid",
+  "targetType": "post",
+  "targetId": "post-uuid",
+  "reason": "SPAM",
+  "description": "这是垃圾广告"
+}
+```
+
+---
+
+### 获取用户举报历史
+
+```
+GET /reports/user/:userId
+```
+
+---
+
+## 统计模块
+
+### 获取统计数据
+
+```
+GET /stats
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "totalUsers": 1000,
+      "totalPosts": 5000,
+      "todayPosts": 50,
+      "totalComments": 10000,
+      "totalLikes": 25000,
+      "activeUsers": 500,
+      "anonymousPosts": 200
+    }
+  }
+}
+```
+
+---
+
+### 搜索
+
+```
+GET /search
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| q | string | 是 | - | 搜索关键词 |
+| type | string | 否 | posts | 搜索类型：posts/users |
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 100 | 每页数量 |
+
+---
+
+## 配置模块
+
+### 获取学校列表
+
+```
+GET /schools
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "schools": [
+      {
+        "id": "TCZX",
+        "name": "天长中学",
+        "classInfo": [
+          { "year": 2024, "classCount": 25 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 获取公开配置
+
+```
+GET /public
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "config": {
+      "contentLimits": {
+        "post": 10000,
+        "comment": 500,
+        "username": { "min": 2, "max": 20 }
+      },
+      "upload": {
+        "maxFiles": 32,
+        "maxFileSize": 33554432,
+        "allowedTypes": ["image/jpeg", "image/png", ...]
+      }
+    }
+  }
+}
+```
+
+---
+
+## 管理后台
+
+> 以下接口需要管理员权限，通过中间件验证。
+
+### 获取帖子列表（含已删除）
+
+```
+GET /admin/posts
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 100 | 每页数量 |
+| search | string | 否 | - | 搜索关键词 |
+
+---
+
+### 永久删除帖子
+
+```
+DELETE /admin/posts/:id
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| reason | string | 否 | 删除原因 |
+
+---
+
+### 获取所有用户
+
+```
+GET /admin/users
+```
+
+---
+
+### 获取封禁用户列表
+
+```
+GET /admin/banned-users
+```
+
+---
+
+### 封禁用户
+
+```
+POST /admin/users/:id/ban
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 用户ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| duration | number | 否 | 封禁天数（默认7，365为永久） |
+| reason | string | 否 | 封禁原因 |
+
+---
+
+### 解封用户
+
+```
+POST /admin/users/:id/unban
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+
+---
+
+### 获取详细统计
+
+```
+GET /admin/stats
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "totalUsers": 1000,
+      "totalPosts": 5000,
+      "bannedUsers": 10,
+      "activeUsers": 800,
+      "todayPosts": 50,
+      "weekPosts": 300,
+      "monthPosts": 1000,
+      "totalComments": 10000,
+      "totalLikes": 25000,
+      "anonymousPosts": 200,
+      "gradeDistribution": { "高一": 300, "高二": 350 },
+      "schoolDistribution": { "TCZX": 500, "BHZX": 300 },
+      "topActiveUsers": [ ... ]
+    }
+  }
+}
+```
+
+---
+
+### 获取最近活动
+
+```
+GET /admin/recent-activity
+```
+
+---
+
+### 获取所有评论
+
+```
+GET /admin/comments
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 100 | 每页数量 |
+| search | string | 否 | - | 搜索关键词 |
+
+---
+
+### 删除评论
+
+```
+DELETE /admin/comments/:id
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| postId | string | 是 | 帖子ID |
+| reason | string | 否 | 删除原因 |
+
+---
+
+### 获取日志
+
+```
+GET /admin/logs
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 50 | 每页数量 |
+| level | string | 否 | ALL | 日志级别 |
+| search | string | 否 | - | 搜索关键词 |
+| date | string | 否 | - | 日期（YYYY-MM-DD） |
+
+---
+
+### 获取日志日期列表
+
+```
+GET /admin/logs/dates
+```
+
+---
+
+### 清空日志
+
+```
+DELETE /admin/logs
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| date | string | 否 | 日期（不填则清空全部） |
+
+---
+
+### 删除指定日期日志
+
+```
+DELETE /admin/logs/date
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| date | string | 是 | 日期（YYYY-MM-DD） |
+
+---
+
+### 获取举报列表
+
+```
+GET /admin/reports
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 100 | 每页数量 |
+| status | string | 否 | - | 状态：pending/processed/rejected |
+
+---
+
+### 获取举报统计
+
+```
+GET /admin/reports/stats
+```
+
+---
+
+### 处理举报
+
+```
+POST /admin/reports/:reportId/process
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| action | string | 是 | 操作：approve/reject |
+| banDuration | number | 否 | 封禁天数 |
+| note | string | 否 | 备注 |
+
+---
+
+### 获取配置
+
+```
+GET /admin/config
+```
+
+---
+
+### 更新配置
+
+```
+PUT /admin/config
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 管理员ID |
+| updates | object | 是 | 配置更新对象 |
+
+---
+
+### 获取管理员列表
+
+```
+GET /admin/admins
+```
+
+---
+
+### 添加管理员
+
+```
+POST /admin/admins
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 当前管理员ID |
+| newAdminId | string | 是 | 新管理员QQ号或用户ID |
+
+---
+
+### 删除管理员
+
+```
+DELETE /admin/admins
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| adminId | string | 是 | 当前管理员ID |
+| targetAdminId | string | 是 | 目标管理员ID |
+
+---
+
+## 错误码说明
+
+| HTTP状态码 | 说明 |
+|-----------|------|
+| 200 | 成功 |
+| 201 | 创建成功 |
+| 400 | 请求参数错误 |
+| 401 | 未授权（密码错误等） |
+| 403 | 禁止访问（无权限） |
+| 404 | 资源不存在 |
+| 500 | 服务器内部错误 |
+
+---
+
+## 数据模型
+
+### 用户 (User)
+
+```javascript
+/**
+ * @typedef {Object} User
+ * @property {string} id - UUID
+ * @property {string} qq - QQ号
+ * @property {string} username - 用户名
+ * @property {string} email - 邮箱
+ * @property {string} password - 加密密码（不返回）
+ * @property {string} school - 学校ID
+ * @property {number} enrollmentYear - 入学年份
+ * @property {string} className - 班级
+ * @property {string} grade - 年级
+ * @property {string} [avatar] - 头像URL
+ * @property {string} createdAt - 注册时间
+ * @property {string} [lastLogin] - 最后登录
+ * @property {number} postCount - 发帖数
+ * @property {number} commentCount - 评论数
+ * @property {boolean} isActive - 是否激活
+ * @property {Object} [settings] - 用户设置
+ */
+```
+
+### 帖子 (Post)
+
+```javascript
+/**
+ * @typedef {Object} Post
+ * @property {string} id - UUID
+ * @property {string} userId - 作者ID
+ * @property {string} username - 作者名
+ * @property {string} school - 学校
+ * @property {string} grade - 年级
+ * @property {string} className - 班级
+ * @property {string} content - 内容
+ * @property {Image[]} images - 图片
+ * @property {boolean} anonymous - 是否匿名
+ * @property {string} timestamp - 发布时间
+ * @property {string} [updatedAt] - 更新时间
+ * @property {number} likes - 点赞数
+ * @property {string[]} likedBy - 点赞用户ID
+ * @property {number} dislikes - 点踩数
+ * @property {string[]} dislikedBy - 点踩用户ID
+ * @property {number} viewCount - 浏览量
+ * @property {Comment[]} comments - 评论
+ * @property {boolean} isDeleted - 是否删除
+ */
+```
+
+### 图片 (Image)
+
+```javascript
+/**
+ * @typedef {Object} Image
+ * @property {string} url - 图片URL
+ * @property {string} filename - 文件名
+ */
+```
+
+### 评论 (Comment)
+
+```javascript
+/**
+ * @typedef {Object} Comment
+ * @property {string} id - UUID
+ * @property {string} userId - 作者ID
+ * @property {string} username - 作者名
+ * @property {string} content - 内容
+ * @property {boolean} anonymous - 是否匿名
+ * @property {string} timestamp - 时间
+ * @property {Reply[]} [replies] - 回复
+ */
+
+/**
+ * @typedef {Object} Reply
+ * @property {string} id - UUID
+ * @property {string} userId - 作者ID
+ * @property {string} username - 作者名
+ * @property {string} content - 内容
+ * @property {boolean} anonymous - 是否匿名
+ * @property {string} replyTo - 回复目标ID
+ * @property {string} timestamp - 时间
+ * @property {Reply[]} [replies] - 嵌套回复
+ */
+```
+
+### 通知 (Notification)
+
+```javascript
+/**
+ * @typedef {Object} Notification
+ * @property {string} id - UUID
+ * @property {string} userId - 接收者ID
+ * @property {'like'|'comment'|'comment_reply'|'follow'|'system'} type - 通知类型
+ * @property {string} [postId] - 帖子ID
+ * @property {string} [commentId] - 评论ID
+ * @property {string} [fromUserId] - 发送者ID
+ * @property {string} [fromUsername] - 发送者用户名
+ * @property {string} [content] - 内容
+ * @property {string} timestamp - 时间
+ * @property {boolean} read - 是否已读
+ */
+```
+
+### 收藏 (Favorite)
+
+```javascript
+/**
+ * @typedef {Object} Favorite
+ * @property {string} id - UUID
+ * @property {string} userId - 用户ID
+ * @property {string} postId - 帖子ID
+ * @property {string} [tagId] - 标签ID
+ * @property {string} createdAt - 收藏时间
+ */
+```
+
+### 收藏标签 (FavoriteTag)
+
+```javascript
+/**
+ * @typedef {Object} FavoriteTag
+ * @property {string} _id - MongoDB ID
+ * @property {string} userId - 用户ID
+ * @property {string} name - 标签名称
+ * @property {string} color - 标签颜色
+ * @property {number} order - 排序
+ */
+```
+
+### 关注 (Follow)
+
+```javascript
+/**
+ * @typedef {Object} Follow
+ * @property {string} id - UUID
+ * @property {string} followerId - 关注者ID
+ * @property {string} followingId - 被关注者ID
+ * @property {string} createdAt - 关注时间
+ */
+```
+
+### 举报 (Report)
+
+```javascript
+/**
+ * @typedef {Object} Report
+ * @property {string} id - UUID
+ * @property {string} reporterId - 举报人ID
+ * @property {'post'|'comment'} targetType - 目标类型
+ * @property {string} targetId - 目标ID
+ * @property {string} targetUserId - 被举报用户ID
+ * @property {string} reason - 举报原因
+ * @property {string} reasonText - 举报原因文本
+ * @property {string} [description] - 详细描述
+ * @property {'pending'|'processed'|'rejected'} status - 状态
+ * @property {string} createdAt - 创建时间
+ */
+```

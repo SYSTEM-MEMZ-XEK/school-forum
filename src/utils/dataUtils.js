@@ -1,0 +1,509 @@
+const fs = require('fs');
+const path = require('path');
+const { 
+  DATA_DIR, 
+  IMAGES_DIR 
+} = require('../config/constants');
+
+// 导入 Mongoose 模型
+const { 
+  User, 
+  Post, 
+  Notification, 
+  Report, 
+  BannedUser, 
+  DeletedPost 
+} = require('../models');
+
+// ==================== 用户相关操作 ====================
+
+// 获取所有用户
+async function getUsers() {
+  return await User.find().lean();
+}
+
+// 根据 ID 获取用户
+async function getUserById(userId) {
+  return await User.findOne({ id: userId }).lean();
+}
+
+// 根据 QQ 获取用户
+async function getUserByQQ(qq) {
+  return await User.findOne({ qq }).lean();
+}
+
+// 根据用户名获取用户
+async function getUserByUsername(username) {
+  return await User.findOne({ username }).lean();
+}
+
+// 根据邮箱获取用户（不区分大小写）
+async function getUserByEmail(email) {
+  return await User.findOne({ 
+    email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+  }).lean();
+}
+
+// 检查邮箱是否已被注册（不区分大小写）
+async function isEmailRegistered(email) {
+  const user = await getUserByEmail(email);
+  return !!user;
+}
+
+// 创建用户
+async function createUser(userData) {
+  const user = new User(userData);
+  return await user.save();
+}
+
+// 更新用户
+async function updateUser(userId, updateData) {
+  return await User.findOneAndUpdate(
+    { id: userId },
+    updateData,
+    { returnDocument: 'after' }
+  ).lean();
+}
+
+// 删除用户
+async function deleteUser(userId) {
+  return await User.findOneAndDelete({ id: userId });
+}
+
+// 检查 QQ 是否已注册
+async function isQQRegistered(qq) {
+  const user = await User.findOne({ qq });
+  return !!user;
+}
+
+// 检查用户名是否存在
+async function isUsernameExists(username) {
+  const user = await User.findOne({ username });
+  return !!user;
+}
+
+// 检查用户是否存在
+async function userExists(userId) {
+  const user = await User.findOne({ id: userId });
+  return !!user;
+}
+
+// 检查用户是否活跃
+async function isUserActive(userId) {
+  const user = await User.findOne({ id: userId });
+  return user && user.isActive;
+}
+
+// ==================== 帖子相关操作 ====================
+
+// 获取所有帖子
+async function getPosts(includeDeleted = false) {
+  const query = includeDeleted ? {} : { isDeleted: false };
+  return await Post.find(query).lean();
+}
+
+// 根据 ID 获取帖子
+async function getPostById(postId, includeDeleted = false) {
+  const query = { id: postId };
+  if (!includeDeleted) {
+    query.isDeleted = false;
+  }
+  return await Post.findOne(query).lean();
+}
+
+// 获取用户帖子
+async function getPostsByUserId(userId, includeDeleted = false) {
+  const query = { userId };
+  if (!includeDeleted) {
+    query.isDeleted = false;
+  }
+  return await Post.find(query).sort({ timestamp: -1 }).lean();
+}
+
+// 创建帖子
+async function createPost(postData) {
+  const post = new Post(postData);
+  return await post.save();
+}
+
+// 更新帖子
+async function updatePost(postId, updateData) {
+  return await Post.findOneAndUpdate(
+    { id: postId },
+    updateData,
+    { returnDocument: 'after' }
+  ).lean();
+}
+
+// 删除帖子（软删除）
+async function deletePost(postId, deletedBy, reason = '') {
+  const post = await Post.findOne({ id: postId });
+  if (!post) return null;
+  
+  post.isDeleted = true;
+  post.deletedAt = new Date();
+  post.deletedBy = deletedBy;
+  
+  // 保存到已删除帖子集合
+  const deletedPost = new DeletedPost({
+    ...post.toObject(),
+    reason,
+    permanentDelete: false
+  });
+  await deletedPost.save();
+  
+  return await post.save();
+}
+
+// 恢复帖子
+async function restorePost(postId) {
+  const post = await Post.findOne({ id: postId });
+  if (!post) return null;
+  
+  post.isDeleted = false;
+  post.deletedAt = null;
+  post.deletedBy = null;
+  
+  // 从已删除帖子集合中移除
+  await DeletedPost.deleteOne({ id: postId });
+  
+  return await post.save();
+}
+
+// ==================== 通知相关操作 ====================
+
+// 获取用户通知
+async function getNotifications(userId, limit = 50) {
+  return await Notification.find({ userId })
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .lean();
+}
+
+// 获取未读通知
+async function getUnreadNotifications(userId) {
+  return await Notification.find({ userId, read: false })
+    .sort({ timestamp: -1 })
+    .lean();
+}
+
+// 创建通知
+async function createNotification(notificationData) {
+  const notification = new Notification(notificationData);
+  return await notification.save();
+}
+
+// 标记通知为已读
+async function markNotificationAsRead(notificationId) {
+  return await Notification.findOneAndUpdate(
+    { id: notificationId },
+    { read: true },
+    { returnDocument: 'after' }
+  ).lean();
+}
+
+// 标记所有通知为已读
+async function markAllNotificationsAsRead(userId) {
+  return await Notification.updateMany(
+    { userId, read: false },
+    { read: true }
+  );
+}
+
+// 获取未读通知数量
+async function getUnreadNotificationCount(userId) {
+  return await Notification.countDocuments({ userId, read: false });
+}
+
+// ==================== 举报相关操作 ====================
+
+// 获取所有举报
+async function getReports(status = null) {
+  const query = status ? { status } : {};
+  return await Report.find(query).sort({ createdAt: -1 }).lean();
+}
+
+// 获取待处理的举报
+async function getPendingReports() {
+  return await Report.find({ status: 'pending' }).sort({ createdAt: -1 }).lean();
+}
+
+// 创建举报
+async function createReport(reportData) {
+  const report = new Report(reportData);
+  return await report.save();
+}
+
+// 更新举报状态
+async function updateReportStatus(reportId, updateData) {
+  return await Report.findOneAndUpdate(
+    { id: reportId },
+    updateData,
+    { returnDocument: 'after' }
+  ).lean();
+}
+
+// ==================== 封禁用户相关操作 ====================
+
+// 获取所有封禁记录
+async function getBannedUsers(activeOnly = false) {
+  const query = activeOnly ? { isActive: true } : {};
+  return await BannedUser.find(query).sort({ bannedAt: -1 }).lean();
+}
+
+// 检查用户是否被封禁
+async function isUserBanned(userId) {
+  return await BannedUser.isUserBanned(userId);
+}
+
+// 封禁用户
+async function banUser(banData) {
+  const bannedUser = new BannedUser(banData);
+  return await bannedUser.save();
+}
+
+// 解封用户
+async function unbanUser(userId) {
+  return await BannedUser.findOneAndUpdate(
+    { userId, isActive: true },
+    { isActive: false },
+    { returnDocument: 'after' }
+  ).lean();
+}
+
+// ==================== 已删除帖子相关操作 ====================
+
+// 获取已删除帖子
+async function getDeletedPosts() {
+  return await DeletedPost.find().sort({ deletedAt: -1 }).lean();
+}
+
+// 永久删除帖子
+async function permanentDeletePost(postId) {
+  await Post.deleteOne({ id: postId });
+  await DeletedPost.deleteOne({ id: postId });
+}
+
+// ==================== 统计相关操作 ====================
+
+// 获取统计数据
+async function getStats() {
+  const [userCount, postCount, commentCount, activeUserCount] = await Promise.all([
+    User.countDocuments(),
+    Post.countDocuments({ isDeleted: false }),
+    Post.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: null, total: { $sum: { $size: '$comments' } } } }
+    ]),
+    User.countDocuments({ isActive: true })
+  ]);
+
+  return {
+    userCount,
+    postCount,
+    commentCount: commentCount[0]?.total || 0,
+    activeUserCount
+  };
+}
+
+// ==================== 初始化函数（保持兼容性） ====================
+
+// 初始化目录
+function initializeDirectories() {
+  const directories = [
+    DATA_DIR,
+    IMAGES_DIR
+  ];
+  
+  directories.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`创建目录: ${dir}`);
+    }
+  });
+}
+
+// 初始化所有数据文件（空操作，保持兼容性）
+function initializeAllDataFiles() {
+  // MongoDB 不需要初始化文件
+  console.log('使用 MongoDB 数据库，无需初始化数据文件');
+}
+
+// 迁移用户数据（空操作，保持兼容性）
+function migrateUserData() {
+  // MongoDB 不需要迁移
+  console.log('使用 MongoDB 数据库，无需迁移用户数据');
+}
+
+// ==================== 数据迁移工具 ====================
+
+// 从 JSON 文件迁移数据到 MongoDB
+async function migrateFromJSON() {
+  console.log('开始从 JSON 文件迁移数据到 MongoDB...');
+  
+  const jsonFiles = {
+    users: path.join(DATA_DIR, 'users.json'),
+    posts: path.join(DATA_DIR, 'posts.json'),
+    notifications: path.join(DATA_DIR, 'notifications.json'),
+    reports: path.join(DATA_DIR, 'reports.json'),
+    banned_users: path.join(DATA_DIR, 'banned_users.json'),
+    deleted_posts: path.join(DATA_DIR, 'deleted_posts.json')
+  };
+  
+  // 迁移用户
+  if (fs.existsSync(jsonFiles.users)) {
+    const users = JSON.parse(fs.readFileSync(jsonFiles.users, 'utf8'));
+    if (users.length > 0) {
+      // 转换日期格式
+      const convertedUsers = users.map(user => ({
+        ...user,
+        createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+        lastLogin: user.lastLogin ? new Date(user.lastLogin) : null
+      }));
+      await User.insertMany(convertedUsers, { ordered: false });
+      console.log(`已迁移 ${users.length} 个用户`);
+    }
+  }
+  
+  // 迁移帖子
+  if (fs.existsSync(jsonFiles.posts)) {
+    const posts = JSON.parse(fs.readFileSync(jsonFiles.posts, 'utf8'));
+    if (posts.length > 0) {
+      // 转换日期格式
+      const convertedPosts = posts.map(post => ({
+        ...post,
+        timestamp: post.timestamp ? new Date(post.timestamp) : new Date(),
+        updatedAt: post.updatedAt ? new Date(post.updatedAt) : null,
+        deletedAt: post.deletedAt ? new Date(post.deletedAt) : null
+      }));
+      await Post.insertMany(convertedPosts, { ordered: false });
+      console.log(`已迁移 ${posts.length} 个帖子`);
+    }
+  }
+  
+  // 迁移通知
+  if (fs.existsSync(jsonFiles.notifications)) {
+    const notifications = JSON.parse(fs.readFileSync(jsonFiles.notifications, 'utf8'));
+    if (notifications.length > 0) {
+      const convertedNotifications = notifications.map(n => ({
+        ...n,
+        timestamp: n.timestamp ? new Date(n.timestamp) : new Date()
+      }));
+      await Notification.insertMany(convertedNotifications, { ordered: false });
+      console.log(`已迁移 ${notifications.length} 条通知`);
+    }
+  }
+  
+  // 迁移举报
+  if (fs.existsSync(jsonFiles.reports)) {
+    const reports = JSON.parse(fs.readFileSync(jsonFiles.reports, 'utf8'));
+    if (reports.length > 0) {
+      const convertedReports = reports.map(r => ({
+        ...r,
+        createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+        processedAt: r.processedAt ? new Date(r.processedAt) : null
+      }));
+      await Report.insertMany(convertedReports, { ordered: false });
+      console.log(`已迁移 ${reports.length} 条举报`);
+    }
+  }
+  
+  // 迁移封禁用户
+  if (fs.existsSync(jsonFiles.banned_users)) {
+    const bannedUsers = JSON.parse(fs.readFileSync(jsonFiles.banned_users, 'utf8'));
+    if (bannedUsers && bannedUsers.length > 0) {
+      const convertedBannedUsers = bannedUsers.map(b => ({
+        ...b,
+        bannedAt: b.bannedAt ? new Date(b.bannedAt) : new Date(),
+        unbanAt: b.unbanAt ? new Date(b.unbanAt) : null
+      }));
+      await BannedUser.insertMany(convertedBannedUsers, { ordered: false });
+      console.log(`已迁移 ${bannedUsers.length} 个封禁记录`);
+    }
+  }
+  
+  // 迁移已删除帖子
+  if (fs.existsSync(jsonFiles.deleted_posts)) {
+    const deletedPosts = JSON.parse(fs.readFileSync(jsonFiles.deleted_posts, 'utf8'));
+    if (deletedPosts && deletedPosts.length > 0) {
+      const convertedDeletedPosts = deletedPosts.map(p => ({
+        ...p,
+        timestamp: p.timestamp ? new Date(p.timestamp) : new Date(),
+        deletedAt: p.deletedAt ? new Date(p.deletedAt) : new Date()
+      }));
+      await DeletedPost.insertMany(convertedDeletedPosts, { ordered: false });
+      console.log(`已迁移 ${deletedPosts.length} 个已删除帖子`);
+    }
+  }
+  
+  console.log('数据迁移完成！');
+}
+
+module.exports = {
+  // 用户操作
+  getUsers,
+  getUserById,
+  getUserByQQ,
+  getUserByUsername,
+  getUserByEmail,
+  createUser,
+  updateUser,
+  deleteUser,
+  isQQRegistered,
+  isUsernameExists,
+  isEmailRegistered,
+  userExists,
+  isUserActive,
+  
+  // 帖子操作
+  getPosts,
+  getPostById,
+  getPostsByUserId,
+  createPost,
+  updatePost,
+  deletePost,
+  restorePost,
+  
+  // 通知操作
+  getNotifications,
+  getUnreadNotifications,
+  createNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getUnreadNotificationCount,
+  
+  // 举报操作
+  getReports,
+  getPendingReports,
+  createReport,
+  updateReportStatus,
+  
+  // 封禁操作
+  getBannedUsers,
+  isUserBanned,
+  banUser,
+  unbanUser,
+  
+  // 已删除帖子操作
+  getDeletedPosts,
+  permanentDeletePost,
+  
+  // 统计操作
+  getStats,
+  
+  // 兼容性函数
+  initializeDirectories,
+  initializeAllDataFiles,
+  migrateUserData,
+  
+  // 迁移工具
+  migrateFromJSON,
+  
+  // 导出模型（供直接使用）
+  User,
+  Post,
+  Notification,
+  Report,
+  BannedUser,
+  DeletedPost
+};

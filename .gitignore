@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+data/server-*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Redis
+Redis-8.6.1-Windows-x64-msys2/
+*.rdb
+dump.rdb
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+
+# User uploads (avatars, etc.)
+public/images/avatars/
+
+# Config with sensitive data
+data/config.json
