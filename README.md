@@ -15,19 +15,23 @@
 | 缓存 | Redis（可选） |
 | 前端 | 原生 HTML/CSS/JavaScript |
 | 内容渲染 | Markdown-it + MathJax + Highlight.js |
-| 身份验证 | bcryptjs 密码加密 |
+| 身份验证 | JWT 双 Token（accessToken + refreshToken）+ bcryptjs 密码加密 |
 
 ### 主要功能
 
 | 功能模块 | 描述 |
 |---------|------|
-| 用户系统 | 注册登录、个人资料、头像上传、密码修改 |
-| 帖子系统 | 发帖、编辑、删除、搜索、浏览量统计 |
+| 用户系统 | 注册登录、个人资料、头像上传、密码/邮箱/QQ修改、账户注销 |
+| 帖子系统 | 发帖、编辑、删除、搜索、浏览量统计、评论点赞 |
 | 互动系统 | 点赞、点踩、评论、回复 |
 | 社交功能 | 关注用户、粉丝列表、关注动态 |
+| 私信系统 | 发送私信、会话列表、消息记录、未读计数 |
+| 黑名单 | 拉黑/取消拉黑、拉黑列表管理 |
 | 收藏系统 | 收藏帖子、标签分类、批量管理 |
-| 消息通知 | 系统通知、评论提醒、已读标记 |
-| 管理后台 | 用户管理、帖子审核、日志查看、举报处理 |
+| 通知系统 | 系统通知、评论提醒、已读标记 |
+| 公告系统 | 发布公告、置顶、启用/禁用管理 |
+| 管理后台 | 用户管理、帖子审核、日志查看、举报处理、IP统计、运行模式 |
+| 安全防护 | JWT 认证、限流、XSS过滤、MongoDB注入防护、登录锁定 |
 | 内容渲染 | Markdown、LaTeX 公式、代码高亮 |
 
 ---
@@ -40,9 +44,11 @@ school-forum/
 ├── package.json                 # 项目依赖配置
 ├── package-lock.json            # 依赖锁定文件
 ├── README.md                    # 项目说明文档
-├── 校园论坛部署指南.md           # 详细部署指南
+├── API.md                       # API 接口文档
+├── DeploymentGuide.md           # 详细部署指南
+├── .env                         # 环境变量配置
 │
-├── data/                        # ���据目录
+├── data/                        # 数据目录
 │   └── config.json              # 系统配置文件
 │
 ├── public/                      # 静态资源目录
@@ -56,6 +62,8 @@ school-forum/
 │   ├── follow-list.html         # 关注/粉丝列表页
 │   ├── following.html           # 关注动态页
 │   ├── message.html             # 消息通知页
+│   ├── chat.html                # 私信聊天页
+│   ├── blacklist.html           # 黑名单管理页
 │   ├── settings.html            # 设置页
 │   │
 │   ├── css/                     # 样式文件
@@ -99,7 +107,8 @@ school-forum/
 │   ├── errors/                  # 错误页面
 │   │   ├── 403.html             # 无权限页面
 │   │   ├── 404.html             # 未找到页面
-│   │   └── 502.html             # 服务错误页面
+│   │   ├── 502.html             # 服务错误页面
+│   │   └── maintenance.html     # 维护模式页面
 │   │
 │   └── libs/                    # 第三方库
 │       ├── markdown-it/         # Markdown 渲染
@@ -109,7 +118,8 @@ school-forum/
 │
 ├── src/                         # 后端源码
 │   ├── config/                  # 配置模块
-│   │   └── constants.js         # 常量定义
+│   │   ├── constants.js         # 常量定义
+│   │   └── security.js          # 安全配置（CORS/Helmet等）
 │   │
 │   ├── controllers/             # 控制器
 │   │   ├── userController.js    # 用户控制器
@@ -117,14 +127,22 @@ school-forum/
 │   │   ├── followController.js  # 关注控制器
 │   │   ├── favoriteController.js# 收藏控制器
 │   │   ├── notificationController.js # 通知控制器
+│   │   ├── messageController.js # 私信控制器
+│   │   ├── blacklistController.js    # 黑名单控制器
+│   │   ├── announcementController.js # 公告控制器
 │   │   ├── adminController.js   # 管理控制器
 │   │   ├── reportController.js  # 举报控制器
 │   │   ├── statsController.js   # 统计控制器
-│   │   └── configController.js  # 配置控制器
+│   │   ├── configController.js  # 配置控制器
+│   │   └── runModeController.js # 运行模式控制器
 │   │
 │   ├── middleware/              # 中间件
-│   │   ├── adminAuth.js         # 管理员认证
-│   │   └── uploadMiddleware.js  # 文件上传
+│   │   ├── adminAuth.js         # 管理员 JWT 认证
+│   │   ├── jwtAuth.js           # 用户 JWT 认证
+│   │   ├── uploadMiddleware.js  # 文件上传
+│   │   ├── maintenanceMode.js   # 维护/自毁模式检查
+│   │   ├── rateLimitMiddleware.js # 请求限流
+│   │   └── security.js          # XSS/注入防护、请求ID等
 │   │
 │   ├── models/                  # 数据模型
 │   │   ├── index.js             # 数据库连接
@@ -136,7 +154,11 @@ school-forum/
 │   │   ├── Notification.js      # 通知模型
 │   │   ├── Report.js            # 举报模型
 │   │   ├── BannedUser.js        # 封禁用户模型
-│   │   └── DeletedPost.js       # 已删帖子模型
+│   │   ├── DeletedPost.js       # 已删帖子模型
+│   │   ├── Message.js           # 私信消息模型
+│   │   ├── Conversation.js      # 会话模型
+│   │   ├── Blacklist.js         # 黑名单模型
+│   │   └── Announcement.js      # 公告模型
 │   │
 │   ├── routes/                  # 路由定义
 │   │   ├── index.js             # 路由汇总
@@ -145,10 +167,14 @@ school-forum/
 │   │   ├── followRoutes.js      # 关注路由
 │   │   ├── favoriteRoutes.js    # 收藏路由
 │   │   ├── notificationRoutes.js# 通知路由
+│   │   ├── messageRoutes.js     # 私信路由
+│   │   ├── blacklistRoutes.js   # 黑名单路由
+│   │   ├── announcementRoutes.js# 公告路由
 │   │   ├── adminRoutes.js       # 管理路由
 │   │   ├── reportRoutes.js      # 举报路由
 │   │   ├── statsRoutes.js       # 统计路由
-│   │   └── configRoutes.js      # 配置路由
+│   │   ├── configRoutes.js      # 配置路由
+│   │   └── runModeRoutes.js     # 运行模式路由
 │   │
 │   └── utils/                   # 工具函数
 │       ├── authUtils.js         # 认证工具
@@ -194,21 +220,31 @@ school-forum/
 |-----|------|------|
 | POST | `/register` | 用户注册 |
 | POST | `/login` | 用户登录 |
+| POST | `/refresh-token` | 刷新访问令牌 |
+| POST | `/logout` | 用户登出 |
 | POST | `/auth/verify` | 验证登录状态 |
 | POST | `/send-verification-code` | 发送注册验证码 |
 | POST | `/send-login-verification-code` | 发送登录验证码 |
-| POST | `/send-password-change-code` | 发送密码修改验证码 |
-| POST | `/verify-password-change-code` | 验证密码修改验证码 |
+| POST | `/send-password-change-code` | 发送密码修改验证码 🔑 |
+| POST | `/verify-password-change-code` | 验证密码修改验证码 🔑 |
+| POST | `/change-password` | 修改密码 🔑 |
+| POST | `/send-email-change-code` | 发送邮箱修改验证码 🔑 |
+| POST | `/verify-email-change` | 验证并完成邮箱修改 🔑 |
+| POST | `/change-qq` | 修改 QQ 号 🔑 |
+| POST | `/send-deletion-code` | 发送账户注销验证码 🔑 |
+| POST | `/delete-account` | 注销账户 🔑 |
 
 #### 用户资料
 
 | 方法 | 路径 | 描述 |
 |-----|------|------|
 | GET | `/users/:id` | 获取用户资料 |
-| PUT | `/users/:id` | 修改用户资料 |
-| PUT | `/users/:id/settings` | 更新用户设置 |
-| POST | `/users/:id/avatar` | 上传头像 |
-| DELETE | `/users/:id/avatar` | 删除头像 |
+| PUT | `/users/:id` | 修改用户资料 🔑 |
+| PUT | `/users/:id/settings` | 更新用户设置 🔑 |
+| POST | `/users/:id/avatar` | 上传头像 🔑 |
+| DELETE | `/users/:id/avatar` | 删除头像 🔑 |
+
+> 🔑 = 需要携带 `Authorization: Bearer <token>` 头
 
 ---
 
@@ -232,6 +268,7 @@ school-forum/
 | POST | `/posts/:id/comments` | 添加评论 |
 | POST | `/posts/:id/comments/:commentId/replies` | 回复评论 |
 | DELETE | `/posts/:id/comments/:commentId` | 删除评论 |
+| POST | `/posts/:id/comments/:commentId/like` | 点赞评论 |
 
 ---
 
@@ -317,6 +354,52 @@ school-forum/
 
 ---
 
+### 私信模块
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| POST | `/messages` | 发送私信 🔑 |
+| GET | `/messages` | 获取消息记录 🔑 |
+| GET | `/messages/unread` | 获取未读消息数 🔑 |
+| GET | `/messages/check-permission` | 检查发送权限 |
+| GET | `/messages/contactable-users` | 获取可联系用户 🔑 |
+| DELETE | `/messages/:messageId` | 删除单条消息 🔑 |
+| GET | `/conversations` | 获取会话列表 🔑 |
+| DELETE | `/conversations/:conversationId` | 删除会话 🔑 |
+
+---
+
+### 黑名单模块
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| POST | `/block` | 拉黑用户 |
+| POST | `/unblock` | 取消拉黑 |
+| GET | `/block/status` | 检查拉黑状态 |
+| GET | `/block/relation` | 检查拉黑关系 |
+| GET | `/blocked/:userId` | 获取拉黑列表 |
+| GET | `/blocked/count/:userId` | 获取拉黑数量 |
+
+---
+
+### 公告模块
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| GET | `/announcements/active` | 获取有效公告列表 |
+| GET | `/announcements/:id` | 获取公告详情 |
+
+---
+
+### 运行模式模块
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| GET | `/run-mode` | 获取当前运行模式 |
+| GET | `/maintenance-message` | 获取维护模式消息 |
+
+---
+
 ### 配置模块
 
 | 方法 | 路径 | 描述 |
@@ -371,6 +454,10 @@ school-forum/
 | GET | `/admin/logs/dates` | 获取日志日期列表 |
 | DELETE | `/admin/logs` | 清空日志 |
 | DELETE | `/admin/logs/date` | 删除指定日期日志 |
+| GET | `/admin/ip-stats` | 获取 IP 访问统计列表 |
+| GET | `/admin/ip-stats/summary` | 获取 IP 统计摘要 |
+| DELETE | `/admin/ip-stats/:ip` | 清除指定 IP 统计 |
+| DELETE | `/admin/ip-stats` | 清除所有 IP 统计 |
 
 #### 系统配置
 
@@ -386,6 +473,27 @@ school-forum/
 | GET | `/admin/admins` | 获取管理员列表 |
 | POST | `/admin/admins` | 添加管理员 |
 | DELETE | `/admin/admins` | 删除管理员 |
+
+#### 公告管理
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| GET | `/admin/announcements` | 获取所有公告 |
+| POST | `/admin/announcements` | 创建公告 |
+| PUT | `/admin/announcements/:id` | 更新公告 |
+| DELETE | `/admin/announcements/:id` | 删除公告 |
+| PATCH | `/admin/announcements/:id/toggle-status` | 切换公告启用状态 |
+| PATCH | `/admin/announcements/:id/toggle-pinned` | 切换公告置顶状态 |
+| PATCH | `/admin/announcements/batch-status` | 批量更新公告状态 |
+
+#### 运行模式管理
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| POST | `/admin/run-mode` | 设置运行模式（正常/维护/只读） |
+| POST | `/admin/self-destruct/level3` | 自毁三级：删除帖子/评论/私信 |
+| POST | `/admin/self-destruct/level2` | 自毁二级：清空数据库 |
+| POST | `/admin/self-destruct/level1` | 自毁一级：删除论坛文件 |
 
 ---
 
@@ -519,13 +627,42 @@ npm start
 
 ### 环境变量
 
+创建 `.env` 文件配置以下变量（参考 `.env.example`）：
+
 | 变量名 | 说明 | 默认值 |
 |-------|------|-------|
 | `PORT` | 服务端口 | `3000` |
-| `MONGODB_URI` | MongoDB 连接字符串 | 配置文件中的值 |
-| `MONGODB_USERNAME` | MongoDB 用户名 | 配置文件中的值 |
-| `MONGODB_PASSWORD` | MongoDB 密码 | 配置文件中的值 |
+| `NODE_ENV` | 运行环境 | `development` |
+| `MONGODB_URI` | MongoDB 连接字符串 | — |
+| `MONGODB_USERNAME` | MongoDB 用户名 | — |
+| `MONGODB_PASSWORD` | MongoDB 密码 | — |
 | `MONGODB_AUTHSOURCE` | MongoDB 认证数据库 | `admin` |
+| `REDIS_HOST` | Redis 服务器地址 | `localhost` |
+| `REDIS_PORT` | Redis 端口 | `6379` |
+| `REDIS_PASSWORD` | Redis 密码 | — |
+| `JWT_SECRET` | 用户 JWT 密钥（**必填**） | — |
+| `JWT_EXPIRES_IN` | 访问令牌有效期 | `7d` |
+| `JWT_REFRESH_EXPIRES_IN` | 刷新令牌有效期 | `30d` |
+| `ADMIN_JWT_SECRET` | 管理员 JWT 密钥（**必填**） | — |
+| `ADMIN_JWT_EXPIRES_IN` | 管理员令牌有效期 | `24h` |
+| `SMTP_HOST` | SMTP 服务器地址 | — |
+| `SMTP_PORT` | SMTP 端口 | `465` |
+| `SMTP_SECURE` | 是否使用 SSL | `true` |
+| `SMTP_USER` | SMTP 用户名 | — |
+| `SMTP_PASS` | SMTP 密码/授权码 | — |
+| `CORS_ORIGIN` | 允许的跨域来源（逗号分隔） | `localhost` |
+| `MAX_REQUEST_SIZE` | 请求体最大大小（MB） | `10` |
+| `LOGIN_MAX_ATTEMPTS` | 最大登录尝试次数 | `5` |
+| `LOGIN_LOCK_TIME` | 锁定时间（毫秒） | `1800000` |
+| `PASSWORD_MIN_LENGTH` | 密码最小长度 | `8` |
+| `PASSWORD_REQUIRE_UPPERCASE` | 密码需含大写字母 | `true` |
+| `PASSWORD_REQUIRE_LOWERCASE` | 密码需含小写字母 | `true` |
+| `PASSWORD_REQUIRE_NUMBER` | 密码需含数字 | `true` |
+| `PASSWORD_REQUIRE_SPECIAL` | 密码需含特殊字符 | `false` |
+| `RATE_LIMIT_WINDOW_MS` | 限流窗口时间（毫秒） | `60000` |
+| `RATE_LIMIT_MAX_REQUESTS` | 窗口内最大请求数 | `100` |
+
+> **注意**：`JWT_SECRET` 和 `ADMIN_JWT_SECRET` 未配置时服务将拒绝启动。
 
 ---
 
