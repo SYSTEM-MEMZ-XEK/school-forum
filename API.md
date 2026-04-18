@@ -41,6 +41,8 @@
 - [配置模块](#配置模块)
 - [私信模块](#私信模块)
 - [黑名单模块](#黑名单模块)
+- [公告模块](#公告模块)
+- [运行模式模块](#运行模式模块)
 - [管理后台](#管理后台)
 - [安全说明](#安全说明)
 
@@ -138,6 +140,104 @@ POST /send-password-change-code
 ```
 POST /verify-password-change-code
 ```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| verificationCode | string | 是 | 6位验证码 |
+
+---
+
+### 修改密码
+
+```
+POST /change-password
+```
+
+> 🔑 需要认证
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| verificationCode | string | 是 | 已验证的验证码 |
+| newPassword | string | 是 | 新密码 |
+
+---
+
+### 发送邮箱修改验证码
+
+```
+POST /send-email-change-code
+```
+
+> 🔑 需要认证
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| newEmail | string | 是 | 新邮箱地址 |
+| currentPassword | string | 是 | 当前密码 |
+
+---
+
+### 验证并完成邮箱修改
+
+```
+POST /verify-email-change
+```
+
+> 🔑 需要认证
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| verificationCode | string | 是 | 6位验证码 |
+
+---
+
+### 修改 QQ 号
+
+```
+POST /change-qq
+```
+
+> 🔑 需要认证
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+| newQq | string | 是 | 新 QQ 号 |
+| currentPassword | string | 是 | 当前密码 |
+
+---
+
+### 发送账户注销验证码
+
+```
+POST /send-deletion-code
+```
+
+> 🔑 需要认证
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+### 注销账户
+
+```
+POST /delete-account
+```
+
+> 🔑 需要认证
 
 **请求参数**：
 | 参数 | 类型 | 必填 | 说明 |
@@ -1817,6 +1917,96 @@ GET /blocked/count/:userId
 
 ---
 
+## 公告模块
+
+### 获取有效公告列表
+
+```
+GET /announcements/active
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "announcements": [
+      {
+        "id": "announcement-uuid",
+        "title": "系统公告",
+        "content": "公告内容...",
+        "type": "info",
+        "pinned": true,
+        "active": true,
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 获取公告详情
+
+```
+GET /announcements/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 公告ID |
+
+---
+
+## 运行模式模块
+
+### 获取当前运行模式
+
+```
+GET /run-mode
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "mode": "normal",
+    "message": null
+  }
+}
+```
+
+**mode 可选值**：
+| 值 | 说明 |
+|---|------|
+| `normal` | 正常运行 |
+| `maintenance` | 维护模式（普通用户无法访问） |
+| `readonly` | 只读模式（无法发帖/评论） |
+
+---
+
+### 获取维护模式消息
+
+```
+GET /maintenance-message
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "message": "系统维护中，预计恢复时间：2024-01-01 12:00"
+  }
+}
+```
+
+---
+
 ## 管理后台
 
 > 以下接口需要管理员权限，通过中间件验证。
@@ -2119,6 +2309,161 @@ DELETE /admin/admins
 
 ---
 
+### 获取所有公告（管理员）
+
+```
+GET /admin/announcements
+```
+
+---
+
+### 创建公告
+
+```
+POST /admin/announcements
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| title | string | 是 | 公告标题 |
+| content | string | 是 | 公告内容（支持 Markdown） |
+| type | string | 否 | 类型：`info`/`warning`/`error`（默认 `info`） |
+| pinned | boolean | 否 | 是否置顶 |
+| active | boolean | 否 | 是否启用（默认 `true`） |
+
+---
+
+### 更新公告
+
+```
+PUT /admin/announcements/:id
+```
+
+参数同创建公告（均为选填）。
+
+---
+
+### 删除公告
+
+```
+DELETE /admin/announcements/:id
+```
+
+---
+
+### 切换公告启用状态
+
+```
+PATCH /admin/announcements/:id/toggle-status
+```
+
+---
+
+### 切换公告置顶状态
+
+```
+PATCH /admin/announcements/:id/toggle-pinned
+```
+
+---
+
+### 批量更新公告状态
+
+```
+PATCH /admin/announcements/batch-status
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| ids | string[] | 是 | 公告ID数组 |
+| active | boolean | 是 | 目标状态 |
+
+---
+
+### 获取 IP 访问统计列表（管理员）
+
+```
+GET /admin/ip-stats
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 100 | 每页数量 |
+
+---
+
+### 获取 IP 统计摘要（管理员）
+
+```
+GET /admin/ip-stats/summary
+```
+
+---
+
+### 清除指定 IP 统计
+
+```
+DELETE /admin/ip-stats/:ip
+```
+
+---
+
+### 清除所有 IP 统计
+
+```
+DELETE /admin/ip-stats
+```
+
+---
+
+### 设置运行模式
+
+```
+POST /admin/run-mode
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| mode | string | 是 | `normal` / `maintenance` / `readonly` |
+| message | string | 否 | 维护时显示的消息 |
+
+---
+
+### 自毁模式 - 三级
+
+```
+POST /admin/self-destruct/level3
+```
+
+> ⚠️ **危险操作**：删除所有帖子、评论、私信数据
+
+---
+
+### 自毁模式 - 二级
+
+```
+POST /admin/self-destruct/level2
+```
+
+> ⚠️ **危险操作**：清空整个数据库
+
+---
+
+### 自毁模式 - 一级
+
+```
+POST /admin/self-destruct/level1
+```
+
+> ⚠️ **极危险操作**：删除论坛所有文件
+
+---
+
 ## 错误码说明
 
 | HTTP状态码 | 说明 |
@@ -2340,6 +2685,22 @@ DELETE /admin/admins
  * @property {string} [description] - 详细描述
  * @property {'pending'|'processed'|'rejected'} status - 状态
  * @property {string} createdAt - 创建时间
+ */
+```
+
+### 公告 (Announcement)
+
+```javascript
+/**
+ * @typedef {Object} Announcement
+ * @property {string} id - UUID
+ * @property {string} title - 公告标题
+ * @property {string} content - 公告内容（支持 Markdown）
+ * @property {'info'|'warning'|'error'} type - 公告类型
+ * @property {boolean} pinned - 是否置顶
+ * @property {boolean} active - 是否启用
+ * @property {string} createdAt - 创建时间
+ * @property {string} updatedAt - 更新时间
  */
 ```
 
