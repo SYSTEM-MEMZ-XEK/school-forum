@@ -1,15 +1,119 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+// 可见性枚举
+const visibilityOptions = ['public', 'followers', 'self'];
+
+// 通知偏好设置
+const NotificationPreferencesSchema = new Schema({
+  // 帖子点赞通知
+  like: {
+    type: Boolean,
+    default: true
+  },
+  // 帖子评论通知
+  comment: {
+    type: Boolean,
+    default: true
+  },
+  // 评论回复通知
+  commentReply: {
+    type: Boolean,
+    default: true
+  },
+  // 评论点赞通知
+  commentLike: {
+    type: Boolean,
+    default: true
+  },
+  // 关注通知
+  follow: {
+    type: Boolean,
+    default: true
+  },
+  // 系统通知（不可关闭）
+  system: {
+    type: Boolean,
+    default: true,
+    immutable: true
+  }
+}, { _id: false });
+
+// 个人信息可见性设置
+const ProfileVisibilitySchema = new Schema({
+  // 性别可见性
+  gender: {
+    type: String,
+    enum: visibilityOptions,
+    default: 'public'
+  },
+  // 生日可见性
+  birthday: {
+    type: String,
+    enum: visibilityOptions,
+    default: 'public'
+  },
+  // 学校/班级可见性
+  school: {
+    type: String,
+    enum: visibilityOptions,
+    default: 'public'
+  },
+  // 签名可见性
+  signature: {
+    type: String,
+    enum: visibilityOptions,
+    default: 'public'
+  },
+  // 加入时间可见性
+  joinDate: {
+    type: String,
+    enum: visibilityOptions,
+    default: 'public'
+  },
+  // 最后登录可见性
+  lastLogin: {
+    type: String,
+    enum: visibilityOptions,
+    default: 'public'
+  }
+}, { _id: false });
+
 const UserSettingsSchema = new Schema({
   theme: {
     type: String,
     default: 'light',
-    enum: ['light', 'dark']
+    enum: ['light', 'dark', 'auto']
   },
   signature: {
     type: String,
     default: ''
+  },
+  // 通知偏好设置
+  notifications: {
+    type: NotificationPreferencesSchema,
+    default: () => ({})
+  },
+  privacy: {
+    hideBlockedPosts: {
+      type: Boolean,
+      default: false
+    },
+    hideBlockedComments: {
+      type: Boolean,
+      default: false
+    },
+    // 帖子时间范围展示设置
+    postDisplayRange: {
+      type: String,
+      enum: ['all', '3days', '7days', '1month', '6months', '1year'],
+      default: 'all'
+    },
+    // 个人信息可见性设置
+    profileVisibility: {
+      type: ProfileVisibilitySchema,
+      default: () => ({})
+    }
   }
 }, { _id: false });
 
@@ -59,6 +163,15 @@ const UserSchema = new Schema({
   avatar: {
     type: String,
     default: null
+  },
+  birthday: {
+    type: String,
+    default: null
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other', ''],
+    default: ''
   },
   createdAt: {
     type: Date,

@@ -51,10 +51,15 @@
               <i class="fas fa-cog"></i> 设置
             </a>
             <a href="message.html" class="header-menu-item">
-              <i class="fas fa-bell"></i> 消息
+              <i class="fas fa-bell"></i> 消息通知
             </a>
-            <div class="header-menu-divider"></div>
-            <button id="header-logout-btn" class="header-menu-item logout">
+                          <a href="chat.html" class="header-menu-item">
+                            <i class="fas fa-envelope"></i> 私信
+                          </a>
+                          <a href="blacklist.html" class="header-menu-item">
+                            <i class="fas fa-ban"></i> 黑名单
+                          </a>
+                          <div class="header-menu-divider"></div>            <button id="header-logout-btn" class="header-menu-item logout">
               <i class="fas fa-sign-out-alt"></i> 退出登录
             </button>
           </div>
@@ -69,6 +74,14 @@
         </a>
       </div>
       
+      <!-- 私信按钮（登录后显示） -->
+      <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
+        <a href="chat.html">
+          <i class="fas fa-envelope"></i>
+          <span id="chat-badge" class="message-badge" style="display: none;">0</span>
+        </a>
+      </div>
+      
       <!-- 登录/注册按钮（未登录时显示） -->
       <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
       <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
@@ -79,6 +92,9 @@
         <div class="admin-nav">
             <button onclick="showSection('dashboard')" class="active">
                 <i class="fas fa-tachometer-alt"></i> 仪表盘
+            </button>
+            <button onclick="showSection('announcements')">
+                <i class="fas fa-bullhorn"></i> 公告管理
             </button>
             <button onclick="showSection('posts')">
                 <i class="fas fa-file-alt"></i> 帖子管理
@@ -141,6 +157,56 @@
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- 公告管理 -->
+        <div id="announcements" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-bullhorn"></i> 公告管理</h2>
+                <div class="section-actions">
+                    <button onclick="adminManager.showAddAnnouncementModal()" class="action-btn btn-success">
+                        <i class="fas fa-plus"></i> 发布公告
+                    </button>
+                    <button onclick="adminManager.loadAnnouncements()" class="action-btn btn-info">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 公告统计卡片 -->
+            <div class="announcements-stats">
+                <div class="announcement-stat-card total">
+                    <div class="stat-icon"><i class="fas fa-bullhorn"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="announcements-total">0</span>
+                        <span class="stat-label">总公告数</span>
+                    </div>
+                </div>
+                <div class="announcement-stat-card active">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="announcements-active">0</span>
+                        <span class="stat-label">已启用</span>
+                    </div>
+                </div>
+                <div class="announcement-stat-card pinned">
+                    <div class="stat-icon"><i class="fas fa-thumbtack"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="announcements-pinned">0</span>
+                        <span class="stat-label">已置顶</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 公告列表 -->
+            <div class="announcements-list-container" id="announcements-list">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                </div>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination" id="announcements-pagination"></div>
         </div>
         
         <!-- 帖子管理 -->
@@ -668,6 +734,101 @@
             </div>
             
             <div class="config-container">
+                <!-- 运行模式控制 -->
+                <div class="config-section run-mode-section">
+                    <h3><i class="fas fa-server"></i> 运行模式控制</h3>
+                    <div class="config-content">
+                        <div class="run-mode-status">
+                            <div class="current-mode-info">
+                                <span class="mode-label">当前模式：</span>
+                                <span id="current-mode-badge" class="mode-badge mode-normal">正常</span>
+                            </div>
+                            <div class="mode-actions">
+                                <button onclick="adminManager.setRunMode('normal')" class="mode-btn mode-btn-normal" id="btn-mode-normal">
+                                    <i class="fas fa-check-circle"></i> 正常模式
+                                </button>
+                                <button onclick="adminManager.setRunMode('debug')" class="mode-btn mode-btn-debug" id="btn-mode-debug">
+                                    <i class="fas fa-bug"></i> 调试模式
+                                </button>
+                                <button onclick="adminManager.showMaintenanceModal()" class="mode-btn mode-btn-maintenance" id="btn-mode-maintenance">
+                                    <i class="fas fa-tools"></i> 维护模式
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mode-description">
+                            <div class="mode-desc-item">
+                                <strong><i class="fas fa-check-circle"></i> 正常模式：</strong>
+                                <span>论坛正常运行，所有功能可用</span>
+                            </div>
+                            <div class="mode-desc-item">
+                                <strong><i class="fas fa-bug"></i> 调试模式：</strong>
+                                <span>增加日志输出，用于问题排查</span>
+                            </div>
+                            <div class="mode-desc-item">
+                                <strong><i class="fas fa-tools"></i> 维护模式：</strong>
+                                <span>论坛暂停服务，仅管理员可访问</span>
+                            </div>
+                        </div>
+                        
+                        <div class="maintenance-config" id="maintenance-config" style="display: none;">
+                            <div class="form-group">
+                                <label>维护提示消息</label>
+                                <input type="text" id="maintenance-message" 
+                                       value="网站正在维护中，请稍后再试" 
+                                       class="config-input"
+                                       placeholder="请输入维护提示消息">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 自毁模式控制 - 危险操作 -->
+                <div class="config-section self-destruct-section">
+                    <h3><i class="fas fa-skull-crossbones"></i> 自毁模式 <span class="danger-badge">危险</span></h3>
+                    <div class="config-content">
+                        <div class="self-destruct-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>警告：自毁模式是危险操作，执行后数据将无法恢复！</strong>
+                        </div>
+                        
+                        <div class="self-destruct-levels">
+                            <div class="destruct-level level-3">
+                                <div class="level-header">
+                                    <span class="level-badge">三级</span>
+                                    <span class="level-title">删除所有内容</span>
+                                </div>
+                                <p class="level-desc">删除所有帖子、评论、私信、通知、收藏、关注等数据</p>
+                                <button onclick="adminManager.showSelfDestructModal(3)" class="destruct-btn level-3-btn">
+                                    <i class="fas fa-trash-alt"></i> 执行三级自毁
+                                </button>
+                            </div>
+                            
+                            <div class="destruct-level level-2">
+                                <div class="level-header">
+                                    <span class="level-badge">二级</span>
+                                    <span class="level-title">清空数据库</span>
+                                </div>
+                                <p class="level-desc">清空整个数据库，删除所有集合和数据</p>
+                                <button onclick="adminManager.showSelfDestructModal(2)" class="destruct-btn level-2-btn">
+                                    <i class="fas fa-database"></i> 执行二级自毁
+                                </button>
+                            </div>
+                            
+                            <div class="destruct-level level-1">
+                                <div class="level-header">
+                                    <span class="level-badge">一级</span>
+                                    <span class="level-title">删除论坛文件</span>
+                                </div>
+                                <p class="level-desc">删除论坛相关文件和代码，包括前端和后端</p>
+                                <button onclick="adminManager.showSelfDestructModal(1)" class="destruct-btn level-1-btn">
+                                    <i class="fas fa-bomb"></i> 执行一级自毁
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 管理员管理 -->
                 <div class="config-section">
                     <h3><i class="fas fa-user-shield"></i> 管理员管理</h3>
@@ -705,7 +866,7 @@
                         <div class="form-group">
                             <label>允许的文件类型</label>
                             <input type="text" id="upload-allowed-types" 
-                                   placeholder="image/jpeg,image/png,image/gif,image/webp"
+                                   placeholder="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
                                    class="config-input">
                         </div>
                         <div class="form-group">
@@ -1016,6 +1177,160 @@
                 <button class="btn-cancel" onclick="adminManager.closeModal('deleteLogsModal')">取消</button>
                 <button class="btn-danger" onclick="adminManager.confirmDeleteLogs()">确认删除</button>
             </div>
+        </div>
+    </div>
+    
+    <!-- 维护模式设置模态框 -->
+    <div id="maintenanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-tools"></i> 启用维护模式</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('maintenanceModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>维护提示消息</label>
+                <input type="text" id="maintenance-modal-message" 
+                       value="网站正在维护中，请稍后再试" 
+                       class="config-input"
+                       placeholder="请输入维护提示消息">
+            </div>
+            <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> 启用维护模式后，普通用户将无法访问论坛，仅管理员可以访问。</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('maintenanceModal')">取消</button>
+                <button class="btn-warning" onclick="adminManager.confirmMaintenanceMode()">确认启用</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 自毁模式确认模态框 -->
+    <div id="selfDestructModal" class="modal">
+        <div class="modal-content modal-danger">
+            <div class="modal-header danger-header">
+                <h3><i class="fas fa-skull-crossbones"></i> 自毁模式确认</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('selfDestructModal')">&times;</button>
+            </div>
+            <div class="self-destruct-confirm-content">
+                <div class="danger-alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>警告：这是一个危险操作！</h4>
+                </div>
+                
+                <div class="destruct-info" id="destruct-info">
+                    <!-- 动态填充 -->
+                </div>
+                
+                <div class="form-group">
+                    <label>请输入确认字符串：</label>
+                    <input type="text" id="destruct-confirmation" 
+                           class="config-input destruct-input"
+                           placeholder="">
+                    <p class="confirmation-hint" id="confirmation-hint"></p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('selfDestructModal')">取消</button>
+                <button class="btn-danger destruct-confirm-btn" onclick="adminManager.confirmSelfDestruct()">
+                    <i class="fas fa-skull-crossbones"></i> 确认执行
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 公告创建/编辑模态框 -->
+    <div id="announcementModal" class="modal">
+        <div class="modal-content announcement-modal">
+            <div class="modal-header">
+                <h3 id="announcementModalTitle"><i class="fas fa-bullhorn"></i> 发布公告</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('announcementModal')">&times;</button>
+            </div>
+            <div class="announcement-form">
+                <div class="form-group">
+                    <label><i class="fas fa-heading"></i> 公告标题 <span class="required">*</span></label>
+                    <input type="text" id="announcement-title" class="config-input" 
+                           placeholder="请输入公告标题" maxlength="100">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-align-left"></i> 公告内容 <span class="required">*</span></label>
+                    <textarea id="announcement-content" class="config-input" rows="6"
+                              placeholder="请输入公告内容" maxlength="2000"></textarea>
+                    <small class="char-count"><span id="announcement-char-count">0</span>/2000</small>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label><i class="fas fa-palette"></i> 公告类型</label>
+                        <select id="announcement-type" class="config-input">
+                            <option value="info">普通 (蓝色)</option>
+                            <option value="success">成功 (绿色)</option>
+                            <option value="warning">警告 (黄色)</option>
+                            <option value="danger">危险 (红色)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group half">
+                        <label><i class="fas fa-map-marker-alt"></i> 显示位置</label>
+                        <select id="announcement-position" class="config-input">
+                            <option value="top">顶部横幅</option>
+                            <option value="popup">弹窗提示</option>
+                            <option value="list">列表展示</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label><i class="fas fa-calendar-alt"></i> 开始时间</label>
+                        <input type="datetime-local" id="announcement-start-time" class="config-input">
+                        <small class="field-hint">留空则立即生效</small>
+                    </div>
+                    
+                    <div class="form-group half">
+                        <label><i class="fas fa-calendar-check"></i> 结束时间</label>
+                        <input type="datetime-local" id="announcement-end-time" class="config-input">
+                        <small class="field-hint">留空则永不过期</small>
+                    </div>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="announcement-is-active" checked>
+                        <span class="checkbox-custom"></span>
+                        <span>立即启用</span>
+                    </label>
+                    
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="announcement-is-pinned">
+                        <span class="checkbox-custom"></span>
+                        <span>置顶显示</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('announcementModal')">取消</button>
+                <button class="btn-success" id="announcement-save-btn" onclick="adminManager.saveAnnouncement()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+            <input type="hidden" id="announcement-edit-id">
+        </div>
+    </div>
+    
+    <!-- 公告删除确认模态框 -->
+    <div id="deleteAnnouncementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash-alt"></i> 删除公告</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('deleteAnnouncementModal')">&times;</button>
+            </div>
+            <p>确定要删除公告 "<strong id="delete-announcement-title"></strong>" 吗？</p>
+            <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> 此操作无法撤销！</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('deleteAnnouncementModal')">取消</button>
+                <button class="btn-danger" onclick="adminManager.confirmDeleteAnnouncement()">确认删除</button>
+            </div>
+            <input type="hidden" id="delete-announcement-id">
         </div>
     </div>
 

@@ -541,6 +541,24 @@
   color: var(--primary-color);
 }
 
+/* 评论点赞按钮样式 */
+.comment-action.like-comment-btn {
+  font-weight: 500;
+}
+
+.comment-action.like-comment-btn.liked {
+  color: var(--primary-color);
+}
+
+.comment-action.like-comment-btn.liked i {
+  transform: scale(1.1);
+}
+
+.comment-action.like-comment-btn.processing {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .comment-footer {
   display: flex;
   gap: 15px;
@@ -1118,5 +1136,245 @@
 }
 
 [data-theme="dark"] .btn-skip:hover {
+  background: #475569;
+}
+
+/* 可见性设置弹窗 */
+.visibility-modal {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.visibility-modal-content {
+  background: var(--background-card);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+.visibility-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.visibility-modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.visibility-modal-header h3 i {
+  color: var(--primary-color);
+}
+
+.visibility-modal-close {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visibility-modal-close:hover {
+  background: var(--background-light);
+  color: var(--error-color);
+}
+
+.visibility-modal-body {
+  padding: 20px;
+}
+
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.visibility-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 15px;
+  background: var(--background-light);
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.visibility-option:hover {
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+}
+
+.visibility-option input[type="radio"] {
+  display: none;
+}
+
+.visibility-option.selected {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.visibility-radio {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: var(--transition);
+}
+
+.visibility-option.selected .visibility-radio {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+.visibility-option.selected .visibility-radio::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.visibility-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.visibility-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.visibility-option.selected .visibility-title {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.visibility-title i {
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+.visibility-desc {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.visibility-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 15px 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  background: var(--background-light);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.btn-cancel:hover {
+  background: var(--border-color);
+}
+
+.btn-save {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.btn-save:hover {
+  background: var(--secondary-color);
+}
+
+.btn-save:disabled {
+  background: var(--text-light);
+  cursor: not-allowed;
+}
+
+/* 暗色模式 */
+[data-theme="dark"] .visibility-modal-content {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .visibility-modal-header {
+  border-color: #334155;
+}
+
+[data-theme="dark"] .visibility-modal-close:hover {
+  background: #334155;
+}
+
+[data-theme="dark"] .visibility-option {
+  background: #334155;
+}
+
+[data-theme="dark"] .visibility-option:hover,
+[data-theme="dark"] .visibility-option.selected {
+  background: rgba(67, 97, 238, 0.2);
+}
+
+[data-theme="dark"] .visibility-modal-footer {
+  border-color: #334155;
+}
+
+[data-theme="dark"] .btn-cancel {
+  background: #334155;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .btn-cancel:hover {
   background: #475569;
 }

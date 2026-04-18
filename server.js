@@ -1,8 +1,26 @@
 const express = require('express');
+require('express-async-errors'); // 必须在 express 后立即导入
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
+const helmet = require('helmet');
+const hpp = require('hpp');
+const mongoSanitize = require('express-mongo-sanitize');
+
+// 加载环境变量
+require('dotenv').config();
+
+// 导入安全配置
+const { CORS_CONFIG, HELMET_CONFIG, REQUEST_LIMITS } = require('./src/config/security');
+
+// 导入安全中间件
+const { 
+  xssFilter, 
+  requestIdMiddleware, 
+  injectionGuard,
+  additionalSecurityHeaders 
+} = require('./src/middleware/security');
 
 // 导入配置
 const {
@@ -26,15 +44,67 @@ const { initRedis, closeRedis, ipStats } = require('./src/utils/redisUtils');
 // 导入路由
 const routes = require('./src/routes');
 
+// 导入维护模式中间件
+const { checkMaintenanceMode, checkSelfDestructMode, debugModeLogger } = require('./src/middleware/maintenanceMode');
+
 const app = express();
 
-// 中间件配置
-app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+// ==================== 安全中间件配置 ====================
+// 注意：顺序很重要，安全中间件应尽早添加
+
+// 1. 请求 ID（便于追踪）
+app.use(requestIdMiddleware);
+
+// 2. Helmet 安全头
+app.use(helmet(HELMET_CONFIG));
+
+// 3. CORS 跨域配置（白名单机制）
+app.use(cors(CORS_CONFIG.options));
+
+// 4. HPP - 防止 HTTP 参数污染
+app.use(hpp({
+  checkQuery: true,
+  checkBody: true,
+  whitelist: ['tags', 'categories', 'ids'] // 允许数组参数
+}));
+
+// 5. MongoDB 注入防护
+app.use(mongoSanitize({
+  onSanitize: ({ req, key }) => {
+    logger.logSecurityEvent('mongodb_injection_blocked', {
+      key,
+      path: req.path,
+      ip: req.ip
+    });
+  }
+}));
+
+// 6. 请求体大小限制（从 50MB 降低到可配置值）
+app.use(bodyParser.json({ limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
+app.use(bodyParser.urlencoded({ extended: true, limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
+
+// 7. 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 请求日志中间件
+// 8. XSS 过滤
+app.use(xssFilter);
+
+// 9. 注入防护
+app.use(injectionGuard);
+
+// 10. 额外的安全头
+app.use(additionalSecurityHeaders);
+
+// 调试模式日志中间件
+app.use(debugModeLogger);
+
+// 维护模式检查中间件
+app.use(checkMaintenanceMode);
+
+// 自毁模式检查中间件
+app.use(checkSelfDestructMode);
+
+// 请求日志中间件（安全增强版）
 app.use((req, res, next) => {
   const startTime = Date.now();
 
@@ -47,11 +117,11 @@ app.use((req, res, next) => {
 
   // 记录请求信息
   logger.logInfo('收到请求', {
+    requestId: req.requestId,
     method: req.method,
     path: req.path,
-    query: req.query,
     ip: clientIp,
-    userAgent: req.get('user-agent')
+    userAgent: req.get('user-agent')?.substring(0, 100) // 限制长度
   });
 
   // 监听响应完成事件
@@ -59,7 +129,20 @@ app.use((req, res, next) => {
     const duration = Date.now() - startTime;
     const logLevel = res.statusCode >= 400 ? 'logError' : 'logInfo';
 
+    // 记录可疑请求
+    if (res.statusCode >= 400 || duration > 5000) {
+      logger.logSecurityEvent('suspicious_request', {
+        requestId: req.requestId,
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        duration: `${duration}ms`,
+        ip: clientIp
+      });
+    }
+
     logger[logLevel]('请求完成', {
+      requestId: req.requestId,
       method: req.method,
       path: req.path,
       statusCode: res.statusCode,
@@ -99,69 +182,9 @@ logger.logSystemEvent('配置文件初始化完成');
 // 使用路由
 app.use('/', routes);
 
-// 错误处理中间件
-app.use((err, req, res, next) => {
-  logger.logError('服务器错误', { error: err.message, stack: err.stack });
-  
-  // Multer 文件上传错误处理
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        message: '文件大小超过限制'
-      });
-    }
-    if (err.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({
-        success: false,
-        message: '文件数量超过限制'
-      });
-    }
-  }
-  
-  // 文件不存在错误处理（ENOENT）
-  if (err.code === 'ENOENT') {
-    console.warn(`文件不存在: ${err.path}`);
-    
-    // 根据请求类型返回不同的响应
-    if (req.accepts('html')) {
-      return res.status(404).sendFile(path.join(__dirname, 'public/errors/404.html'));
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: '请求的资源不存在'
-      });
-    }
-  }
-  
-  // 其他错误
-  const statusCode = err.status || 500;
-  
-  // 根据错误类型返回不同的响应
-  if (req.accepts('html')) {
-    // 如果是HTML请求，返回对应的错误页面
-    switch (statusCode) {
-      case 403:
-        return res.status(403).sendFile(path.join(__dirname, 'public/errors/403.html'));
-      case 404:
-        return res.status(404).sendFile(path.join(__dirname, 'public/errors/404.html'));
-      case 502:
-        return res.status(502).sendFile(path.join(__dirname, 'public/errors/502.html'));
-      default:
-        // 对于其他错误，返回JSON响应
-        return res.status(statusCode).json({
-          success: false,
-          message: statusCode === 500 ? '服务器内部错误' : err.message || '请求失败'
-        });
-    }
-  } else {
-    // 对于API请求，返回JSON响应
-    res.status(statusCode).json({
-      success: false,
-      message: statusCode === 500 ? '服务器内部错误' : err.message || '请求失败'
-    });
-  }
-});
+// 安全错误处理中间件
+const { secureErrorHandler } = require('./src/middleware/security');
+app.use(secureErrorHandler);
 
 // 启动服务器
 async function startServer() {

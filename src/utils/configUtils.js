@@ -7,10 +7,35 @@ const DATA_DIR = path.join(__dirname, '../../data/');
 // 配置文件路径
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
+// 运行模式定义
+const RUN_MODES = {
+  NORMAL: 'normal',           // 正常模式
+  DEBUG: 'debug',             // 调试模式
+  MAINTENANCE: 'maintenance', // 维护模式
+  SELF_DESTRUCT: 'self_destruct' // 自毁模式
+};
+
+// 自毁模式级别定义
+const SELF_DESTRUCT_LEVELS = {
+  LEVEL_3: 3,  // 删除所有帖子、评论、私信
+  LEVEL_2: 2,  // 清空数据库
+  LEVEL_1: 1   // 删除论坛文件
+};
+
 // 默认配置
 const DEFAULT_CONFIG = {
   // 管理员列表
   adminUsers: ['1635075096'],
+  
+  // 运行模式配置
+  runMode: {
+    current: RUN_MODES.NORMAL,  // 当前运行模式
+    maintenanceMessage: '网站正在维护中，请稍后再试', // 维护模式提示消息
+    debugLogLevel: 'debug',     // 调试模式日志级别
+    selfDestructLevel: null,    // 自毁模式级别
+    lastModeChange: null,       // 最后一次模式变更时间
+    changedBy: null             // 变更操作者
+  },
   
   // MongoDB 连接配置
   mongodb: {
@@ -19,7 +44,7 @@ const DEFAULT_CONFIG = {
   
   // 文件上传配置
   upload: {
-    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'],
     maxFileSize: 10 * 1024 * 1024, // 10MB
     maxFiles: 20
   },
@@ -50,7 +75,16 @@ const DEFAULT_CONFIG = {
     password: {
       min: 6
     }
-  }
+  },
+  
+  // 学校列表配置
+  schools: [
+    { id: 'school-1', name: '示例中学' },
+    { id: 'school-2', name: '示范高级中学' },
+    { id: 'school-3', name: '第一中学' },
+    { id: 'school-4', name: '第二中学' },
+    { id: 'school-5', name: '第三中学' }
+  ]
 };
 
 /**
@@ -110,6 +144,14 @@ function writeConfig(config) {
 function mergeWithDefaults(config) {
   return {
     adminUsers: config.adminUsers || DEFAULT_CONFIG.adminUsers,
+    runMode: {
+      current: config.runMode?.current || DEFAULT_CONFIG.runMode.current,
+      maintenanceMessage: config.runMode?.maintenanceMessage || DEFAULT_CONFIG.runMode.maintenanceMessage,
+      debugLogLevel: config.runMode?.debugLogLevel || DEFAULT_CONFIG.runMode.debugLogLevel,
+      selfDestructLevel: config.runMode?.selfDestructLevel || DEFAULT_CONFIG.runMode.selfDestructLevel,
+      lastModeChange: config.runMode?.lastModeChange || DEFAULT_CONFIG.runMode.lastModeChange,
+      changedBy: config.runMode?.changedBy || DEFAULT_CONFIG.runMode.changedBy
+    },
     mongodb: {
       uri: config.mongodb?.uri || DEFAULT_CONFIG.mongodb.uri
     },
@@ -142,6 +184,74 @@ function mergeWithDefaults(config) {
     },
     schools: config.schools || []
   };
+}
+
+/**
+ * 获取当前运行模式
+ * @returns {object} 运行模式配置
+ */
+function getRunMode() {
+  const config = readConfig();
+  return config.runMode || DEFAULT_CONFIG.runMode;
+}
+
+/**
+ * 设置运行模式
+ * @param {string} mode - 运行模式
+ * @param {string} adminId - 操作管理员ID
+ * @param {object} options - 额外选项
+ * @returns {boolean} 是否成功
+ */
+function setRunMode(mode, adminId, options = {}) {
+  try {
+    if (!Object.values(RUN_MODES).includes(mode)) {
+      console.error('无效的运行模式:', mode);
+      return false;
+    }
+    
+    const config = readConfig();
+    config.runMode = {
+      current: mode,
+      maintenanceMessage: options.maintenanceMessage || config.runMode?.maintenanceMessage || DEFAULT_CONFIG.runMode.maintenanceMessage,
+      debugLogLevel: options.debugLogLevel || config.runMode?.debugLogLevel || DEFAULT_CONFIG.runMode.debugLogLevel,
+      selfDestructLevel: options.selfDestructLevel || null,
+      lastModeChange: new Date().toISOString(),
+      changedBy: adminId
+    };
+    
+    writeConfig(config);
+    return true;
+  } catch (error) {
+    console.error('设置运行模式失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查是否处于维护模式
+ * @returns {boolean}
+ */
+function isMaintenanceMode() {
+  const runMode = getRunMode();
+  return runMode.current === RUN_MODES.MAINTENANCE;
+}
+
+/**
+ * 检查是否处于调试模式
+ * @returns {boolean}
+ */
+function isDebugMode() {
+  const runMode = getRunMode();
+  return runMode.current === RUN_MODES.DEBUG;
+}
+
+/**
+ * 检查是否处于自毁模式
+ * @returns {boolean}
+ */
+function isSelfDestructMode() {
+  const runMode = getRunMode();
+  return runMode.current === RUN_MODES.SELF_DESTRUCT;
 }
 
 /**
@@ -249,5 +359,12 @@ module.exports = {
   removeAdmin,
   updateConfig,
   getConfigFilePath,
-  DEFAULT_CONFIG
+  DEFAULT_CONFIG,
+  RUN_MODES,
+  SELF_DESTRUCT_LEVELS,
+  getRunMode,
+  setRunMode,
+  isMaintenanceMode,
+  isDebugMode,
+  isSelfDestructMode
 };

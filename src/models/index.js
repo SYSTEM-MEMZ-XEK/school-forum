@@ -9,6 +9,11 @@ const BannedUser = require('./BannedUser');
 const DeletedPost = require('./DeletedPost');
 const Favorite = require('./Favorite');
 const FavoriteTag = require('./FavoriteTag');
+const Follow = require('./Follow');
+const Message = require('./Message');
+const Conversation = require('./Conversation');
+const Blacklist = require('./Blacklist');
+const Announcement = require('./Announcement');
 
 // 数据库连接配置
 const connectDB = async (uri, options = {}) => {
@@ -52,5 +57,10 @@ module.exports = {
   BannedUser,
   DeletedPost,
   Favorite,
-  FavoriteTag
+  FavoriteTag,
+  Follow,
+  Message,
+  Conversation,
+  Blacklist,
+  Announcement
 };

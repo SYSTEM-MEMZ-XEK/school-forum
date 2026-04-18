@@ -39,7 +39,10 @@
 - [举报模块](#举报模块)
 - [统计模块](#统计模块)
 - [配置模块](#配置模块)
+- [私信模块](#私信模块)
+- [黑名单模块](#黑名单模块)
 - [管理后台](#管理后台)
+- [安全说明](#安全说明)
 
 ---
 
@@ -1384,6 +1387,436 @@ GET /public
 
 ---
 
+## 私信模块
+
+### 发送私信
+
+```
+POST /messages
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| senderId | string | 是 | 发送者ID |
+| receiverId | string | 是 | 接收者ID |
+| content | string | 是 | 消息内容（最多2000字） |
+
+**请求示例**：
+```json
+{
+  "senderId": "user-uuid-1",
+  "receiverId": "user-uuid-2",
+  "content": "你好！"
+}
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "消息发送成功",
+  "data": {
+    "message": {
+      "id": "message-uuid",
+      "conversationId": "conversation-uuid",
+      "senderId": "user-uuid-1",
+      "receiverId": "user-uuid-2",
+      "content": "你好！",
+      "type": "text",
+      "read": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "senderUsername": "张三",
+      "senderAvatar": "/images/avatars/xxx.jpg"
+    }
+  }
+}
+```
+
+> **发送规则**：
+> - 互相关注的用户可以无限次互发消息
+> - 非互关用户：A发消息给B后，必须等B回复才能继续发送
+> - 被对方拉黑或自己拉黑对方时无法发送
+
+---
+
+### 获取消息记录
+
+```
+GET /messages
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| userId | string | 是 | - | 当前用户ID |
+| otherUserId | string | 是 | - | 对方用户ID |
+| limit | number | 否 | 50 | 每页数量 |
+| before | string | 否 | - | 获取此时间之前的消息 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "message-uuid",
+        "conversationId": "conversation-uuid",
+        "senderId": "user-uuid-1",
+        "receiverId": "user-uuid-2",
+        "content": "你好！",
+        "type": "text",
+        "read": true,
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "senderUsername": "张三",
+        "senderAvatar": "/images/avatars/xxx.jpg"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 获取未读消息总数
+
+```
+GET /messages/unread
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "unreadCount": 5
+  }
+}
+```
+
+---
+
+### 检查发送权限
+
+```
+GET /messages/check-permission
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| senderId | string | 是 | 发送者ID |
+| receiverId | string | 是 | 接收者ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "canSend": true,
+    "reason": "互相关注用户",
+    "relation": {
+      "isFollowing": true,
+      "isFollower": true,
+      "isMutualFollow": true
+    },
+    "blockStatus": {
+      "isBlocked": false,
+      "isBlockedBy": false
+    }
+  }
+}
+```
+
+---
+
+### 获取可联系用户列表
+
+```
+GET /messages/contactable-users
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": "user-uuid",
+        "username": "张三",
+        "avatar": "/images/avatars/xxx.jpg",
+        "school": "TCZX",
+        "isFollowing": true,
+        "isFollower": true
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 删除单条消息
+
+```
+DELETE /messages/:messageId
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| messageId | string | 消息ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+### 获取会话列表
+
+```
+GET /conversations
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "conversations": [
+      {
+        "id": "conversation-uuid",
+        "otherUser": {
+          "id": "user-uuid",
+          "username": "张三",
+          "avatar": "/images/avatars/xxx.jpg",
+          "school": "TCZX"
+        },
+        "lastMessage": {
+          "content": "好的",
+          "senderId": "user-uuid",
+          "createdAt": "2024-01-01T00:00:00.000Z"
+        },
+        "updatedAt": "2024-01-01T00:00:00.000Z",
+        "unreadCount": 2
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 删除会话
+
+```
+DELETE /conversations/:conversationId
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| conversationId | string | 会话ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId | string | 是 | 用户ID |
+
+---
+
+## 黑名单模块
+
+### 拉黑用户
+
+```
+POST /block
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| blockerId | string | 是 | 拉黑者ID |
+| blockedId | string | 是 | 被拉黑者ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "拉黑成功",
+  "data": {
+    "blocked": true
+  }
+}
+```
+
+> **注意**：拉黑用户时会自动取消双方的关注关系
+
+---
+
+### 取消拉黑
+
+```
+POST /unblock
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| blockerId | string | 是 | 拉黑者ID |
+| blockedId | string | 是 | 被拉黑者ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "取消拉黑成功",
+  "data": {
+    "blocked": false
+  }
+}
+```
+
+---
+
+### 检查拉黑状态
+
+```
+GET /block/status
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| blockerId | string | 是 | 用户ID |
+| blockedId | string | 是 | 目标用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "isBlocked": true,
+    "isBlockedBy": false
+  }
+}
+```
+
+---
+
+### 检查拉黑关系
+
+```
+GET /block/relation
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| userId1 | string | 是 | 用户1 ID |
+| userId2 | string | 是 | 用户2 ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "hasBlockRelation": true
+  }
+}
+```
+
+---
+
+### 获取拉黑列表
+
+```
+GET /blocked/:userId
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| userId | string | 用户ID |
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 20 | 每页数量 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "list": [
+      {
+        "id": "user-uuid",
+        "username": "张三",
+        "avatar": "/images/avatars/xxx.jpg",
+        "school": "TCZX",
+        "grade": "高一",
+        "className": "高一(1)班",
+        "blockedAt": "2024-01-01T00:00:00.000Z",
+        "isAdmin": false
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "total": 100,
+      "hasNext": true,
+      "hasPrev": false
+    }
+  }
+}
+```
+
+---
+
+### 获取拉黑数量
+
+```
+GET /blocked/count/:userId
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| userId | string | 用户ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "count": 10
+  }
+}
+```
+
+---
+
 ## 管理后台
 
 > 以下接口需要管理员权限，通过中间件验证。
@@ -1845,6 +2278,53 @@ DELETE /admin/admins
  */
 ```
 
+### 会话 (Conversation)
+
+```javascript
+/**
+ * @typedef {Object} Conversation
+ * @property {string} id - 会话ID
+ * @property {string[]} participants - 参与者ID数组
+ * @property {Object} lastMessage - 最后一条消息
+ * @property {string} lastMessage.content - 消息内容
+ * @property {string} lastMessage.senderId - 发送者ID
+ * @property {string} lastMessage.createdAt - 发送时间
+ * @property {string} [canInitiateFrom] - 可发起消息的用户ID（非互关时）
+ * @property {string} createdAt - 创建时间
+ * @property {string} updatedAt - 更新时间
+ * @property {boolean} lastMessageRead - 最后消息是否已读
+ */
+```
+
+### 私信 (Message)
+
+```javascript
+/**
+ * @typedef {Object} Message
+ * @property {string} id - UUID
+ * @property {string} conversationId - 会话ID
+ * @property {string} senderId - 发送者ID
+ * @property {string} receiverId - 接收者ID
+ * @property {string} content - 消息内容
+ * @property {string} type - 消息类型：text
+ * @property {boolean} read - 是否已读
+ * @property {string[]} deletedBy - 删除此消息的用户ID列表
+ * @property {string} createdAt - 创建时间
+ */
+```
+
+### 黑名单 (Blacklist)
+
+```javascript
+/**
+ * @typedef {Object} Blacklist
+ * @property {string} id - UUID
+ * @property {string} blockerId - 拉黑者ID
+ * @property {string} blockedId - 被拉黑者ID
+ * @property {string} createdAt - 拉黑时间
+ */
+```
+
 ### 举报 (Report)
 
 ```javascript
@@ -1862,3 +2342,119 @@ DELETE /admin/admins
  * @property {string} createdAt - 创建时间
  */
 ```
+
+---
+
+## 安全说明
+
+### 安全措施概览
+
+本系统已实施多层安全防护措施，包括但不限于：
+
+| 安全措施 | 说明 |
+|---------|------|
+| Helmet 安全头 | 设置 Content-Security-Policy、X-Frame-Options、HSTS 等安全头 |
+| CORS 白名单 | 仅允许配置的域名进行跨域请求 |
+| XSS 过滤 | 自动过滤请求体中的 XSS 攻击代码 |
+| SQL/NoSQL 注入防护 | 检测并阻止潜在的注入攻击，使用 mongo-sanitize |
+| HPP 防护 | 防止 HTTP 参数污染攻击 |
+| Rate Limiting | 基于 Redis 的滑动窗口限流机制 |
+| JWT 认证 | 基于 Token 的身份认证，支持令牌刷新和注销 |
+| 登录锁定 | 多次登录失败后锁定账户 |
+| 请求 ID 追踪 | 每个请求分配唯一 ID，便于安全审计 |
+
+### JWT 认证
+
+#### 认证流程
+
+1. 用户登录成功后，服务器返回 `token`（访问令牌）和 `refreshToken`（刷新令牌）
+2. 客户端在后续请求中通过 `Authorization: Bearer <token>` 头携带令牌
+3. 访问令牌默认有效期 7 天，刷新令牌有效期 30 天
+4. 访问令牌过期后，使用刷新令牌获取新的访问令牌
+
+#### 刷新令牌
+
+```
+POST /refresh-token
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| refreshToken | string | 是 | 刷新令牌 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "token": "新的访问令牌"
+  }
+}
+```
+
+#### 登出
+
+```
+POST /logout
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| token | string | 是 | 当前访问令牌 |
+
+### 管理员认证
+
+管理员在登录时会额外获得 `adminToken`，用于管理员操作的认证。
+
+管理员认证支持两种方式：
+1. **JWT Token**（推荐）：通过 `Authorization: Bearer <adminToken>` 头携带
+2. **传统方式**（过渡期兼容）：通过请求体或查询参数传递 `adminId`
+
+### 登录安全
+
+- 连续 5 次登录失败后，账户将被锁定 30 分钟
+- 锁定期间任何登录尝试都会被拒绝
+- 成功登录后，失败计数自动清零
+
+### 安全配置
+
+安全配置通过环境变量管理，请参考 `.env.example` 文件：
+
+| 环境变量 | 说明 | 默认值 |
+|---------|------|--------|
+| JWT_SECRET | JWT 密钥 | - |
+| JWT_EXPIRES_IN | 访问令牌有效期 | 7d |
+| CORS_ORIGIN | 允许的跨域来源（逗号分隔） | localhost:2080 |
+| LOGIN_MAX_ATTEMPTS | 最大登录尝试次数 | 5 |
+| LOGIN_LOCK_TIME | 锁定时间（毫秒） | 1800000 |
+| MAX_REQUEST_SIZE | 请求体最大大小（MB） | 10 |
+
+### 响应头说明
+
+每个 API 响应都会包含以下安全相关头：
+
+| 响应头 | 说明 |
+|--------|------|
+| X-Request-ID | 请求唯一标识，用于追踪和审计 |
+| X-Content-Type-Options | 设置为 nosniff，防止 MIME 类型嗅探 |
+| X-Frame-Options | 设置为 DENY，防止点击劫持 |
+| Strict-Transport-Security | HSTS 配置，强制使用 HTTPS |
+| Content-Security-Policy | 内容安全策略 |
+
+### 最佳实践
+
+1. **生产环境必须**：
+   - 设置强随机的 `JWT_SECRET` 和 `ADMIN_JWT_SECRET`
+   - 配置正确的 `CORS_ORIGIN` 白名单
+   - 启用 HTTPS 并配置 HSTS
+
+2. **客户端建议**：
+   - 安全存储令牌（避免 localStorage，推荐 httpOnly Cookie）
+   - 实现令牌自动刷新机制
+   - 处理 401 响应时清除本地令牌并跳转登录
+
+3. **敏感操作**：
+   - 修改密码、邮箱等敏感操作需要验证码二次验证
+   - 管理员操作需要独立的管理员令牌认证

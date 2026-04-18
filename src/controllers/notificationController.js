@@ -13,7 +13,47 @@ const {
   generateErrorResponse,
   generateSuccessResponse
 } = require('../utils/validationUtils');
+const { notificationCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
+
+// 检查用户是否启用了某类通知
+async function isNotificationEnabled(userId, notificationType) {
+  try {
+    // 系统通知始终启用
+    if (notificationType === 'system') {
+      return true;
+    }
+
+    const user = await getUserById(userId);
+    if (!user || !user.settings || !user.settings.notifications) {
+      // 默认启用所有通知
+      return true;
+    }
+
+    const notificationSettings = user.settings.notifications;
+    
+    // 映射通知类型到设置字段
+    const typeMapping = {
+      'like': 'like',
+      'comment': 'comment',
+      'comment_reply': 'commentReply',
+      'comment_like': 'commentLike',
+      'follow': 'follow'
+    };
+
+    const settingKey = typeMapping[notificationType];
+    if (!settingKey) {
+      return true;
+    }
+
+    // 如果设置不存在，默认启用
+    return notificationSettings[settingKey] !== false;
+  } catch (error) {
+    logger.logError('检查通知偏好失败', { error: error.message, userId, notificationType });
+    // 出错时默认启用
+    return true;
+  }
+}
 
 const notificationController = {
   // 获取用户的通知
@@ -86,6 +126,9 @@ const notificationController = {
       
       const result = await markAllNotificationsAsRead(userId);
       
+      // 清除Redis中的未读数缓存
+      await notificationCache.clearUnreadCount(userId);
+      
       res.json(generateSuccessResponse({ updatedCount: result.modifiedCount || 0 }, `已标记所有通知为已读`));
     } catch (error) {
       logger.logError('标记所有通知为已读失败', { error: error.message, userId: req.body.userId });
@@ -98,6 +141,11 @@ const notificationController = {
     try {
       if (fromUserId === postOwnerId) {
         // 不给自己发通知
+        return;
+      }
+      
+      // 检查用户是否启用了点赞通知
+      if (!await isNotificationEnabled(postOwnerId, 'like')) {
         return;
       }
       
@@ -142,6 +190,9 @@ const notificationController = {
       };
       
       await createNotification(newNotification);
+      
+      // 增加Redis中的未读通知数
+      await notificationCache.incrUnreadCount(postOwnerId);
     } catch (error) {
       logger.logError('创建点赞通知失败', { error: error.message, postId, fromUserId, postOwnerId });
     }
@@ -152,6 +203,11 @@ const notificationController = {
     try {
       if (fromUserId === postOwnerId) {
         // 不给自己发通知
+        return;
+      }
+      
+      // 检查用户是否启用了评论通知
+      if (!await isNotificationEnabled(postOwnerId, 'comment')) {
         return;
       }
       
@@ -197,6 +253,9 @@ const notificationController = {
       };
       
       await createNotification(newNotification);
+      
+      // 增加Redis中的未读通知数
+      await notificationCache.incrUnreadCount(postOwnerId);
     } catch (error) {
       logger.logError('创建评论通知失败', { error: error.message, postId, fromUserId, postOwnerId });
     }
@@ -207,6 +266,11 @@ const notificationController = {
     try {
       if (fromUserId === commentOwnerId) {
         // 不给自己发通知
+        return;
+      }
+      
+      // 检查用户是否启用了回复通知
+      if (!await isNotificationEnabled(commentOwnerId, 'comment_reply')) {
         return;
       }
       
@@ -260,8 +324,93 @@ const notificationController = {
       };
       
       await createNotification(newNotification);
+      
+      // 增加Redis中的未读通知数
+      await notificationCache.incrUnreadCount(commentOwnerId);
     } catch (error) {
       logger.logError('创建评论回复通知失败', { error: error.message, postId, commentId, fromUserId, commentOwnerId });
+    }
+  },
+
+  // 创建评论点赞通知
+  async createCommentLikeNotification(postId, commentId, fromUserId, commentOwnerId) {
+    try {
+      if (fromUserId === commentOwnerId) {
+        // 不给自己发通知
+        return;
+      }
+      
+      // 检查用户是否启用了评论点赞通知
+      if (!await isNotificationEnabled(commentOwnerId, 'comment_like')) {
+        return;
+      }
+      
+      const posts = await getPosts();
+      const users = await getUsers();
+      
+      const post = posts.find(p => p.id === postId && !p.isDeleted);
+      const fromUser = users.find(u => u.id === fromUserId);
+      
+      if (!post || !fromUser) {
+        return;
+      }
+      
+      // 查找评论
+      const findComment = (comments, targetId) => {
+        for (const comment of comments) {
+          if (comment.id === targetId) return comment;
+          if (comment.replies) {
+            const found = findComment(comment.replies, targetId);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      
+      const comment = post.comments && findComment(post.comments, commentId);
+      if (!comment) {
+        return;
+      }
+      
+      // 检查是否已存在相同的未读通知
+      const existingNotifications = await getNotifications(commentOwnerId);
+      const existingNotification = existingNotifications.find(n => 
+        n.type === 'comment_like' && 
+        n.postId === postId && 
+        n.commentId === commentId &&
+        n.fromUserId === fromUserId && 
+        !n.read
+      );
+      
+      if (existingNotification) {
+        // 如果已存在未读通知，更新时间戳
+        const { Notification } = require('../utils/dataUtils');
+        await Notification.findOneAndUpdate(
+          { id: existingNotification.id },
+          { timestamp: new Date() }
+        );
+        return;
+      }
+      
+      const newNotification = {
+        id: uuidv4(),
+        userId: commentOwnerId,
+        type: 'comment_like',
+        postId: postId,
+        commentId: commentId,
+        fromUserId: fromUserId,
+        fromUsername: fromUser.username,
+        content: comment.content ? (comment.content.length > 50 ? comment.content.substring(0, 50) + '...' : comment.content) : '',
+        timestamp: new Date(),
+        read: false
+      };
+      
+      await createNotification(newNotification);
+      
+      // 增加Redis中的未读通知数
+      await notificationCache.incrUnreadCount(commentOwnerId);
+    } catch (error) {
+      logger.logError('创建评论点赞通知失败', { error: error.message, postId, commentId, fromUserId, commentOwnerId });
     }
   },
 

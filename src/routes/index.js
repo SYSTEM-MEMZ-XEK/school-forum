@@ -12,6 +12,10 @@ const configRoutes = require('./configRoutes');
 const reportRoutes = require('./reportRoutes');
 const favoriteRoutes = require('./favoriteRoutes');
 const followRoutes = require('./followRoutes');
+const messageRoutes = require('./messageRoutes');
+const blacklistRoutes = require('./blacklistRoutes');
+const runModeRoutes = require('./runModeRoutes');
+const announcementRoutes = require('./announcementRoutes');
 
 // 使用路由
 router.use(userRoutes);
@@ -23,6 +27,10 @@ router.use(configRoutes);
 router.use(reportRoutes);
 router.use(favoriteRoutes);
 router.use(followRoutes);
+router.use(messageRoutes);
+router.use(blacklistRoutes);
+router.use(runModeRoutes);
+router.use(announcementRoutes);
 
 // 健康检查路由
 router.get('/health', (req, res) => {
@@ -44,6 +52,10 @@ router.get('/502', (req, res) => {
 
 router.get('/403', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/errors/403.html'));
+});
+
+router.get('/maintenance', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/errors/maintenance.html'));
 });
 
 // 保持向后兼容

@@ -22,10 +22,13 @@ const dom = {
   confirmPassword: document.getElementById('confirm-password'),
   emailRegister: document.getElementById('email-register'),
   emailLogin: document.getElementById('email-login'),
+  emailAdmin: document.getElementById('email-admin'),
   verificationCode: document.getElementById('verification-code'),
   verificationCodeLogin: document.getElementById('verification-code-login'),
+  verificationCodeAdmin: document.getElementById('verification-code-admin'),
   sendVerificationCodeBtn: document.getElementById('send-verification-code'),
   sendLoginVerificationCodeBtn: document.getElementById('send-login-verification-code'),
+  sendAdminVerificationCodeBtn: document.getElementById('send-admin-verification-code'),
   notificationArea: document.getElementById('notificationArea')
 };
 
@@ -259,6 +262,11 @@ function setupEventListeners() {
     dom.adminLoginBtn.addEventListener('click', loginAdmin);
   }
 
+  // 管理员获取验证码按钮
+  if (dom.sendAdminVerificationCodeBtn) {
+    dom.sendAdminVerificationCodeBtn.addEventListener('click', sendAdminVerificationCode);
+  }
+
   // 学校选择变化事件
   if (dom.schoolRegister) {
     dom.schoolRegister.addEventListener('change', onSchoolChange);
@@ -459,6 +467,91 @@ function startLoginCountdown() {
   }, 1000);
 }
 
+// 管理员页面发送验证码
+let adminVerificationCodeTimer = null;
+let adminCountdownSeconds = 60;
+
+async function sendAdminVerificationCode() {
+  const email = dom.emailAdmin?.value.trim();
+  
+  if (!email) {
+    showNotification('请输入邮箱地址', 'error');
+    return;
+  }
+  
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showNotification('请输入有效的邮箱地址', 'error');
+    return;
+  }
+  
+  if (dom.sendAdminVerificationCodeBtn) {
+    dom.sendAdminVerificationCodeBtn.disabled = true;
+    dom.sendAdminVerificationCodeBtn.classList.add('loading');
+    dom.sendAdminVerificationCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+  }
+  
+  try {
+    const response = await fetch('/send-login-verification-code', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || '发送验证码失败');
+    }
+    
+    const data = await response.json();
+    if (data.success) {
+      showNotification('验证码已发送到您的邮箱，请查收', 'success');
+      startAdminCountdown();
+    }
+  } catch (error) {
+    console.error('发送验证码失败:', error);
+    showNotification(error.message || '发送验证码失败，请稍后重试', 'error');
+    
+    if (dom.sendAdminVerificationCodeBtn) {
+      dom.sendAdminVerificationCodeBtn.disabled = false;
+      dom.sendAdminVerificationCodeBtn.classList.remove('loading');
+      dom.sendAdminVerificationCodeBtn.innerHTML = '获取验证码';
+    }
+  }
+}
+
+// 管理员页面开始倒计时
+function startAdminCountdown() {
+  adminCountdownSeconds = 60;
+  
+  if (dom.sendAdminVerificationCodeBtn) {
+    dom.sendAdminVerificationCodeBtn.disabled = true;
+    dom.sendAdminVerificationCodeBtn.classList.remove('loading');
+    dom.sendAdminVerificationCodeBtn.innerHTML = `${adminCountdownSeconds}秒后重试`;
+  }
+  
+  adminVerificationCodeTimer = setInterval(() => {
+    adminCountdownSeconds--;
+    
+    if (adminCountdownSeconds <= 0) {
+      clearInterval(adminVerificationCodeTimer);
+      adminVerificationCodeTimer = null;
+      
+      if (dom.sendAdminVerificationCodeBtn) {
+        dom.sendAdminVerificationCodeBtn.disabled = false;
+        dom.sendAdminVerificationCodeBtn.innerHTML = '获取验证码';
+      }
+    } else {
+      if (dom.sendAdminVerificationCodeBtn) {
+        dom.sendAdminVerificationCodeBtn.innerHTML = `${adminCountdownSeconds}秒后重试`;
+      }
+    }
+  }, 1000);
+}
+
 // 用户注册
 async function registerUser() {
   // 获取表单值
@@ -471,6 +564,8 @@ async function registerUser() {
   const school = dom.schoolRegister?.value;
   const enrollmentYear = parseInt(dom.enrollmentYearRegister?.value);
   const className = dom.classRegister?.value;
+  const birthday = document.getElementById('birthday-register')?.value || null;
+  const gender = document.getElementById('gender-register')?.value || '';
   
   // 验证输入
   if (!qq) {
@@ -534,7 +629,9 @@ async function registerUser() {
         verificationCode,
         school,
         enrollmentYear,
-        className
+        className,
+        birthday,
+        gender
       })
     });
     
@@ -660,8 +757,22 @@ async function loginUser() {
 
 // 管理员登录
 async function loginAdmin() {
+  const email = dom.emailAdmin?.value.trim();
   const qq = dom.qqAdmin?.value.trim();
   const password = dom.passwordAdmin?.value;
+  const verificationCode = dom.verificationCodeAdmin?.value.trim();
+  
+  if (!email) {
+    showNotification('管理员邮箱不能为空', 'error');
+    return;
+  }
+  
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showNotification('请输入有效的邮箱地址', 'error');
+    return;
+  }
   
   if (!qq) {
     showNotification('管理员QQ号不能为空', 'error');
@@ -670,6 +781,11 @@ async function loginAdmin() {
   
   if (!password) {
     showNotification('管理员密码不能为空', 'error');
+    return;
+  }
+  
+  if (!verificationCode) {
+    showNotification('验证码不能为空', 'error');
     return;
   }
   
@@ -685,8 +801,10 @@ async function loginAdmin() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        email,
         qq,
-        password
+        password,
+        verificationCode
       })
     });
     

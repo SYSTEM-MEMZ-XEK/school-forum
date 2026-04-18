@@ -62,7 +62,13 @@
                 <i class="fas fa-cog"></i> 设置
               </a>
               <a href="message.html" class="header-menu-item">
-                <i class="fas fa-bell"></i> 消息
+                <i class="fas fa-bell"></i> 消息通知
+              </a>
+              <a href="chat.html" class="header-menu-item">
+                <i class="fas fa-envelope"></i> 私信
+              </a>
+              <a href="blacklist.html" class="header-menu-item">
+                <i class="fas fa-ban"></i> 黑名单
               </a>
               <div class="header-menu-divider"></div>
               <button id="header-logout-btn" class="header-menu-item logout">
@@ -77,6 +83,14 @@
           <a href="following.html">
             <i class="fas fa-rss"></i>
             <span id="updates-badge" class="updates-badge">0</span>
+          </a>
+        </div>
+        
+        <!-- 私信按钮（登录后显示） -->
+        <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
+          <a href="chat.html">
+            <i class="fas fa-envelope"></i>
+            <span id="chat-badge" class="message-badge" style="display: none;">0</span>
           </a>
         </div>
         

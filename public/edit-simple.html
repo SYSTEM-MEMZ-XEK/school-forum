@@ -66,7 +66,13 @@
                 <i class="fas fa-cog"></i> 设置
               </a>
               <a href="message.html" class="header-menu-item">
-                <i class="fas fa-bell"></i> 消息
+                <i class="fas fa-bell"></i> 消息通知
+              </a>
+              <a href="chat.html" class="header-menu-item">
+                <i class="fas fa-envelope"></i> 私信
+              </a>
+              <a href="blacklist.html" class="header-menu-item">
+                <i class="fas fa-ban"></i> 黑名单
               </a>
               <div class="header-menu-divider"></div>
               <button id="header-logout-btn" class="header-menu-item logout">
@@ -81,6 +87,14 @@
           <a href="following.html">
             <i class="fas fa-rss"></i>
             <span id="updates-badge" class="updates-badge">0</span>
+          </a>
+        </div>
+        
+        <!-- 私信按钮（登录后显示） -->
+        <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
+          <a href="chat.html">
+            <i class="fas fa-envelope"></i>
+            <span id="chat-badge" class="message-badge" style="display: none;">0</span>
           </a>
         </div>
         
@@ -177,6 +191,39 @@
     
     <!-- 提交按钮 -->
     <div class="submit-section">
+      <!-- 帖子可见性设置 -->
+      <div class="visibility-settings">
+        <div class="visibility-header">
+          <i class="fas fa-eye"></i> 帖子可见性
+        </div>
+        <div class="visibility-options">
+          <label class="visibility-option">
+            <input type="radio" name="post-visibility" value="public" checked>
+            <span class="visibility-radio"></span>
+            <div class="visibility-info">
+              <span class="visibility-title"><i class="fas fa-globe"></i> 公开</span>
+              <span class="visibility-desc">所有人可见</span>
+            </div>
+          </label>
+          <label class="visibility-option">
+            <input type="radio" name="post-visibility" value="followers">
+            <span class="visibility-radio"></span>
+            <div class="visibility-info">
+              <span class="visibility-title"><i class="fas fa-users"></i> 仅粉丝可见</span>
+              <span class="visibility-desc">只有关注你的粉丝可以看到</span>
+            </div>
+          </label>
+          <label class="visibility-option">
+            <input type="radio" name="post-visibility" value="self">
+            <span class="visibility-radio"></span>
+            <div class="visibility-info">
+              <span class="visibility-title"><i class="fas fa-lock"></i> 仅自己可见</span>
+              <span class="visibility-desc">只有自己可以看到（私密帖子）</span>
+            </div>
+          </label>
+        </div>
+      </div>
+      
       <button class="submit-btn" id="submit-post" disabled>
         <i class="fas fa-paper-plane"></i> 发布帖子
       </button>

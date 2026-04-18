@@ -13,6 +13,26 @@ const settingsManager = {
       currentPassword: '',
       isCodeVerified: false,
       sendCodeCountdown: 0
+    },
+    // 邮箱修改多步骤状态
+    emailChange: {
+      currentStep: 1,
+      currentPassword: '',
+      newEmail: '',
+      isCodeVerified: false,
+      sendCodeCountdown: 0
+    },
+    // QQ号修改状态
+    qqChange: {
+      currentStep: 1
+    },
+    // 学校配置
+    schools: [],
+    // 当前用户的学校信息
+    currentSchoolInfo: {
+      school: '',
+      enrollmentYear: null,
+      className: ''
     }
   },
 
@@ -56,7 +76,46 @@ const settingsManager = {
       resetPasswordFormBtn: document.getElementById('reset-password-form-btn'),
       passwordVerificationCodeInput: document.getElementById('password-verification-code'),
       userEmailDisplay: document.getElementById('user-email-display'),
-      passwordSteps: document.querySelectorAll('.password-steps .step')
+      passwordSteps: document.querySelectorAll('.password-steps .step'),
+      // 隐私设置相关元素
+      hideBlockedPosts: document.getElementById('hide-blocked-posts'),
+      hideBlockedComments: document.getElementById('hide-blocked-comments'),
+      savePrivacyBtn: document.getElementById('save-privacy'),
+      // 通知设置相关元素
+      notifyLike: document.getElementById('notify-like'),
+      notifyComment: document.getElementById('notify-comment'),
+      notifyCommentReply: document.getElementById('notify-commentReply'),
+      notifyCommentLike: document.getElementById('notify-commentLike'),
+      notifyFollow: document.getElementById('notify-follow'),
+      saveNotificationsBtn: document.getElementById('save-notifications'),
+      // 个人信息修改相关元素
+      settingsSchool: document.getElementById('settings-school'),
+      settingsEnrollmentYear: document.getElementById('settings-enrollment-year'),
+      settingsClass: document.getElementById('settings-class'),
+      settingsBirthday: document.getElementById('settings-birthday'),
+      settingsGender: document.getElementById('settings-gender'),
+      savePersonalInfoBtn: document.getElementById('save-personal-info'),
+      // 邮箱修改相关元素
+      emailChangePassword: document.getElementById('email-change-password'),
+      newEmail: document.getElementById('new-email'),
+      emailVerificationCode: document.getElementById('email-verification-code'),
+      verifyEmailPasswordBtn: document.getElementById('verify-email-password-btn'),
+      resendEmailCodeBtn: document.getElementById('resend-email-code-btn'),
+      verifyEmailCodeBtn: document.getElementById('verify-email-code-btn'),
+      backToEmailStep1Btn: document.getElementById('back-to-email-step-1-btn'),
+      resetEmailFormBtn: document.getElementById('reset-email-form-btn'),
+      newEmailDisplay: document.getElementById('new-email-display'),
+      updatedEmailDisplay: document.getElementById('updated-email-display'),
+      emailStepLine2: document.getElementById('email-step-line-2'),
+      emailStep3Indicator: document.getElementById('email-step-3-indicator'),
+      // QQ号修改相关元素
+      qqChangePassword: document.getElementById('qq-change-password'),
+      newQQ: document.getElementById('new-qq'),
+      verifyQQPasswordBtn: document.getElementById('verify-qq-password-btn'),
+      resetQQFormBtn: document.getElementById('reset-qq-form-btn'),
+      updatedQQDisplay: document.getElementById('updated-qq-display'),
+      qqStepLine1: document.getElementById('qq-step-line-1'),
+      qqStep2Indicator: document.getElementById('qq-step-2-indicator')
     };
     
     console.log('DOM 元素获取完成:', this.dom);
@@ -109,6 +168,9 @@ const settingsManager = {
     
     // 初始化表单
     this.initForm();
+    
+    // 加载学校配置（异步，加载完成后会自动填充个人信息）
+    this.loadSchoolsConfig();
     
     // 标记初始化完成
     console.log('settingsManager 初始化完成');
@@ -228,6 +290,275 @@ const settingsManager = {
     
     if (this.dom.confirmPasswordInput) {
       this.dom.confirmPasswordInput.value = '';
+    }
+    
+    // 加载个人信息
+    this.loadPersonalInfo();
+    
+    // 加载隐私设置
+    this.loadPrivacySettings();
+    
+    // 加载通知设置
+    this.loadNotificationSettings();
+  },
+
+  // 加载个人信息
+  loadPersonalInfo: function() {
+    const currentUser = userManager.state.currentUser;
+    if (!currentUser) return;
+    
+    // 设置出生日期
+    if (this.dom.settingsBirthday && currentUser.birthday) {
+      this.dom.settingsBirthday.value = currentUser.birthday;
+    }
+    
+    // 设置性别
+    if (this.dom.settingsGender && currentUser.gender) {
+      this.dom.settingsGender.value = currentUser.gender;
+    }
+    
+    // 设置当前邮箱显示
+    const currentEmailDisplay = document.getElementById('current-email-display');
+    if (currentEmailDisplay && currentUser.email) {
+      currentEmailDisplay.textContent = this.maskEmail(currentUser.email);
+    }
+    
+    // 设置当前QQ号显示
+    const currentQQDisplay = document.getElementById('current-qq-display');
+    if (currentQQDisplay && currentUser.qq) {
+      currentQQDisplay.textContent = currentUser.qq;
+    }
+    
+    // 学校和班级的设置由 loadSchoolsConfig 处理
+  },
+
+  // 加载隐私设置
+  loadPrivacySettings: function() {
+    const currentUser = userManager.state.currentUser;
+    if (!currentUser) return;
+    
+    const privacySettings = currentUser.settings?.privacy || {};
+    
+    // 设置隐藏黑名单用户帖子的开关
+    if (this.dom.hideBlockedPosts) {
+      this.dom.hideBlockedPosts.checked = privacySettings.hideBlockedPosts || false;
+    }
+    
+    // 设置隐藏黑名单用户评论的开关
+    if (this.dom.hideBlockedComments) {
+      this.dom.hideBlockedComments.checked = privacySettings.hideBlockedComments || false;
+    }
+    
+    // 设置帖子展示时间范围
+    const postDisplayRange = document.getElementById('post-display-range');
+    if (postDisplayRange) {
+      postDisplayRange.value = privacySettings.postDisplayRange || 'all';
+    }
+    
+    // 设置个人信息可见性
+    const profileVisibility = privacySettings.profileVisibility || {};
+    const visibilityFields = ['gender', 'birthday', 'school', 'signature', 'joinDate', 'lastLogin'];
+    
+    visibilityFields.forEach(field => {
+      const element = document.getElementById(`visibility-${field}`);
+      if (element) {
+        element.value = profileVisibility[field] || 'public';
+      }
+    });
+  },
+
+  // 加载通知设置
+  loadNotificationSettings: function() {
+    const currentUser = userManager.state.currentUser;
+    if (!currentUser) return;
+    
+    const notificationSettings = currentUser.settings?.notifications || {};
+    
+    // 设置各类通知开关
+    if (this.dom.notifyLike) {
+      this.dom.notifyLike.checked = notificationSettings.like !== false;
+    }
+    if (this.dom.notifyComment) {
+      this.dom.notifyComment.checked = notificationSettings.comment !== false;
+    }
+    if (this.dom.notifyCommentReply) {
+      this.dom.notifyCommentReply.checked = notificationSettings.commentReply !== false;
+    }
+    if (this.dom.notifyCommentLike) {
+      this.dom.notifyCommentLike.checked = notificationSettings.commentLike !== false;
+    }
+    if (this.dom.notifyFollow) {
+      this.dom.notifyFollow.checked = notificationSettings.follow !== false;
+    }
+  },
+
+  // 保存隐私设置
+  async savePrivacySettings() {
+    console.log('savePrivacySettings called');
+    
+    // 检查用户是否登录
+    if (!userManager.state.currentUser) {
+      utils.showNotification('请先登录后再修改隐私设置', 'error');
+      return;
+    }
+    
+    // 收集隐私设置
+    const privacySettings = {
+      hideBlockedPosts: this.dom.hideBlockedPosts ? this.dom.hideBlockedPosts.checked : false,
+      hideBlockedComments: this.dom.hideBlockedComments ? this.dom.hideBlockedComments.checked : false,
+      postDisplayRange: document.getElementById('post-display-range')?.value || 'all',
+      profileVisibility: {}
+    };
+    
+    // 收集个人信息可见性设置
+    const visibilityFields = ['gender', 'birthday', 'school', 'signature', 'joinDate', 'lastLogin'];
+    visibilityFields.forEach(field => {
+      const element = document.getElementById(`visibility-${field}`);
+      if (element) {
+        privacySettings.profileVisibility[field] = element.value;
+      }
+    });
+    
+    // 禁用按钮，显示加载状态
+    this.dom.savePrivacyBtn.disabled = true;
+    this.dom.savePrivacyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    
+    try {
+      // 准备设置数据
+      const settings = {
+        privacy: privacySettings
+      };
+      
+      // 发送更新请求
+      const response = await fetch(`/users/${userManager.state.currentUser.id}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '保存失败');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 更新本地存储的用户数据
+        const forumUser = JSON.parse(localStorage.getItem('forumUser') || '{}');
+        if (!forumUser.settings) {
+          forumUser.settings = {};
+        }
+        forumUser.settings.privacy = privacySettings;
+        
+        // 更新当前用户状态
+        if (userManager.state.currentUser.settings) {
+          userManager.state.currentUser.settings.privacy = privacySettings;
+        } else {
+          userManager.state.currentUser.settings = { privacy: privacySettings };
+        }
+        
+        // 更新本地存储
+        localStorage.setItem('forumUser', JSON.stringify(forumUser));
+        
+        // 显示成功消息
+        utils.showNotification('隐私设置已保存', 'success');
+        this.showSaveStatus('隐私设置已成功保存', 'success', 'privacy');
+      } else {
+        throw new Error(data.message || '保存失败');
+      }
+      
+    } catch (error) {
+      console.error('保存隐私设置失败:', error);
+      utils.showNotification('保存失败: ' + error.message, 'error');
+      this.showSaveStatus('保存失败，请重试', 'error', 'privacy');
+    } finally {
+      // 恢复按钮状态
+      this.dom.savePrivacyBtn.disabled = false;
+      this.dom.savePrivacyBtn.innerHTML = '<i class="fas fa-save"></i> 保存隐私设置';
+    }
+  },
+
+  // 保存通知设置
+  async saveNotificationSettings() {
+    console.log('saveNotificationSettings called');
+    
+    // 检查用户是否登录
+    if (!userManager.state.currentUser) {
+      utils.showNotification('请先登录后再修改通知设置', 'error');
+      return;
+    }
+    
+    // 收集通知设置
+    const notificationSettings = {
+      like: this.dom.notifyLike ? this.dom.notifyLike.checked : true,
+      comment: this.dom.notifyComment ? this.dom.notifyComment.checked : true,
+      commentReply: this.dom.notifyCommentReply ? this.dom.notifyCommentReply.checked : true,
+      commentLike: this.dom.notifyCommentLike ? this.dom.notifyCommentLike.checked : true,
+      follow: this.dom.notifyFollow ? this.dom.notifyFollow.checked : true
+    };
+    
+    // 禁用按钮，显示加载状态
+    this.dom.saveNotificationsBtn.disabled = true;
+    this.dom.saveNotificationsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    
+    try {
+      // 准备设置数据
+      const settings = {
+        notifications: notificationSettings
+      };
+      
+      // 发送更新请求
+      const response = await fetch(`/users/${userManager.state.currentUser.id}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ settings })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '保存失败');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 更新本地存储的用户数据
+        const forumUser = JSON.parse(localStorage.getItem('forumUser') || '{}');
+        if (!forumUser.settings) {
+          forumUser.settings = {};
+        }
+        forumUser.settings.notifications = notificationSettings;
+        
+        // 更新当前用户状态
+        if (userManager.state.currentUser.settings) {
+          userManager.state.currentUser.settings.notifications = notificationSettings;
+        } else {
+          userManager.state.currentUser.settings = { notifications: notificationSettings };
+        }
+        
+        // 更新本地存储
+        localStorage.setItem('forumUser', JSON.stringify(forumUser));
+        
+        // 显示成功消息
+        utils.showNotification('通知设置已保存', 'success');
+        this.showSaveStatus('通知设置已成功保存', 'success', 'notification');
+      } else {
+        throw new Error(data.message || '保存失败');
+      }
+      
+    } catch (error) {
+      console.error('保存通知设置失败:', error);
+      utils.showNotification('保存失败: ' + error.message, 'error');
+      this.showSaveStatus('保存失败，请重试', 'error', 'notification');
+    } finally {
+      // 恢复按钮状态
+      this.dom.saveNotificationsBtn.disabled = false;
+      this.dom.saveNotificationsBtn.innerHTML = '<i class="fas fa-save"></i> 保存通知设置';
     }
   },
 
@@ -380,6 +711,114 @@ const settingsManager = {
     
     // 密码修改多步骤事件监听器
     this.setupPasswordChangeListeners();
+    
+    // 隐私设置保存按钮
+    if (this.dom.savePrivacyBtn) {
+      this.dom.savePrivacyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.savePrivacySettings();
+      });
+    }
+    
+    // 通知设置保存按钮
+    if (this.dom.saveNotificationsBtn) {
+      this.dom.saveNotificationsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.saveNotificationSettings();
+      });
+    }
+    
+    // 学校选择变化事件
+    if (this.dom.settingsSchool) {
+      this.dom.settingsSchool.addEventListener('change', () => this.onSchoolChange());
+    }
+    
+    // 入学年份变化事件
+    if (this.dom.settingsEnrollmentYear) {
+      this.dom.settingsEnrollmentYear.addEventListener('change', () => this.onSchoolChange());
+    }
+    
+    // 邮箱修改事件监听器
+    this.setupEmailChangeListeners();
+  },
+
+  // 设置邮箱修改事件监听器
+  setupEmailChangeListeners: function() {
+    // 验证密码并发送验证码按钮
+    if (this.dom.verifyEmailPasswordBtn) {
+      this.dom.verifyEmailPasswordBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.verifyEmailPassword();
+      });
+    }
+    
+    // 重发验证码按钮
+    if (this.dom.resendEmailCodeBtn) {
+      this.dom.resendEmailCodeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (this.state.emailChange.sendCodeCountdown > 0) return;
+        this.verifyEmailPassword();
+      });
+    }
+    
+    // 验证验证码按钮
+    if (this.dom.verifyEmailCodeBtn) {
+      this.dom.verifyEmailCodeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.verifyEmailCode();
+      });
+    }
+    
+    // 返回步骤1按钮
+    if (this.dom.backToEmailStep1Btn) {
+      this.dom.backToEmailStep1Btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.resetEmailForm();
+      });
+    }
+    
+    // 重新修改邮箱按钮
+    if (this.dom.resetEmailFormBtn) {
+      this.dom.resetEmailFormBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.resetEmailForm();
+      });
+    }
+    
+    // QQ号修改事件监听器
+    this.setupQQChangeListeners();
+  },
+
+  // 设置QQ号修改事件监听器
+  setupQQChangeListeners: function() {
+    // 验证密码并修改QQ号按钮
+    if (this.dom.verifyQQPasswordBtn) {
+      this.dom.verifyQQPasswordBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.verifyQQPassword();
+      });
+    }
+    
+    // 重新修改QQ号按钮
+    if (this.dom.resetQQFormBtn) {
+      this.dom.resetQQFormBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.resetQQForm();
+      });
+    }
+    
+    // 账户注销按钮
+    const btnDeleteAccount = document.getElementById('btn-delete-account');
+    if (btnDeleteAccount) {
+      btnDeleteAccount.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!userManager.state.currentUser) {
+          utils.showNotification('请先登录', 'error');
+          return;
+        }
+        this.showDeletionDialog();
+      });
+    }
   },
 
   // 设置密码修改多步骤事件监听器
@@ -1018,6 +1457,17 @@ const settingsManager = {
         return;
       }
       
+      // 验证用户ID
+      const userId = userManager.state.currentUser.id;
+      if (!userId) {
+        console.error('saveAccountSettings: 用户ID为空');
+        utils.showNotification('用户信息错误，请重新登录', 'error');
+        this.state.isSaving = false;
+        return;
+      }
+      
+      console.log('saveAccountSettings: 用户ID:', userId);
+      
       // 获取表单数据（不包含密码，密码修改使用独立流程）
       const formData = {
         username: this.dom.usernameInput.value.trim(),
@@ -1039,19 +1489,50 @@ const settingsManager = {
       
       // 准备发送到服务器的数据
       const updateData = {};
+      const currentUser = userManager.state.currentUser;
       
       // 如果用户名有变化，添加用户名
-      if (formData.username !== userManager.state.currentUser.username) {
+      if (formData.username !== currentUser.username) {
         updateData.username = formData.username;
       }
       
       // 检查个性签名是否有变化
-      const currentSignature = userManager.state.currentUser.settings?.signature || '';
+      const currentSignature = currentUser.settings?.signature || '';
       if (formData.signature !== currentSignature) {
         updateData.settings = {
-          ...userManager.state.currentUser.settings,
+          ...currentUser.settings,
           signature: formData.signature
         };
+      }
+      
+      // 检查个人信息是否有变化
+      if (this.dom.settingsSchool && this.dom.settingsSchool.value && this.dom.settingsSchool.value !== currentUser.school) {
+        updateData.school = this.dom.settingsSchool.value;
+      }
+      
+      if (this.dom.settingsEnrollmentYear) {
+        const newYear = parseInt(this.dom.settingsEnrollmentYear.value);
+        if (newYear && newYear !== currentUser.enrollmentYear) {
+          updateData.enrollmentYear = newYear;
+        }
+      }
+      
+      if (this.dom.settingsClass && this.dom.settingsClass.value && this.dom.settingsClass.value !== currentUser.className) {
+        updateData.className = this.dom.settingsClass.value;
+      }
+      
+      if (this.dom.settingsBirthday) {
+        const newBirthday = this.dom.settingsBirthday.value || null;
+        if (newBirthday !== currentUser.birthday) {
+          updateData.birthday = newBirthday;
+        }
+      }
+      
+      if (this.dom.settingsGender) {
+        const newGender = this.dom.settingsGender.value || '';
+        if (newGender !== currentUser.gender) {
+          updateData.gender = newGender;
+        }
       }
       
       // 如果没有更改，直接返回
@@ -1151,7 +1632,16 @@ const settingsManager = {
   // 显示保存状态
   showSaveStatus: function(message, type = 'info', target = 'account') {
     // 确定目标元素ID
-    const elementId = target === 'theme' ? 'theme-save-status' : 'account-save-status';
+    let elementId;
+    if (target === 'theme') {
+      elementId = 'theme-save-status';
+    } else if (target === 'privacy') {
+      elementId = 'privacy-save-status';
+    } else if (target === 'notification') {
+      elementId = 'notification-save-status';
+    } else {
+      elementId = 'account-save-status';
+    }
     
     // 获取状态元素
     let statusElement = document.getElementById(elementId);
@@ -1178,7 +1668,7 @@ const settingsManager = {
   async uploadAvatar(file) {
     try {
       // 验证文件类型
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'];
       if (!allowedTypes.includes(file.type)) {
         utils.showNotification('只支持 JPG、PNG、GIF、WEBP 格式的图片', 'error');
         return;
@@ -1280,6 +1770,696 @@ const settingsManager = {
     } else {
       this.dom.avatarPreview.src = '/images/default-avatar.svg';
       this.dom.removeAvatarBtn.style.display = 'none';
+    }
+  },
+
+  // 加载学校配置
+  loadSchoolsConfig: async function() {
+    console.log('开始加载学校配置...');
+    try {
+      const response = await fetch('/schools');
+      if (!response.ok) {
+        throw new Error('加载学校配置失败');
+      }
+      
+      const data = await response.json();
+      if (data.success && data.schools) {
+        this.state.schools = data.schools;
+        this.initSchoolOptions();
+        this.initEnrollmentYearOptions();
+        
+        // 如果用户已有学校和年份，自动触发班级选项加载
+        const currentUser = userManager.state.currentUser;
+        if (currentUser && currentUser.school && currentUser.enrollmentYear) {
+          // 延迟执行确保选项已设置
+          setTimeout(() => {
+            this.onSchoolChange();
+            // 设置当前班级
+            if (this.dom.settingsClass && currentUser.className) {
+              this.dom.settingsClass.value = currentUser.className;
+            }
+          }, 100);
+        }
+      }
+    } catch (error) {
+      console.error('加载学校配置失败:', error);
+    }
+  },
+
+  // 初始化学校选项
+  initSchoolOptions: function() {
+    const schoolSelect = this.dom.settingsSchool;
+    if (!schoolSelect) return;
+    
+    schoolSelect.innerHTML = '<option value="">请选择学校</option>';
+    
+    this.state.schools.forEach(school => {
+      const option = document.createElement('option');
+      option.value = school.name;
+      option.textContent = school.name;
+      schoolSelect.appendChild(option);
+    });
+    
+    // 设置当前用户的学校
+    const currentUser = userManager.state.currentUser;
+    if (currentUser && currentUser.school) {
+      schoolSelect.value = currentUser.school;
+      this.state.currentSchoolInfo.school = currentUser.school;
+    }
+  },
+
+  // 初始化入学年份选项
+  initEnrollmentYearOptions: function() {
+    const enrollmentYearSelect = this.dom.settingsEnrollmentYear;
+    if (!enrollmentYearSelect || !this.state.schools) return;
+    
+    const years = new Set();
+    this.state.schools.forEach(school => {
+      if (school.classInfo && Array.isArray(school.classInfo)) {
+        school.classInfo.forEach(info => {
+          if (info.year) years.add(info.year);
+        });
+      }
+    });
+    
+    const sortedYears = Array.from(years).sort((a, b) => b - a);
+    enrollmentYearSelect.innerHTML = '<option value="">请选择入学年份</option>';
+    
+    sortedYears.forEach(year => {
+      const option = document.createElement('option');
+      option.value = year;
+      option.textContent = `${year}年`;
+      enrollmentYearSelect.appendChild(option);
+    });
+    
+    // 设置当前用户的入学年份
+    const currentUser = userManager.state.currentUser;
+    if (currentUser && currentUser.enrollmentYear) {
+      enrollmentYearSelect.value = currentUser.enrollmentYear;
+      this.state.currentSchoolInfo.enrollmentYear = currentUser.enrollmentYear;
+    }
+  },
+
+  // 学校选择变化处理
+  onSchoolChange: function() {
+    const schoolSelect = this.dom.settingsSchool;
+    const enrollmentYearSelect = this.dom.settingsEnrollmentYear;
+    const classSelect = this.dom.settingsClass;
+    
+    if (!schoolSelect || !enrollmentYearSelect || !classSelect) return;
+    
+    const selectedSchool = schoolSelect.value;
+    const selectedYear = parseInt(enrollmentYearSelect.value);
+    
+    if (!selectedSchool || !selectedYear) {
+      classSelect.disabled = true;
+      classSelect.innerHTML = '<option value="">请先选择学校和年份</option>';
+      return;
+    }
+    
+    const schoolConfig = this.state.schools.find(s => s.name === selectedSchool);
+    if (!schoolConfig || !schoolConfig.classInfo) {
+      classSelect.disabled = true;
+      classSelect.innerHTML = '<option value="">未找到班级配置</option>';
+      return;
+    }
+    
+    const classInfo = schoolConfig.classInfo.find(info => info.year === selectedYear);
+    if (!classInfo || !classInfo.classCount) {
+      classSelect.disabled = true;
+      classSelect.innerHTML = '<option value="">该年份暂无班级配置</option>';
+      return;
+    }
+    
+    classSelect.innerHTML = '<option value="">请选择班级</option>';
+    for (let i = 1; i <= classInfo.classCount; i++) {
+      const option = document.createElement('option');
+      option.value = `${i}班`;
+      option.textContent = `${i}班`;
+      classSelect.appendChild(option);
+    }
+    
+    classSelect.disabled = false;
+    
+    // 设置当前用户的班级
+    const currentUser = userManager.state.currentUser;
+    if (currentUser && currentUser.className && this.state.currentSchoolInfo.school === selectedSchool) {
+      classSelect.value = currentUser.className;
+    }
+  },
+
+  // 加载个人信息设置
+  loadPersonalInfoSettings: function() {
+    const currentUser = userManager.state.currentUser;
+    if (!currentUser) return;
+    
+    // 设置出生日期
+    if (this.dom.settingsBirthday && currentUser.birthday) {
+      this.dom.settingsBirthday.value = currentUser.birthday;
+    }
+    
+    // 设置性别
+    if (this.dom.settingsGender && currentUser.gender) {
+      this.dom.settingsGender.value = currentUser.gender;
+    }
+    
+    // 设置当前邮箱显示
+    if (document.getElementById('current-email-display') && currentUser.email) {
+      document.getElementById('current-email-display').textContent = this.maskEmail(currentUser.email);
+    }
+    
+    // 触发学校选择以更新班级选项
+    this.onSchoolChange();
+  },
+
+  // 保存个人信息
+  savePersonalInfo: async function() {
+    if (!userManager.state.currentUser) {
+      utils.showNotification('请先登录', 'error');
+      return;
+    }
+    
+    const updateData = {};
+    const currentUser = userManager.state.currentUser;
+    
+    // 检查学校是否有变化
+    if (this.dom.settingsSchool && this.dom.settingsSchool.value !== currentUser.school) {
+      updateData.school = this.dom.settingsSchool.value;
+    }
+    
+    // 检查入学年份是否有变化
+    if (this.dom.settingsEnrollmentYear) {
+      const newYear = parseInt(this.dom.settingsEnrollmentYear.value);
+      if (newYear !== currentUser.enrollmentYear) {
+        updateData.enrollmentYear = newYear;
+      }
+    }
+    
+    // 检查班级是否有变化
+    if (this.dom.settingsClass && this.dom.settingsClass.value !== currentUser.className) {
+      updateData.className = this.dom.settingsClass.value;
+    }
+    
+    // 检查出生日期是否有变化
+    if (this.dom.settingsBirthday) {
+      const newBirthday = this.dom.settingsBirthday.value || null;
+      if (newBirthday !== currentUser.birthday) {
+        updateData.birthday = newBirthday;
+      }
+    }
+    
+    // 检查性别是否有变化
+    if (this.dom.settingsGender) {
+      const newGender = this.dom.settingsGender.value || '';
+      if (newGender !== currentUser.gender) {
+        updateData.gender = newGender;
+      }
+    }
+    
+    if (Object.keys(updateData).length === 0) {
+      utils.showNotification('没有检测到任何更改', 'info');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 更新本地存储
+        const forumUser = JSON.parse(localStorage.getItem('forumUser') || '{}');
+        Object.assign(forumUser, updateData);
+        localStorage.setItem('forumUser', JSON.stringify(forumUser));
+        
+        // 更新当前用户状态
+        Object.assign(userManager.state.currentUser, updateData);
+        
+        utils.showNotification('个人信息已保存', 'success');
+      } else {
+        throw new Error(data.message || '保存失败');
+      }
+    } catch (error) {
+      console.error('保存个人信息失败:', error);
+      utils.showNotification('保存失败: ' + error.message, 'error');
+    }
+  },
+
+  // 邮箱修改：验证密码并发送验证码
+  verifyEmailPassword: async function() {
+    const currentPassword = this.dom.emailChangePassword?.value;
+    const newEmail = this.dom.newEmail?.value?.trim();
+    
+    if (!currentPassword) {
+      utils.showNotification('请输入当前密码', 'error');
+      return;
+    }
+    
+    if (!newEmail) {
+      utils.showNotification('请输入新邮箱', 'error');
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      utils.showNotification('请输入有效的邮箱地址', 'error');
+      return;
+    }
+    
+    if (newEmail.toLowerCase() === userManager.state.currentUser.email.toLowerCase()) {
+      utils.showNotification('新邮箱不能与当前邮箱相同', 'error');
+      return;
+    }
+    
+    this.dom.verifyEmailPasswordBtn.disabled = true;
+    this.dom.verifyEmailPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+    
+    try {
+      const response = await fetch('/send-email-change-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userManager.state.currentUser.id,
+          currentPassword: currentPassword,
+          newEmail: newEmail
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        this.state.emailChange.currentPassword = currentPassword;
+        this.state.emailChange.newEmail = newEmail;
+        
+        // 显示步骤2
+        document.getElementById('email-step-1').style.display = 'none';
+        document.getElementById('email-step-2').style.display = 'block';
+        
+        // 更新步骤指示器
+        document.getElementById('email-step-1-indicator').classList.remove('active');
+        document.getElementById('email-step-1-indicator').classList.add('completed');
+        document.getElementById('email-step-line-1').classList.add('completed');
+        document.getElementById('email-step-2-indicator').classList.add('active');
+        
+        // 显示新邮箱
+        if (this.dom.newEmailDisplay) {
+          this.dom.newEmailDisplay.textContent = this.maskEmail(newEmail);
+        }
+        
+        utils.showNotification('验证码已发送到新邮箱', 'success');
+        this.startEmailCodeCountdown();
+      } else {
+        utils.showNotification(data.message || '验证失败', 'error');
+      }
+    } catch (error) {
+      console.error('验证邮箱失败:', error);
+      utils.showNotification('验证失败，请稍后重试', 'error');
+    } finally {
+      this.dom.verifyEmailPasswordBtn.disabled = false;
+      this.dom.verifyEmailPasswordBtn.innerHTML = '<i class="fas fa-arrow-right"></i> 验证并发送验证码';
+    }
+  },
+
+  // 邮箱验证码倒计时
+  startEmailCodeCountdown: function() {
+    this.state.emailChange.sendCodeCountdown = 60;
+    
+    const updateBtn = () => {
+      if (this.state.emailChange.sendCodeCountdown > 0) {
+        this.dom.resendEmailCodeBtn.innerHTML = `${this.state.emailChange.sendCodeCountdown}秒后重试`;
+        this.dom.resendEmailCodeBtn.disabled = true;
+        this.state.emailChange.sendCodeCountdown--;
+        setTimeout(updateBtn, 1000);
+      } else {
+        this.dom.resendEmailCodeBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 重发验证码';
+        this.dom.resendEmailCodeBtn.disabled = false;
+      }
+    };
+    
+    updateBtn();
+  },
+
+  // 验证邮箱验证码并完成修改
+  verifyEmailCode: async function() {
+    const verificationCode = this.dom.emailVerificationCode?.value;
+    
+    if (!verificationCode) {
+      utils.showNotification('请输入验证码', 'error');
+      return;
+    }
+    
+    if (verificationCode.length !== 6) {
+      utils.showNotification('请输入6位验证码', 'error');
+      return;
+    }
+    
+    this.dom.verifyEmailCodeBtn.disabled = true;
+    this.dom.verifyEmailCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+    
+    try {
+      const response = await fetch('/verify-email-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userManager.state.currentUser.id,
+          verificationCode: verificationCode,
+          newEmail: this.state.emailChange.newEmail
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 显示成功页面
+        document.getElementById('email-step-2').style.display = 'none';
+        document.getElementById('email-step-success').style.display = 'block';
+        
+        // 更新步骤指示器
+        document.getElementById('email-step-2-indicator').classList.remove('active');
+        document.getElementById('email-step-2-indicator').classList.add('completed');
+        document.getElementById('email-step-line-2').classList.add('completed');
+        document.getElementById('email-step-3-indicator').classList.add('active');
+        document.getElementById('email-step-3-indicator').classList.add('completed');
+        
+        // 显示更新后的邮箱
+        if (this.dom.updatedEmailDisplay) {
+          this.dom.updatedEmailDisplay.textContent = this.maskEmail(this.state.emailChange.newEmail);
+        }
+        
+        // 更新本地存储
+        const forumUser = JSON.parse(localStorage.getItem('forumUser') || '{}');
+        forumUser.email = this.state.emailChange.newEmail;
+        localStorage.setItem('forumUser', JSON.stringify(forumUser));
+        userManager.state.currentUser.email = this.state.emailChange.newEmail;
+        
+        // 更新显示
+        document.getElementById('current-email-display').textContent = this.maskEmail(this.state.emailChange.newEmail);
+        
+        utils.showNotification('邮箱修改成功！', 'success');
+      } else {
+        utils.showNotification(data.message || '验证码验证失败', 'error');
+      }
+    } catch (error) {
+      console.error('验证验证码失败:', error);
+      utils.showNotification('验证失败，请稍后重试', 'error');
+    } finally {
+      this.dom.verifyEmailCodeBtn.disabled = false;
+      this.dom.verifyEmailCodeBtn.innerHTML = '<i class="fas fa-check"></i> 确认修改';
+    }
+  },
+
+  // 重置邮箱修改表单
+  resetEmailForm: function() {
+    this.state.emailChange = {
+      currentStep: 1,
+      currentPassword: '',
+      newEmail: '',
+      isCodeVerified: false,
+      sendCodeCountdown: 0
+    };
+    
+    if (this.dom.emailChangePassword) this.dom.emailChangePassword.value = '';
+    if (this.dom.newEmail) this.dom.newEmail.value = '';
+    if (this.dom.emailVerificationCode) this.dom.emailVerificationCode.value = '';
+    
+    // 重置步骤显示
+    document.getElementById('email-step-1').style.display = 'block';
+    document.getElementById('email-step-2').style.display = 'none';
+    document.getElementById('email-step-success').style.display = 'none';
+    
+    // 重置步骤指示器
+    document.getElementById('email-step-1-indicator').classList.add('active');
+    document.getElementById('email-step-1-indicator').classList.remove('completed');
+    document.getElementById('email-step-line-1').classList.remove('completed');
+    document.getElementById('email-step-2-indicator').classList.remove('active', 'completed');
+    document.getElementById('email-step-line-2').classList.remove('completed');
+    document.getElementById('email-step-3-indicator').classList.remove('active', 'completed');
+  },
+
+  // QQ号修改：验证密码并修改
+  verifyQQPassword: async function() {
+    const currentPassword = this.dom.qqChangePassword?.value;
+    const newQQ = this.dom.newQQ?.value?.trim();
+    
+    if (!currentPassword) {
+      utils.showNotification('请输入当前密码', 'error');
+      return;
+    }
+    
+    if (!newQQ) {
+      utils.showNotification('请输入新QQ号', 'error');
+      return;
+    }
+    
+    // 验证QQ号格式
+    const qqRegex = /^[1-9]\d{4,14}$/;
+    if (!qqRegex.test(newQQ)) {
+      utils.showNotification('请输入有效的QQ号（5-15位数字）', 'error');
+      return;
+    }
+    
+    if (newQQ === userManager.state.currentUser.qq) {
+      utils.showNotification('新QQ号不能与当前QQ号相同', 'error');
+      return;
+    }
+    
+    this.dom.verifyQQPasswordBtn.disabled = true;
+    this.dom.verifyQQPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+    
+    try {
+      const response = await fetch('/change-qq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userManager.state.currentUser.id,
+          currentPassword: currentPassword,
+          newQQ: newQQ
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 显示成功页面
+        document.getElementById('qq-step-1').style.display = 'none';
+        document.getElementById('qq-step-success').style.display = 'block';
+        
+        // 更新步骤指示器
+        document.getElementById('qq-step-1-indicator').classList.remove('active');
+        document.getElementById('qq-step-1-indicator').classList.add('completed');
+        document.getElementById('qq-step-line-1').classList.add('completed');
+        document.getElementById('qq-step-2-indicator').classList.add('active');
+        document.getElementById('qq-step-2-indicator').classList.add('completed');
+        
+        // 显示更新后的QQ号
+        if (this.dom.updatedQQDisplay) {
+          this.dom.updatedQQDisplay.textContent = newQQ;
+        }
+        
+        // 更新本地存储
+        const forumUser = JSON.parse(localStorage.getItem('forumUser') || '{}');
+        forumUser.qq = newQQ;
+        localStorage.setItem('forumUser', JSON.stringify(forumUser));
+        userManager.state.currentUser.qq = newQQ;
+        
+        // 更新显示
+        document.getElementById('current-qq-display').textContent = newQQ;
+        
+        utils.showNotification('QQ号修改成功！', 'success');
+      } else {
+        utils.showNotification(data.message || '修改失败', 'error');
+      }
+    } catch (error) {
+      console.error('修改QQ号失败:', error);
+      utils.showNotification('修改失败，请稍后重试', 'error');
+    } finally {
+      this.dom.verifyQQPasswordBtn.disabled = false;
+      this.dom.verifyQQPasswordBtn.innerHTML = '<i class="fas fa-check"></i> 确认修改';
+    }
+  },
+
+  // 重置QQ号修改表单
+  resetQQForm: function() {
+    this.state.qqChange = { currentStep: 1 };
+    
+    if (this.dom.qqChangePassword) this.dom.qqChangePassword.value = '';
+    if (this.dom.newQQ) this.dom.newQQ.value = '';
+    
+    // 重置步骤显示
+    document.getElementById('qq-step-1').style.display = 'block';
+    document.getElementById('qq-step-success').style.display = 'none';
+    
+    // 重置步骤指示器
+    document.getElementById('qq-step-1-indicator').classList.add('active');
+    document.getElementById('qq-step-1-indicator').classList.remove('completed');
+    document.getElementById('qq-step-line-1').classList.remove('completed');
+    document.getElementById('qq-step-2-indicator').classList.remove('active', 'completed');
+  },
+  
+  // 显示账户注销对话框
+  showDeletionDialog: function() {
+    const modal = document.createElement('div');
+    modal.className = 'deletion-modal';
+    modal.innerHTML = `
+      <div class="deletion-modal-content">
+        <div class="deletion-modal-header">
+          <h3><i class="fas fa-exclamation-triangle"></i> 注销账户</h3>
+          <button class="close-modal" onclick="this.closest('.deletion-modal').remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="deletion-modal-body">
+          <div class="deletion-step" id="deletion-step-1">
+            <p class="step-description">请输入您的密码以验证身份</p>
+            <div class="form-group">
+              <label for="deletion-password">密码</label>
+              <input type="password" id="deletion-password" placeholder="请输入密码">
+            </div>
+            <button type="button" class="settings-button primary" id="btn-send-deletion-code">
+              <i class="fas fa-paper-plane"></i> 发送验证码
+            </button>
+          </div>
+          <div class="deletion-step" id="deletion-step-2" style="display: none;">
+            <p class="step-description">验证码已发送到您的邮箱，请输入验证码</p>
+            <div class="form-group">
+              <label for="deletion-code">验证码</label>
+              <input type="text" id="deletion-code" placeholder="请输入6位验证码" maxlength="6">
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="deletion-keep-data">
+                保留发布的帖子和评论
+              </label>
+            </div>
+            <div class="deletion-step-actions">
+              <button type="button" class="settings-button secondary" id="btn-deletion-back">
+                <i class="fas fa-arrow-left"></i> 返回
+              </button>
+              <button type="button" class="settings-button danger" id="btn-confirm-deletion">
+                <i class="fas fa-trash-alt"></i> 确认注销
+              </button>
+            </div>
+          </div>
+          <div class="deletion-step" id="deletion-step-success" style="display: none;">
+            <div class="deletion-success">
+              <i class="fas fa-check-circle"></i>
+              <h3>账户已注销</h3>
+              <p>您的账户已成功注销，感谢您使用校园论坛。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 绑定事件
+    document.getElementById('btn-send-deletion-code').addEventListener('click', () => this.sendDeletionCode());
+    document.getElementById('btn-deletion-back').addEventListener('click', () => {
+      document.getElementById('deletion-step-1').style.display = 'block';
+      document.getElementById('deletion-step-2').style.display = 'none';
+    });
+    document.getElementById('btn-confirm-deletion').addEventListener('click', () => this.confirmDeletion());
+  },
+  
+  // 发送账户注销验证码
+  sendDeletionCode: async function() {
+    const password = document.getElementById('deletion-password').value;
+    
+    if (!password) {
+      utils.showNotification('请输入密码', 'error');
+      return;
+    }
+    
+    const btn = document.getElementById('btn-send-deletion-code');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+    
+    try {
+      const response = await fetch('/send-deletion-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userManager.state.currentUser.id,
+          password: password
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 保存密码用于后续验证
+        this.state.deletionPassword = password;
+        
+        // 显示步骤2
+        document.getElementById('deletion-step-1').style.display = 'none';
+        document.getElementById('deletion-step-2').style.display = 'block';
+        
+        utils.showNotification('验证码已发送到您的邮箱', 'success');
+      } else {
+        utils.showNotification(data.message || '发送失败', 'error');
+      }
+    } catch (error) {
+      utils.showNotification('发送失败，请稍后重试', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送验证码';
+    }
+  },
+  
+  // 确认账户注销
+  confirmDeletion: async function() {
+    const code = document.getElementById('deletion-code').value;
+    const keepData = document.getElementById('deletion-keep-data').checked;
+    
+    if (!code || code.length !== 6) {
+      utils.showNotification('请输入6位验证码', 'error');
+      return;
+    }
+    
+    const btn = document.getElementById('btn-confirm-deletion');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注销中...';
+    
+    try {
+      const response = await fetch('/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userManager.state.currentUser.id,
+          password: this.state.deletionPassword,
+          verificationCode: code,
+          keepData: keepData
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 显示成功页面
+        document.getElementById('deletion-step-2').style.display = 'none';
+        document.getElementById('deletion-step-success').style.display = 'block';
+        
+        // 清除本地存储
+        localStorage.removeItem('forumUser');
+        localStorage.removeItem('token');
+        
+        // 3秒后跳转到登录页
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 3000);
+      } else {
+        utils.showNotification(data.message || '注销失败', 'error');
+      }
+    } catch (error) {
+      utils.showNotification('注销失败，请稍后重试', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-trash-alt"></i> 确认注销';
     }
   }
 };

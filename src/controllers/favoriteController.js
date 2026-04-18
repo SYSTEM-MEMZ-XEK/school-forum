@@ -2,6 +2,7 @@ const Favorite = require('../models/Favorite');
 const FavoriteTag = require('../models/FavoriteTag');
 const { getPostById, getPosts } = require('../utils/dataUtils');
 const { generateErrorResponse, generateSuccessResponse } = require('../utils/validationUtils');
+const { favoriteCache, postCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
 
 const favoriteController = {
@@ -40,6 +41,9 @@ const favoriteController = {
         return res.status(400).json(generateErrorResponse(result.message));
       }
 
+      // 增加Redis中的收藏计数
+      await favoriteCache.incrPostFavoriteCount(postId);
+
       logger.logUserAction('收藏帖子', userId, '', { postId, tagId });
 
       res.json(generateSuccessResponse({ favorited: true, favorite: result.favorite }, '收藏成功'));
@@ -65,6 +69,9 @@ const favoriteController = {
         return res.status(400).json(generateErrorResponse('未收藏该帖子'));
       }
 
+      // 减少Redis中的收藏计数
+      await favoriteCache.decrPostFavoriteCount(postId);
+
       logger.logUserAction('取消收藏', userId, '', { postId });
 
       res.json(generateSuccessResponse({ favorited: false }, '取消收藏成功'));
@@ -85,7 +92,13 @@ const favoriteController = {
       }
 
       const favorite = await Favorite.findOne({ userId, postId });
-      const favoriteCount = await Favorite.getFavoriteCount(postId);
+      
+      // 优先从Redis缓存获取收藏数
+      let favoriteCount = await favoriteCache.getPostFavoriteCount(postId);
+      if (favoriteCount === null) {
+        favoriteCount = await Favorite.getFavoriteCount(postId);
+        await favoriteCache.setPostFavoriteCount(postId, favoriteCount);
+      }
 
       res.json(generateSuccessResponse({ 
         favorited: !!favorite, 

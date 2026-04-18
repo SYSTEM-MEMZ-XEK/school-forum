@@ -88,10 +88,16 @@ const postDetailManager = {
     const commentsSection = document.getElementById('comments-section');
 
     try {
-      const response = await fetch(`/posts/${this.postId}`);
+      // 获取当前用户ID用于黑名单检查
+      const currentUser = userManager.state.currentUser;
+      const viewerId = currentUser ? currentUser.id : '';
+      const url = viewerId ? `/posts/${this.postId}?viewerId=${viewerId}` : `/posts/${this.postId}`;
+      
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`加载失败: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `加载失败: ${response.status}`);
       }
 
       const data = await response.json();
@@ -183,6 +189,9 @@ const postDetailManager = {
         ${currentUser && currentUser.id === this.post.userId ?
           `<button class="post-detail-action-btn edit-btn" data-id="${this.post.id}">
             <i class="fas fa-edit"></i> 编辑
+          </button>
+          <button class="post-detail-action-btn visibility-btn" data-id="${this.post.id}">
+            <i class="fas fa-eye"></i> 可见性
           </button>
           <button class="post-detail-action-btn delete-btn" data-id="${this.post.id}">
             <i class="fas fa-trash"></i> 删除
@@ -507,14 +516,26 @@ const postDetailManager = {
             ${this.renderMarkdownContent(comment.content)}
           </div>
           <div class="comment-footer">
+            <span class="comment-action like-comment-btn ${userManager.state.currentUser && comment.likedBy && comment.likedBy.includes(userManager.state.currentUser.id) ? 'liked' : ''}" data-comment-id="${comment.id}">
+              <i class="fas fa-thumbs-up"></i> ${comment.likes || 0}
+            </span>
             <span class="comment-action reply-btn" data-comment-id="${comment.id}">
               <i class="fas fa-reply"></i> 回复 ${replyCount > 0 ? `(${replyCount})` : ''}
             </span>
-            ${(isCurrentUser || isPostOwner) ? `
+            ${isCurrentUser ? `
               <span class="comment-action delete-comment" data-comment-id="${comment.id}">
                 <i class="fas fa-trash"></i> 删除
               </span>
-            ` : userManager.state.currentUser ? `
+            ` : ''}
+            ${(!isCurrentUser && isPostOwner) ? `
+              <span class="comment-action delete-comment" data-comment-id="${comment.id}">
+                <i class="fas fa-trash"></i> 删除
+              </span>
+              <span class="comment-action report-comment-btn" data-comment-id="${comment.id}" data-type="comment">
+                <i class="fas fa-flag"></i> 举报
+              </span>
+            ` : ''}
+            ${(!isCurrentUser && !isPostOwner && userManager.state.currentUser) ? `
               <span class="comment-action report-comment-btn" data-comment-id="${comment.id}" data-type="comment">
                 <i class="fas fa-flag"></i> 举报
               </span>
@@ -592,12 +613,28 @@ const postDetailManager = {
             ${replyToInfo}${this.renderMarkdownContent(reply.content)}
           </div>
           <div class="reply-footer">
+            <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} like-comment-btn ${userManager.state.currentUser && reply.likedBy && reply.likedBy.includes(userManager.state.currentUser.id) ? 'liked' : ''}" data-comment-id="${reply.id}">
+              <i class="fas fa-thumbs-up"></i> ${reply.likes || 0}
+            </span>
             <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} reply-reply-btn" data-comment-id="${commentId}" data-reply-id="${reply.id}" data-reply-username="${replyUsername}">
               <i class="fas fa-reply"></i> 回复 ${nestedReplyCount > 0 ? `(${nestedReplyCount})` : ''}
             </span>
-            ${(isReplyCurrentUser || isReplyPostOwner) ? `
+            ${isReplyCurrentUser ? `
               <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} delete-reply" data-comment-id="${commentId}" data-reply-id="${reply.id}">
                 <i class="fas fa-trash"></i> 删除
+              </span>
+            ` : ''}
+            ${(!isReplyCurrentUser && isReplyPostOwner) ? `
+              <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} delete-reply" data-comment-id="${commentId}" data-reply-id="${reply.id}">
+                <i class="fas fa-trash"></i> 删除
+              </span>
+              <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} report-comment-btn" data-comment-id="${reply.id}" data-type="comment">
+                <i class="fas fa-flag"></i> 举报
+              </span>
+            ` : ''}
+            ${(!isReplyCurrentUser && !isReplyPostOwner && userManager.state.currentUser) ? `
+              <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} report-comment-btn" data-comment-id="${reply.id}" data-type="comment">
+                <i class="fas fa-flag"></i> 举报
               </span>
             ` : ''}
           </div>
@@ -1216,6 +1253,89 @@ const postDetailManager = {
     }
   },
 
+  // 点赞/取消点赞评论
+  toggleCommentLike: async function(commentId) {
+    console.log('toggleCommentLike called, commentId:', commentId, 'postId:', this.postId);
+    
+    if (!userManager.state.currentUser) {
+      utils.showNotification('请先登录后再点赞', 'error');
+      window.location.href = 'login.html';
+      return;
+    }
+    
+    // 验证用户ID
+    const userId = userManager.state.currentUser.id;
+    if (!userId) {
+      console.error('toggleCommentLike: 用户ID为空');
+      utils.showNotification('用户信息错误，请重新登录', 'error');
+      return;
+    }
+    
+    // 验证帖子ID
+    if (!this.postId) {
+      console.error('toggleCommentLike: 帖子ID为空');
+      utils.showNotification('帖子信息错误', 'error');
+      return;
+    }
+    
+    // 验证评论ID
+    if (!commentId) {
+      console.error('toggleCommentLike: 评论ID为空');
+      utils.showNotification('评论信息错误', 'error');
+      return;
+    }
+
+    const likeBtn = document.querySelector(`.like-comment-btn[data-comment-id="${commentId}"]`);
+    if (!likeBtn) {
+      console.error('toggleCommentLike: 未找到点赞按钮, commentId:', commentId);
+      return;
+    }
+
+    if (likeBtn.classList.contains('processing')) {
+      return;
+    }
+
+    likeBtn.classList.add('processing');
+
+    try {
+      console.log('发送评论点赞请求:', { postId: this.postId, commentId, userId });
+      
+      const response = await fetch(`/posts/${this.postId}/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: userId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '操作失败');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        // 更新按钮显示
+        likeBtn.innerHTML = `<i class="fas fa-thumbs-up"></i> ${data.likes}`;
+
+        if (data.liked) {
+          likeBtn.classList.add('liked');
+        } else {
+          likeBtn.classList.remove('liked');
+        }
+
+        utils.showNotification(data.message || '操作成功', 'success');
+      }
+    } catch (error) {
+      console.error('点赞评论失败:', error);
+      utils.showNotification(error.message || '操作失败', 'error');
+    } finally {
+      likeBtn.classList.remove('processing');
+    }
+  },
+
   // 点踩/取消点踩
   toggleDislike: async function() {
     if (!userManager.state.currentUser) {
@@ -1390,6 +1510,11 @@ const postDetailManager = {
         window.location.href = `edit-simple.html?edit=${postId}`;
       }
 
+      // 可见性设置按钮
+      if (e.target.closest('.visibility-btn')) {
+        this.showVisibilityModal();
+      }
+
       // 举报帖子按钮
       if (e.target.closest('.report-post-btn')) {
         const btn = e.target.closest('.report-post-btn');
@@ -1405,8 +1530,17 @@ const postDetailManager = {
         this.deleteComment(commentId);
       }
 
+      // 点赞评论按钮
+      if (e.target.closest('.like-comment-btn')) {
+        e.stopPropagation(); // 防止事件冒泡
+        const btn = e.target.closest('.like-comment-btn');
+        const commentId = btn.dataset.commentId;
+        this.toggleCommentLike(commentId);
+      }
+
       // 举报评论按钮
       if (e.target.closest('.report-comment-btn')) {
+        e.stopPropagation(); // 防止事件冒泡
         const btn = e.target.closest('.report-comment-btn');
         const commentId = btn.dataset.commentId;
         const targetType = btn.dataset.type || 'comment';
@@ -1479,8 +1613,149 @@ const postDetailManager = {
     return div.innerHTML;
   },
 
+  // 显示可见性设置弹窗
+  showVisibilityModal: function() {
+    const currentVisibility = this.post.visibility || 'public';
+    
+    // 移除已存在的弹窗
+    const existingModal = document.getElementById('visibility-modal');
+    if (existingModal) existingModal.remove();
+    
+    const modalHtml = `
+      <div id="visibility-modal" class="visibility-modal">
+        <div class="visibility-modal-content">
+          <div class="visibility-modal-header">
+            <h3><i class="fas fa-eye"></i> 设置帖子可见性</h3>
+            <button class="visibility-modal-close" id="visibility-modal-close">&times;</button>
+          </div>
+          <div class="visibility-modal-body">
+            <div class="visibility-options">
+              <label class="visibility-option ${currentVisibility === 'public' ? 'selected' : ''}">
+                <input type="radio" name="post-visibility" value="public" ${currentVisibility === 'public' ? 'checked' : ''}>
+                <div class="visibility-radio"></div>
+                <div class="visibility-info">
+                  <span class="visibility-title"><i class="fas fa-globe"></i> 公开</span>
+                  <span class="visibility-desc">所有人可见</span>
+                </div>
+              </label>
+              <label class="visibility-option ${currentVisibility === 'followers' ? 'selected' : ''}">
+                <input type="radio" name="post-visibility" value="followers" ${currentVisibility === 'followers' ? 'checked' : ''}>
+                <div class="visibility-radio"></div>
+                <div class="visibility-info">
+                  <span class="visibility-title"><i class="fas fa-users"></i> 仅粉丝可见</span>
+                  <span class="visibility-desc">只有关注你的粉丝可以看到</span>
+                </div>
+              </label>
+              <label class="visibility-option ${currentVisibility === 'self' ? 'selected' : ''}">
+                <input type="radio" name="post-visibility" value="self" ${currentVisibility === 'self' ? 'checked' : ''}>
+                <div class="visibility-radio"></div>
+                <div class="visibility-info">
+                  <span class="visibility-title"><i class="fas fa-lock"></i> 仅自己可见</span>
+                  <span class="visibility-desc">只有自己可以看到（私密帖子）</span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="visibility-modal-footer">
+            <button class="btn-cancel" id="visibility-cancel-btn">取消</button>
+            <button class="btn-save" id="visibility-save-btn">保存</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modal = document.getElementById('visibility-modal');
+    const closeBtn = document.getElementById('visibility-modal-close');
+    const cancelBtn = document.getElementById('visibility-cancel-btn');
+    const saveBtn = document.getElementById('visibility-save-btn');
+
+    // 关闭弹窗
+    const closeModal = () => modal.remove();
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+    // 选项点击效果
+    modal.querySelectorAll('.visibility-option').forEach(option => {
+      option.addEventListener('click', () => {
+        modal.querySelectorAll('.visibility-option').forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+      });
+    });
+
+    // 保存可见性设置
+    saveBtn.onclick = async () => {
+      const selectedOption = modal.querySelector('input[name="post-visibility"]:checked');
+      if (!selectedOption) return;
+
+      const newVisibility = selectedOption.value;
+      
+      if (newVisibility === currentVisibility) {
+        closeModal();
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+
+      try {
+        const response = await fetch(`/posts/${this.postId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userManager.state.currentUser.id,
+            visibility: newVisibility
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          this.post.visibility = newVisibility;
+          const visibilityText = newVisibility === 'public' ? '公开' : 
+            newVisibility === 'followers' ? '仅粉丝可见' : '仅自己可见';
+          utils.showNotification(`帖子可见性已更改为：${visibilityText}`, 'success');
+          closeModal();
+        } else {
+          utils.showNotification(data.message || '保存失败', 'error');
+        }
+      } catch (error) {
+        console.error('保存可见性设置失败:', error);
+        utils.showNotification('保存失败，请稍后重试', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
+    };
+  },
+
   // 显示举报模态框
   showReportModal: function(targetId, targetType) {
+    console.log('showReportModal called, targetId:', targetId, 'targetType:', targetType);
+    
+    // 验证用户登录状态
+    if (!userManager.state.currentUser) {
+      utils.showNotification('请先登录后再举报', 'error');
+      return;
+    }
+    
+    // 验证用户ID
+    const userId = userManager.state.currentUser.id;
+    if (!userId) {
+      console.error('showReportModal: 用户ID为空');
+      utils.showNotification('用户信息错误，请重新登录', 'error');
+      return;
+    }
+    
+    // 验证目标ID
+    if (!targetId) {
+      console.error('showReportModal: 目标ID为空');
+      utils.showNotification('举报目标信息错误', 'error');
+      return;
+    }
+    
     // 移除已存在的模态框
     const existingModal = document.getElementById('report-modal');
     if (existingModal) {
@@ -1571,11 +1846,13 @@ const postDetailManager = {
         submitBtn.disabled = true;
         submitBtn.textContent = '提交中...';
         
+        console.log('发送举报请求:', { targetId, targetType, reason: selectedReason.value, reporterId: userId });
+        
         const response = await fetch('/reports', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            reporterId: userManager.state.currentUser.id,
+            reporterId: userId,
             targetType: targetType,
             targetId: targetId,
             reason: selectedReason.value,

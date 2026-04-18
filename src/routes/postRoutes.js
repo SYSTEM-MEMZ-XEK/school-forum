@@ -23,6 +23,8 @@ router.post('/posts/:id/dislike', postController.dislikePost);
 
 // 用户删除自己的帖子
 router.delete('/posts/:id', postController.deletePost);
+// 兼容 Android 端的 POST 删除方式
+router.post('/posts/delete', postController.deletePost);
 
 // 用户编辑自己的帖子
 router.put('/posts/:id', upload.array('images', 20), postController.updatePost);
@@ -35,5 +37,8 @@ router.post('/posts/:id/comments/:commentId/replies', postController.replyCommen
 
 // 删除评论
 router.delete('/posts/:id/comments/:commentId', postController.deleteComment);
+
+// 点赞评论
+router.post('/posts/:id/comments/:commentId/like', postController.likeComment);
 
 module.exports = router;

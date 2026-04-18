@@ -29,7 +29,7 @@ if (MONGODB_AUTH.username && MONGODB_AUTH.password) {
 }
 
 // 服务器端口（静态配置）
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 2080;
 
 // ============ 动态配置获取函数 ============
 // 这些函数每次调用时都会读取最新的配置文件，确保配置修改后能立即生效
@@ -56,7 +56,7 @@ function getAdminUsers() {
  */
 function getUploadConfig() {
   return readConfig().upload || {
-    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'],
     maxFileSize: 10 * 1024 * 1024,
     maxFiles: 20
   };
@@ -100,6 +100,36 @@ function getSchools() {
   return readConfig().schools || [];
 }
 
+/**
+ * 获取运行模式配置
+ * @returns {object} 运行模式配置
+ */
+function getRunMode() {
+  return readConfig().runMode || {
+    current: 'normal',
+    maintenanceMessage: '网站正在维护中，请稍后再试',
+    debugLogLevel: 'debug',
+    selfDestructLevel: null,
+    lastModeChange: null,
+    changedBy: null
+  };
+}
+
+// 运行模式常量
+const RUN_MODES = {
+  NORMAL: 'normal',
+  DEBUG: 'debug',
+  MAINTENANCE: 'maintenance',
+  SELF_DESTRUCT: 'self_destruct'
+};
+
+// 自毁模式级别常量
+const SELF_DESTRUCT_LEVELS = {
+  LEVEL_3: 3,
+  LEVEL_2: 2,
+  LEVEL_1: 1
+};
+
 // ============ 向后兼容的静态导出 ============
 // 注意：这些值在模块加载时确定，修改配置文件后需要重启服务器才能更新
 // 推荐使用上面的函数获取最新配置
@@ -123,6 +153,11 @@ module.exports = {
   getPaginationConfig,
   getContentLimits,
   getSchools,
+  getRunMode,
+  
+  // 运行模式常量
+  RUN_MODES,
+  SELF_DESTRUCT_LEVELS,
   
   // 向后兼容：使用 getter 实现动态读取
   // 但注意：某些场景下 getter 可能不会被调用，建议使用函数

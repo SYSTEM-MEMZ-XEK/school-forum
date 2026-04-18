@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>私信 - 校园论坛</title>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <i class="fas fa-comments"></i>
+        <h1>校园论坛</h1>
+      </div>
+      <div class="header-search">
+        <div class="search-box-wrapper">
+          <i class="fas fa-search"></i>
+          <input type="text" id="search-input" placeholder="搜索帖子内容或用户..." autocomplete="off">
+          <button class="search-clear-btn" id="search-clear-btn" style="display: none;">
+            <i class="fas fa-times"></i>
+          </button>
+          <button type="button" class="search-btn" id="search-btn">搜索</button>
+          <div class="search-history" id="search-history" style="display: none;">
+            <div class="search-history-header">
+              <span>搜索历史</span>
+              <button class="clear-history-btn" id="clear-history-btn">清空</button>
+            </div>
+            <div class="search-history-list" id="search-history-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="notification-area" id="notificationArea"></div>
+      <div id="user-actions">
+        <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+          <i class="fas fa-user-circle"></i>
+          <div class="header-user-dropdown">
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-username">用户名</div>
+              <div class="header-user-class" id="header-user-class">班级信息</div>
+            </div>
+            <div class="header-user-menu">
+              <a href="profile.html" class="header-menu-item">
+                <i class="fas fa-user"></i> 个人资料
+              </a>
+              <a href="favorites.html" class="header-menu-item">
+                <i class="fas fa-star"></i> 我的收藏
+              </a>
+              <a href="following.html" class="header-menu-item">
+                <i class="fas fa-users"></i> 我的关注
+              </a>
+              <a href="settings.html" class="header-menu-item">
+                <i class="fas fa-cog"></i> 设置
+              </a>
+              <a href="message.html" class="header-menu-item">
+                <i class="fas fa-bell"></i> 消息通知
+              </a>
+              <a href="chat.html" class="header-menu-item">
+                <i class="fas fa-envelope"></i> 私信
+              </a>
+              <a href="blacklist.html" class="header-menu-item">
+                <i class="fas fa-ban"></i> 黑名单
+              </a>
+              <div class="header-menu-divider"></div>
+              <button id="header-logout-btn" class="header-menu-item logout">
+                <i class="fas fa-sign-out-alt"></i> 退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div id="header-updates-btn" class="header-icon-btn" style="display: none;" title="更新动态">
+          <a href="following.html">
+            <i class="fas fa-rss"></i>
+            <span id="updates-badge" class="updates-badge">0</span>
+          </a>
+        </div>
+        
+        <!-- 私信按钮（登录后显示） -->
+        <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
+          <a href="chat.html">
+            <i class="fas fa-envelope"></i>
+            <span id="chat-badge" class="message-badge" style="display: none;">0</span>
+          </a>
+        </div>
+        
+        <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="chat-container">
+      <!-- 会话列表 -->
+      <div class="conversations-panel" id="conversations-panel">
+        <div class="panel-header">
+          <h2><i class="fas fa-comments"></i> 私信</h2>
+          <button class="new-chat-btn" id="new-chat-btn" title="发起私信">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+        
+        <!-- 搜索用户 -->
+        <div class="search-user-container" id="search-user-container" style="display: none;">
+          <input type="text" id="search-user-input" placeholder="搜索用户...">
+          <button class="close-search-btn" id="close-search-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <!-- 用户列表（发起私信时显示） -->
+        <div class="contactable-users" id="contactable-users" style="display: none;">
+          <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i> 加载中...
+          </div>
+        </div>
+        
+        <!-- 会话列表 -->
+        <div class="conversations-list" id="conversations-list">
+          <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i> 加载会话中...
+          </div>
+        </div>
+      </div>
+      
+      <!-- 聊天窗口 -->
+      <div class="chat-panel" id="chat-panel">
+        <div class="chat-empty" id="chat-empty">
+          <i class="fas fa-comments"></i>
+          <h3>选择一个会话开始聊天</h3>
+          <p>或点击右上角的 <i class="fas fa-plus"></i> 发起新的私信</p>
+        </div>
+        
+        <!-- 聊天头部 -->
+        <div class="chat-header" id="chat-header" style="display: none;">
+          <button class="back-to-list" id="back-to-list">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div class="chat-user-info">
+            <div class="chat-avatar" id="chat-avatar">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="chat-user-details">
+              <span class="chat-username" id="chat-username">用户名</span>
+              <span class="chat-relation" id="chat-relation"></span>
+            </div>
+          </div>
+          <div class="chat-actions">
+            <a href="#" class="chat-action-btn" id="view-profile-btn" title="查看资料">
+              <i class="fas fa-user"></i>
+            </a>
+          </div>
+        </div>
+        
+        <!-- 消息列表 -->
+        <div class="messages-container" id="messages-container" style="display: none;">
+          <div class="messages-list" id="messages-list"></div>
+          <div class="load-more-messages" id="load-more-messages" style="display: none;">
+            <button>加载更多消息</button>
+          </div>
+        </div>
+        
+        <!-- 发送消息区域 -->
+        <div class="message-input-container" id="message-input-container" style="display: none;">
+          <div class="permission-warning" id="permission-warning" style="display: none;">
+            <i class="fas fa-info-circle"></i>
+            <span id="permission-text"></span>
+          </div>
+          <div class="message-input-wrapper">
+            <textarea id="message-input" placeholder="输入消息..." rows="1" maxlength="2000"></textarea>
+            <button class="send-btn" id="send-btn" disabled>
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 确认删除对话框 -->
+  <div class="modal-overlay" id="delete-modal" style="display: none;">
+    <div class="modal-content">
+      <h3>确认删除</h3>
+      <p id="delete-modal-text">确定要删除这个会话吗？删除后聊天记录将无法恢复。</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancel-delete-btn">取消</button>
+        <button class="btn-confirm" id="confirm-delete-btn">确认删除</button>
+      </div>
+    </div>
+  </div>
+  
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/user.js"></script>
+  <script defer src="js/chat.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof userManager === 'undefined') {
+        console.error('userManager 未定义');
+        setTimeout(() => window.location.href = 'login.html', 100);
+        return;
+      }
+      
+      userManager.init();
+      userManager.setupEventListeners();
+      
+      function checkLoginStatus() {
+        const savedUser = localStorage.getItem('forumUser');
+        
+        if (!savedUser) {
+          utils.showNotification('请先登录后查看私信', 'error');
+          setTimeout(() => window.location.href = 'login.html', 100);
+          return false;
+        }
+        
+        let user = null;
+        try {
+          user = JSON.parse(savedUser);
+          if (!user || !user.id || !user.username) {
+            throw new Error('用户数据格式无效');
+          }
+        } catch (error) {
+          console.error('解析用户数据失败:', error);
+          utils.showNotification('登录信息已失效，请重新登录', 'error');
+          setTimeout(() => window.location.href = 'login.html', 100);
+          return false;
+        }
+        
+        if (!userManager.state.currentUser) {
+          userManager.state.currentUser = user;
+        }
+        
+        return true;
+      }
+      
+      if (userManager.state.currentUser) {
+        initChatManager();
+        return;
+      }
+      
+      if (typeof userManager.checkAutoLogin === 'function') {
+        userManager.checkAutoLogin();
+      }
+      
+      setTimeout(() => {
+        if (!checkLoginStatus()) {
+          return;
+        }
+        initChatManager();
+      }, 50);
+      
+      function initChatManager() {
+        if (typeof chatManager !== 'undefined') {
+          chatManager.init();
+        } else {
+          console.error('chatManager 未定义');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

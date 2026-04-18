@@ -27,14 +27,17 @@ const { processUploadedFiles } = require('../middleware/uploadMiddleware');
 const { getPaginationConfig, getContentLimits } = require('../config/constants');
 const logger = require('../utils/logger');
 const notificationController = require('./notificationController');
+const { postCache, postCounters, userCache, hotPostsCache } = require('../utils/redisUtils');
 const Favorite = require('../models/Favorite');
+const Blacklist = require('../models/Blacklist');
 
 const postController = {
   // 获取帖子列表（支持分页、搜索和排序）
   async getPosts(req, res) {
     try {
       const paginationConfig = getPaginationConfig();
-      const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest' } = req.query;
+      const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', viewerId } = req.query;
+      const Follow = require('../models/Follow');
 
       // 记录访问日志
       logger.logInfo('获取帖子列表', {
@@ -42,6 +45,7 @@ const postController = {
         limit,
         search: search || '无',
         sortBy,
+        viewerId: viewerId || '未登录',
         ip: req.ip,
         userAgent: req.get('user-agent')
       });
@@ -50,6 +54,57 @@ const postController = {
       const users = await getUsers();
       
       let filteredPosts = posts.filter(post => !post.isDeleted);
+      
+      // 黑名单过滤：如果用户开启了隐藏黑名单用户帖子的设置
+      if (viewerId) {
+        const viewer = await getUserById(viewerId);
+        if (viewer && viewer.settings && viewer.settings.privacy && viewer.settings.privacy.hideBlockedPosts) {
+          // 获取用户拉黑的人的ID列表
+          const blockedIds = await Blacklist.getBlockedIds(viewerId);
+          if (blockedIds.length > 0) {
+            filteredPosts = filteredPosts.filter(post => !blockedIds.includes(post.userId));
+            logger.logInfo('帖子列表黑名单过滤', {
+              viewerId,
+              blockedCount: blockedIds.length,
+              filteredOutCount: posts.filter(post => !post.isDeleted).length - filteredPosts.length
+            });
+          }
+        }
+      }
+      
+      // 帖子可见性过滤
+      if (viewerId) {
+        // 获取用户关注的人
+        const followingDocs = await Follow.find({ follower: viewerId });
+        const followingIds = followingDocs.map(doc => doc.following);
+        
+        filteredPosts = filteredPosts.filter(post => {
+          const visibility = post.visibility || 'public';
+          
+          // 公开帖子：所有人可见
+          if (visibility === 'public') {
+            return true;
+          }
+          
+          // 仅自己可见：只有作者可见
+          if (visibility === 'self') {
+            return post.userId === viewerId;
+          }
+          
+          // 仅粉丝可见：粉丝和作者可见
+          if (visibility === 'followers') {
+            return post.userId === viewerId || followingIds.includes(post.userId);
+          }
+          
+          return true;
+        });
+      } else {
+        // 未登录用户只能看到公开帖子
+        filteredPosts = filteredPosts.filter(post => {
+          const visibility = post.visibility || 'public';
+          return visibility === 'public';
+        });
+      }
       
       // 搜索功能
       if (search) {
@@ -169,28 +224,109 @@ const postController = {
   async getPostById(req, res) {
     try {
       const postId = req.params.id;
+      const viewerId = req.query.viewerId; // 当前查看者的用户ID
+      const Follow = require('../models/Follow');
 
       // 记录访问帖子详情日志
       logger.logInfo('访问帖子详情', {
         postId,
+        viewerId: viewerId || '未登录',
         ip: req.ip,
         userAgent: req.get('user-agent')
       });
 
-      const post = await getPostById(postId);
+      // 尝试从Redis缓存获取帖子
+      let post = await postCache.get(postId);
+      
+      if (!post) {
+        // 缓存未命中，从数据库获取
+        post = await getPostById(postId);
 
-      if (!post || post.isDeleted) {
-        return res.status(404).json(generateErrorResponse('帖子不存在'));
+        if (!post || post.isDeleted) {
+          return res.status(404).json(generateErrorResponse('帖子不存在'));
+        }
+        
+        // 缓存帖子
+        await postCache.set(postId, post);
+      } else {
+        // 检查缓存中的帖子是否已删除
+        if (post.isDeleted) {
+          return res.status(404).json(generateErrorResponse('帖子不存在'));
+        }
+      }
+
+      // 黑名单检查：如果查看者被帖子作者拉黑，则不能查看帖子
+      if (viewerId && post.userId) {
+        const hasBlockRelation = await Blacklist.hasBlockRelation(viewerId, post.userId);
+        if (hasBlockRelation) {
+          return res.status(403).json(generateErrorResponse('无法查看该帖子'));
+        }
+      }
+
+      // 帖子可见性检查
+      const visibility = post.visibility || 'public';
+      if (visibility !== 'public') {
+        // 未登录用户无法查看非公开帖子
+        if (!viewerId) {
+          return res.status(403).json(generateErrorResponse('该帖子不对外公开'));
+        }
+        
+        // 仅自己可见
+        if (visibility === 'self') {
+          if (post.userId !== viewerId) {
+            return res.status(403).json(generateErrorResponse('该帖子仅作者可见'));
+          }
+        }
+        
+        // 仅粉丝可见
+        if (visibility === 'followers') {
+          if (post.userId !== viewerId) {
+            const followDoc = await Follow.findOne({ follower: viewerId, following: post.userId });
+            if (!followDoc) {
+              return res.status(403).json(generateErrorResponse('该帖子仅粉丝可见，请先关注作者'));
+            }
+          }
+        }
       }
 
       // 获取用户头像信息
       const user = await getUserById(post.userId);
 
-      res.json(generateSuccessResponse({
-        post: {
-          ...post,
-          userAvatar: user && user.avatar ? user.avatar : null
+      // 过滤黑名单用户的评论（如果用户开启了该设置）
+      let filteredPost = { ...post, userAvatar: user && user.avatar ? user.avatar : null };
+      
+      if (viewerId && post.comments && post.comments.length > 0) {
+        const viewer = await getUserById(viewerId);
+        if (viewer && viewer.settings && viewer.settings.privacy && viewer.settings.privacy.hideBlockedComments) {
+          // 获取用户拉黑的人的ID列表
+          const blockedIds = await Blacklist.getBlockedIds(viewerId);
+          if (blockedIds.length > 0) {
+            // 递归过滤评论和回复
+            const filterComments = (comments) => {
+              if (!comments) return [];
+              return comments
+                .filter(comment => !blockedIds.includes(comment.userId))
+                .map(comment => ({
+                  ...comment,
+                  replies: filterComments(comment.replies)
+                }));
+            };
+            
+            filteredPost.comments = filterComments(post.comments);
+            
+            logger.logInfo('帖子评论黑名单过滤', {
+              postId,
+              viewerId,
+              blockedCount: blockedIds.length,
+              originalCommentCount: post.comments.length,
+              filteredCommentCount: filteredPost.comments.length
+            });
+          }
         }
+      }
+
+      res.json(generateSuccessResponse({
+        post: filteredPost
       }));
     } catch (error) {
       logger.logError('获取帖子详情失败', { error: error.message, postId: req.params.id });
@@ -215,7 +351,17 @@ const postController = {
         return res.status(404).json(generateErrorResponse('帖子不存在'));
       }
 
-      // 增加浏览量
+      // 使用Redis计数器增加浏览量
+      const newViewCount = await postCounters.incrViews(postId);
+      
+      if (newViewCount !== null) {
+        res.json(generateSuccessResponse({
+          viewCount: newViewCount
+        }));
+        return;
+      }
+
+      // Redis不可用，回退到数据库操作
       const oldViewCount = post.viewCount || 0;
       await updatePost(postId, { viewCount: oldViewCount + 1 });
 
@@ -237,7 +383,7 @@ const postController = {
   // 发布新帖子
   async createPost(req, res) {
     try {
-      const { userId, username, school, grade, className, content, anonymous } = req.body;
+      const { userId, username, school, grade, className, content, anonymous, visibility, deviceInfo } = req.body;
       
       if (!userId || !username || !school || !grade || !className) {
         return res.status(400).json(generateErrorResponse('请填写所有必填字段'));
@@ -282,6 +428,10 @@ const postController = {
         return res.status(403).json(generateErrorResponse('账号已被禁用，无法发帖'));
       }
       
+      // 验证可见性设置
+      const validVisibility = ['public', 'followers', 'self'];
+      const postVisibility = validVisibility.includes(visibility) ? visibility : 'public';
+      
       // 创建新帖子
       const isAnonymous = anonymous === 'true';
       
@@ -300,7 +450,9 @@ const postController = {
         likedBy: [],
         comments: [],
         viewCount: 0,
-        isDeleted: false
+        isDeleted: false,
+        visibility: postVisibility,
+        deviceInfo: deviceInfo || ''
       };
       
       await createPost(newPost);
@@ -311,13 +463,18 @@ const postController = {
         await updateUser(userId, { postCount: (user.postCount || 0) + 1 });
       }
 
+      // 清除热门帖子缓存和用户缓存
+      await hotPostsCache.clear();
+      await userCache.delete(userId);
+
       // 记录发帖日志
       logger.logUserAction('发布帖子', userId, username, {
         postId: newPost.id,
         anonymous: isAnonymous,
         hasImages: images.length > 0,
         imageCount: images.length,
-        contentLength: content ? content.length : 0
+        contentLength: content ? content.length : 0,
+        visibility: postVisibility
       });
 
       res.status(201).json(generateSuccessResponse({ post: newPost }, '帖子发布成功'));
@@ -384,6 +541,9 @@ const postController = {
       }
 
       await updatePost(postId, { likes: newLikes, likedBy: newLikedBy, dislikes: newDislikes, dislikedBy: newDislikedBy });
+
+      // 清除帖子缓存
+      await postCache.delete(postId);
 
       // 如果是点赞操作（不是取消点赞），创建通知
       if (liked) {
@@ -460,6 +620,9 @@ const postController = {
 
       await updatePost(postId, { likes: newLikes, likedBy: newLikedBy, dislikes: newDislikes, dislikedBy: newDislikedBy });
 
+      // 清除帖子缓存
+      await postCache.delete(postId);
+
       res.json(generateSuccessResponse({
         dislikes: newDislikes,
         disliked: disliked,
@@ -524,10 +687,15 @@ const postController = {
 
       await updatePost(postId, { comments });
 
+      // 清除帖子缓存
+      await postCache.delete(postId);
+
       // 更新用户评论数
       const user = await getUserById(userId);
       if (user) {
         await updateUser(userId, { commentCount: (user.commentCount || 0) + 1 });
+        // 清除用户缓存
+        await userCache.delete(userId);
       }
 
       // 记录添加评论日志
@@ -607,6 +775,9 @@ const postController = {
         parentReply.replies.splice(nestedReplyIndex, 1);
         await updatePost(postId, { comments });
         
+        // 清除帖子缓存
+        await postCache.delete(postId);
+        
         return res.json(generateSuccessResponse({}, '嵌套回复删除成功'));
       }
       
@@ -631,6 +802,9 @@ const postController = {
         comment.replies.splice(replyIndex, 1);
         await updatePost(postId, { comments });
         
+        // 清除帖子缓存
+        await postCache.delete(postId);
+        
         return res.json(generateSuccessResponse({}, '回复删除成功'));
       }
       
@@ -643,6 +817,9 @@ const postController = {
       comments.splice(commentIndex, 1);
       await updatePost(postId, { comments });
       
+      // 清除帖子缓存
+      await postCache.delete(postId);
+      
       res.json(generateSuccessResponse({}, '评论删除成功'));
     } catch (error) {
       logger.logError('删除评论失败', { error: error.message, postId: req.params.id, commentId: req.params.commentId });
@@ -653,7 +830,8 @@ const postController = {
   // 用户删除自己的帖子
   async deletePost(req, res) {
     try {
-      const postId = req.params.id;
+      // 支持两种方式：DELETE /posts/:id 或 POST /posts/delete (body: {postId, userId})
+      const postId = req.params.id || req.body.postId;
       const { userId } = req.body;
 
       if (!userId) {
@@ -681,10 +859,17 @@ const postController = {
       // 标记帖子为已删除（软删除）
       await deletePost(postId, userId, '用户自行删除');
 
+      // 清除帖子缓存、计数器缓存和热门帖子缓存
+      await postCache.delete(postId);
+      await postCounters.clearPostCounters(postId);
+      await hotPostsCache.clear();
+
       // 更新用户发帖数
       const user = await getUserById(userId);
       if (user) {
         await updateUser(userId, { postCount: Math.max(0, (user.postCount || 0) - 1) });
+        // 清除用户缓存
+        await userCache.delete(userId);
       }
 
       // 记录删除帖子日志
@@ -705,7 +890,7 @@ const postController = {
   async updatePost(req, res) {
     try {
       const postId = req.params.id;
-      const { userId, content, deletedImages } = req.body;
+      const { userId, content, deletedImages, visibility } = req.body;
 
       if (!userId) {
         logger.logWarn('编辑帖子失败：用户ID为空', { postId });
@@ -757,21 +942,31 @@ const postController = {
         return res.status(400).json(generateErrorResponse(`帖子内容过长，最多${getContentLimits().post}个字符`));
       }
 
+      // 验证可见性设置
+      const validVisibility = ['public', 'followers', 'self'];
+      const postVisibility = validVisibility.includes(visibility) ? visibility : (post.visibility || 'public');
+
       // 更新帖子
       const updateData = {
         content: content || post.content,
         images: allImages,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        visibility: postVisibility
       };
 
       const updatedPost = await updatePost(postId, updateData);
+
+      // 清除帖子缓存和热门帖子缓存
+      await postCache.delete(postId);
+      await hotPostsCache.clear();
 
       // 记录编辑帖子日志
       logger.logUserAction('编辑帖子', userId, post.username, {
         postId,
         contentLength: content ? content.length : 0,
         newImageCount: newImages.length,
-        totalImageCount: allImages.length
+        totalImageCount: allImages.length,
+        visibility: postVisibility
       });
 
       res.json(generateSuccessResponse({ post: updatedPost }, '帖子编辑成功'));
@@ -883,6 +1078,7 @@ const postController = {
       };
       
       let targetUserId = comment.userId; // 默认通知评论作者
+      let replyToUsername = null;
       
       // 如果回复的是回复
       if (replyToId) {
@@ -892,6 +1088,11 @@ const postController = {
         }
         
         targetUserId = targetReply.userId; // 通知被回复的回复作者
+        replyToUsername = targetReply.username; // 设置被回复的用户名
+        
+        // 设置 replyToId 和 replyToUsername
+        newReply.replyToId = replyToId;
+        newReply.replyToUsername = replyToUsername;
         
         // 直接将新回复添加到被回复的回复的回复列表中
         if (!targetReply.replies) {
@@ -929,6 +1130,86 @@ const postController = {
       res.status(201).json(generateSuccessResponse({ reply: newReply }, '回复添加成功'));
     } catch (error) {
       logger.logError('回复评论失败', { error: error.message, postId: req.params.id, commentId: req.params.commentId, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 点赞评论
+  async likeComment(req, res) {
+    try {
+      const { id: postId, commentId } = req.params;
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      const post = await getPostById(postId);
+
+      if (!post || post.isDeleted) {
+        return res.status(404).json(generateErrorResponse('帖子不存在'));
+      }
+
+      // 递归查找评论或回复
+      const findCommentOrReply = (comments, targetId) => {
+        for (const comment of comments) {
+          if (comment.id === targetId) {
+            return comment;
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            const found = findCommentOrReply(comment.replies, targetId);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      const comments = post.comments || [];
+      const targetComment = findCommentOrReply(comments, commentId);
+
+      if (!targetComment) {
+        return res.status(404).json(generateErrorResponse('评论不存在'));
+      }
+
+      const likedBy = targetComment.likedBy || [];
+      const userIndex = likedBy.indexOf(userId);
+
+      let newLikes, newLikedBy, liked;
+
+      if (userIndex !== -1) {
+        // 取消点赞
+        newLikes = Math.max(0, (targetComment.likes || 0) - 1);
+        newLikedBy = likedBy.filter(id => id !== userId);
+        liked = false;
+      } else {
+        // 添加点赞
+        newLikes = (targetComment.likes || 0) + 1;
+        newLikedBy = [...likedBy, userId];
+        liked = true;
+
+        // 创建点赞通知
+        if (targetComment.userId !== userId) {
+          notificationController.createCommentLikeNotification(postId, commentId, userId, targetComment.userId);
+        }
+      }
+
+      targetComment.likes = newLikes;
+      targetComment.likedBy = newLikedBy;
+
+      await updatePost(postId, { comments });
+
+      logger.logUserAction(liked ? '点赞评论' : '取消点赞评论', userId, null, {
+        postId,
+        commentId,
+        likes: newLikes
+      });
+
+      res.json(generateSuccessResponse({
+        likes: newLikes,
+        liked: liked
+      }, liked ? '点赞成功' : '取消点赞成功'));
+    } catch (error) {
+      logger.logError('点赞评论失败', { error: error.message, postId: req.params.id, commentId: req.params.commentId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },

@@ -374,6 +374,7 @@ fetchWithTimeout: function(url, options = {}) {
             case 'settings':
                 this.loadConfig();
                 this.loadAdmins();
+                this.loadRunMode();
                 break;
             case 'reports':
                 this.loadReports();
@@ -381,6 +382,9 @@ fetchWithTimeout: function(url, options = {}) {
                 break;
             case 'ip-stats':
                 this.loadIpStats();
+                break;
+            case 'announcements':
+                this.loadAnnouncements();
                 break;
         }
     },
@@ -3001,6 +3005,699 @@ confirmDeletePost: async function() {
         
         document.getElementById('report-detail-content').innerHTML = content;
         this.openModal('reportDetailModal');
+    },
+
+    // =============== 运行模式管理 ===============
+
+    /**
+     * 加载当前运行模式
+     */
+    loadRunMode: async function() {
+        try {
+            const response = await this.fetchWithTimeout('/api/run-mode');
+            if (!response.ok) {
+                throw new Error('获取运行模式失败');
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                this.updateRunModeUI(data.data);
+                return data.data;
+            } else {
+                throw new Error(data.message || '获取运行模式失败');
+            }
+        } catch (error) {
+            console.error('加载运行模式失败:', error);
+            // 设置默认状态
+            this.updateRunModeUI({ mode: 'normal' });
+            return null;
+        }
+    },
+
+    /**
+     * 更新运行模式 UI
+     */
+    updateRunModeUI: function(runModeData) {
+        const mode = runModeData.mode || 'normal';
+        
+        // 更新当前模式显示
+        const modeBadge = document.getElementById('current-mode-badge');
+        if (modeBadge) {
+            modeBadge.className = 'mode-badge mode-' + mode;
+            const modeNames = {
+                'normal': '正常',
+                'debug': '调试',
+                'maintenance': '维护',
+                'self_destruct': '自毁'
+            };
+            modeBadge.textContent = modeNames[mode] || mode;
+        }
+
+        // 更新按钮状态
+        const btnNormal = document.getElementById('btn-mode-normal');
+        const btnDebug = document.getElementById('btn-mode-debug');
+        const btnMaintenance = document.getElementById('btn-mode-maintenance');
+
+        if (btnNormal) btnNormal.classList.toggle('active', mode === 'normal');
+        if (btnDebug) btnDebug.classList.toggle('active', mode === 'debug');
+        if (btnMaintenance) btnMaintenance.classList.toggle('active', mode === 'maintenance');
+
+        // 显示/隐藏维护配置
+        const maintenanceConfig = document.getElementById('maintenance-config');
+        if (maintenanceConfig) {
+            maintenanceConfig.style.display = mode === 'maintenance' ? 'block' : 'none';
+        }
+
+        // 如果是维护模式，更新维护消息
+        if (mode === 'maintenance' && runModeData.maintenanceMessage) {
+            const msgInput = document.getElementById('maintenance-message');
+            if (msgInput) msgInput.value = runModeData.maintenanceMessage;
+        }
+
+        // 如果是自毁模式，显示警告
+        if (mode === 'self_destruct') {
+            this.showNotification('论坛当前处于自毁模式！', 'error');
+        }
+    },
+
+    /**
+     * 设置运行模式
+     */
+    setRunMode: async function(mode) {
+        if (!this.state.currentAdmin) {
+            this.showNotification('请先登录管理员账号', 'error');
+            return;
+        }
+
+        const modeNames = {
+            'normal': '正常',
+            'debug': '调试',
+            'maintenance': '维护'
+        };
+
+        if (!confirm(`确定要切换到${modeNames[mode]}模式吗？`)) {
+            return;
+        }
+
+        try {
+            const response = await this.fetchWithTimeout('/api/admin/run-mode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    mode: mode,
+                    adminId: this.state.currentAdmin.id
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '设置运行模式失败');
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showNotification(`已切换到${modeNames[mode]}模式`, 'success');
+                this.updateRunModeUI({ mode: mode });
+                
+                // 如果是维护模式，显示特殊提示
+                if (mode === 'maintenance') {
+                    this.showNotification('维护模式已启用，普通用户将无法访问论坛', 'warning');
+                }
+            } else {
+                throw new Error(data.message || '设置运行模式失败');
+            }
+        } catch (error) {
+            console.error('设置运行模式失败:', error);
+            this.showNotification('设置运行模式失败: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * 显示维护模式设置模态框
+     */
+    showMaintenanceModal: function() {
+        const msgInput = document.getElementById('maintenance-message');
+        const modalInput = document.getElementById('maintenance-modal-message');
+        
+        if (msgInput && modalInput) {
+            modalInput.value = msgInput.value || '网站正在维护中，请稍后再试';
+        }
+        
+        this.openModal('maintenanceModal');
+    },
+
+    /**
+     * 确认启用维护模式
+     */
+    confirmMaintenanceMode: async function() {
+        if (!this.state.currentAdmin) {
+            this.showNotification('请先登录管理员账号', 'error');
+            return;
+        }
+
+        const message = document.getElementById('maintenance-modal-message')?.value || 
+                       '网站正在维护中，请稍后再试';
+
+        try {
+            const response = await this.fetchWithTimeout('/api/admin/run-mode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    mode: 'maintenance',
+                    adminId: this.state.currentAdmin.id,
+                    maintenanceMessage: message
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '启用维护模式失败');
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.closeModal('maintenanceModal');
+                this.showNotification('维护模式已启用', 'success');
+                this.updateRunModeUI({ mode: 'maintenance', maintenanceMessage: message });
+                
+                // 更新维护消息输入框
+                const msgInput = document.getElementById('maintenance-message');
+                if (msgInput) msgInput.value = message;
+            } else {
+                throw new Error(data.message || '启用维护模式失败');
+            }
+        } catch (error) {
+            console.error('启用维护模式失败:', error);
+            this.showNotification('启用维护模式失败: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * 显示自毁模式确认模态框
+     */
+    showSelfDestructModal: function(level) {
+        const levelInfo = {
+            3: {
+                title: '三级自毁 - 删除所有内容',
+                desc: '删除所有帖子、评论、私信、通知、收藏、关注等数据。用户账号将被保留。',
+                confirmation: '确认删除所有内容',
+                color: '#f59e0b'
+            },
+            2: {
+                title: '二级自毁 - 清空数据库',
+                desc: '清空整个数据库，删除所有集合和数据。此操作将删除所有用户、帖子、评论等所有信息。',
+                confirmation: '确认清空数据库',
+                color: '#ef4444'
+            },
+            1: {
+                title: '一级自毁 - 删除论坛文件',
+                desc: '删除论坛相关文件和代码，包括前端资源、后端源代码等。此操作将导致论坛完全无法运行！',
+                confirmation: '确认销毁论坛',
+                color: '#dc2626'
+            }
+        };
+
+        const info = levelInfo[level];
+        if (!info) return;
+
+        // 填充模态框内容
+        const destructInfo = document.getElementById('destruct-info');
+        if (destructInfo) {
+            destructInfo.innerHTML = `
+                <h4 style="color: ${info.color}; margin-bottom: 10px;">${info.title}</h4>
+                <p>${info.desc}</p>
+                <div class="destruct-level-indicator" style="margin-top: 15px;">
+                    <span class="level-label">自毁级别：</span>
+                    <span class="level-value" style="color: ${info.color}; font-weight: bold; font-size: 18px;">${level}级</span>
+                </div>
+            `;
+        }
+
+        // 设置确认提示
+        const hint = document.getElementById('confirmation-hint');
+        if (hint) {
+            hint.innerHTML = `请输入 "<strong>${info.confirmation}</strong>" 以确认操作`;
+        }
+
+        // 设置确认输入框的占位符
+        const confirmationInput = document.getElementById('destruct-confirmation');
+        if (confirmationInput) {
+            confirmationInput.value = '';
+            confirmationInput.placeholder = info.confirmation;
+        }
+
+        // 存储当前自毁级别
+        this.state.currentDestructLevel = level;
+        this.state.destructConfirmation = info.confirmation;
+
+        this.openModal('selfDestructModal');
+    },
+
+    /**
+     * 确认执行自毁模式
+     */
+    confirmSelfDestruct: async function() {
+        if (!this.state.currentAdmin) {
+            this.showNotification('请先登录管理员账号', 'error');
+            return;
+        }
+
+        const level = this.state.currentDestructLevel;
+        const expectedConfirmation = this.state.destructConfirmation;
+        const actualConfirmation = document.getElementById('destruct-confirmation')?.value;
+
+        // 验证确认字符串
+        if (actualConfirmation !== expectedConfirmation) {
+            this.showNotification('确认字符串不正确，请重新输入', 'error');
+            return;
+        }
+
+        // 最后一次确认
+        if (!confirm(`确定要执行${level}级自毁吗？此操作不可恢复！`)) {
+            return;
+        }
+
+        // 再次确认（针对危险操作）
+        if (level <= 2) {
+            const finalConfirm = prompt(`这是最后一步确认！\n请再次输入 "${expectedConfirmation}" 以确认执行：`);
+            if (finalConfirm !== expectedConfirmation) {
+                this.showNotification('确认取消', 'info');
+                return;
+            }
+        }
+
+        try {
+            this.closeModal('selfDestructModal');
+            this.showNotification(`正在执行${level}级自毁...`, 'warning');
+
+            const endpoint = `/api/admin/self-destruct/level${level}`;
+            
+            const response = await this.fetchWithTimeout(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    adminId: this.state.currentAdmin.id,
+                    confirmation: expectedConfirmation
+                })
+            }, 60000); // 60秒超时
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '自毁操作执行失败');
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                let message = `${level}级自毁执行完成`;
+                
+                if (level === 3 && data.data) {
+                    message += `：已删除 ${data.data.posts || 0} 个帖子`;
+                } else if (level === 2 && data.data) {
+                    message += `：已删除 ${data.data.droppedCollections || 0} 个集合`;
+                } else if (level === 1 && data.data) {
+                    message += `：已删除 ${data.data.deletedCount || 0} 个文件`;
+                }
+                
+                this.showNotification(message, 'success');
+                this.updateRunModeUI({ mode: 'self_destruct', selfDestructLevel: level });
+
+                // 如果是一级自毁，提示服务器可能需要重启
+                if (level === 1) {
+                    setTimeout(() => {
+                        alert('一级自毁已完成！论坛文件已被删除，服务器可能需要重启才能继续运行。');
+                    }, 1000);
+                }
+            } else {
+                throw new Error(data.message || '自毁操作执行失败');
+            }
+        } catch (error) {
+            console.error('自毁操作执行失败:', error);
+            this.showNotification('自毁操作执行失败: ' + error.message, 'error');
+        }
+    },
+    
+    // ==================== 公告管理功能 ====================
+    
+    // 公告状态
+    announcementsState: {
+        list: [],
+        page: 1,
+        limit: 10,
+        total: 0
+    },
+    
+    // 加载公告列表
+    loadAnnouncements: async function(page = 1) {
+        try {
+            this.announcementsState.page = page;
+            const skip = (page - 1) * this.announcementsState.limit;
+            
+            const response = await this.fetchWithTimeout(
+                `/admin/announcements?page=${page}&limit=${this.announcementsState.limit}`
+            );
+            
+            if (!response.ok) throw new Error('加载公告失败');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.announcementsState.list = data.announcements;
+                this.announcementsState.total = data.pagination.total;
+                
+                this.renderAnnouncementsList(data.announcements);
+                this.renderAnnouncementsPagination(data.pagination);
+                this.updateAnnouncementsStats(data.announcements);
+            }
+        } catch (error) {
+            console.error('加载公告失败:', error);
+            this.showNotification('加载公告失败: ' + error.message, 'error');
+            document.getElementById('announcements-list').innerHTML = 
+                '<div class="empty-state"><i class="fas fa-inbox"></i> 暂无公告</div>';
+        }
+    },
+    
+    // 渲染公告列表
+    renderAnnouncementsList: function(announcements) {
+        const container = document.getElementById('announcements-list');
+        if (!container) return;
+        
+        if (!announcements || announcements.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-bullhorn"></i> 暂无公告</div>';
+            return;
+        }
+        
+        container.innerHTML = announcements.map(announcement => {
+            const typeClass = `type-${announcement.type}`;
+            const statusClass = announcement.isActive ? 'status-active' : 'status-inactive';
+            const pinnedIcon = announcement.isPinned ? '<i class="fas fa-thumbtack pinned-icon" title="已置顶"></i>' : '';
+            const positionText = {
+                'top': '顶部横幅',
+                'popup': '弹窗提示',
+                'list': '列表展示'
+            }[announcement.displayPosition] || announcement.displayPosition;
+            
+            return `
+                <div class="announcement-card ${typeClass} ${statusClass}">
+                    <div class="announcement-header">
+                        <div class="announcement-title">
+                            ${pinnedIcon}
+                            <span>${this.escapeHtml(announcement.title)}</span>
+                        </div>
+                        <div class="announcement-badges">
+                            <span class="badge type-badge ${announcement.type}">${this.getAnnouncementTypeText(announcement.type)}</span>
+                            <span class="badge position-badge">${positionText}</span>
+                            ${announcement.isActive ? 
+                                '<span class="badge status-badge active">已启用</span>' : 
+                                '<span class="badge status-badge inactive">已禁用</span>'}
+                        </div>
+                    </div>
+                    <div class="announcement-content">
+                        ${this.escapeHtml(announcement.content).substring(0, 150)}${announcement.content.length > 150 ? '...' : ''}
+                    </div>
+                    <div class="announcement-meta">
+                        <span><i class="fas fa-user"></i> ${announcement.createdBy?.username || '未知'}</span>
+                        <span><i class="fas fa-clock"></i> ${this.formatDate(announcement.createdAt)}</span>
+                        <span><i class="fas fa-eye"></i> ${announcement.viewCount || 0} 次浏览</span>
+                    </div>
+                    <div class="announcement-actions">
+                        <button onclick="adminManager.toggleAnnouncementStatus('${announcement._id}', ${announcement.isActive})" 
+                                class="action-btn ${announcement.isActive ? 'btn-warning' : 'btn-success'}" 
+                                title="${announcement.isActive ? '禁用' : '启用'}">
+                            <i class="fas fa-${announcement.isActive ? 'pause' : 'play'}"></i>
+                        </button>
+                        <button onclick="adminManager.toggleAnnouncementPinned('${announcement._id}', ${announcement.isPinned})" 
+                                class="action-btn ${announcement.isPinned ? 'btn-primary' : 'btn-default'}" 
+                                title="${announcement.isPinned ? '取消置顶' : '置顶'}">
+                            <i class="fas fa-thumbtack"></i>
+                        </button>
+                        <button onclick="adminManager.editAnnouncement('${announcement._id}')" 
+                                class="action-btn btn-info" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="adminManager.showDeleteAnnouncementModal('${announcement._id}', '${this.escapeHtml(announcement.title)}')" 
+                                class="action-btn btn-danger" title="删除">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    // 更新公告统计
+    updateAnnouncementsStats: function(announcements) {
+        const total = announcements.length;
+        const active = announcements.filter(a => a.isActive).length;
+        const pinned = announcements.filter(a => a.isPinned).length;
+        
+        document.getElementById('announcements-total').textContent = total;
+        document.getElementById('announcements-active').textContent = active;
+        document.getElementById('announcements-pinned').textContent = pinned;
+    },
+    
+    // 渲染公告分页
+    renderAnnouncementsPagination: function(pagination) {
+        const container = document.getElementById('announcements-pagination');
+        if (!container) return;
+        
+        const { total, page, totalPages } = pagination;
+        
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        // 上一页
+        html += `<button ${page <= 1 ? 'disabled' : ''} onclick="adminManager.loadAnnouncements(${page - 1})">
+            <i class="fas fa-chevron-left"></i>
+        </button>`;
+        
+        // 页码
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(totalPages, page + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="${i === page ? 'active' : ''}" onclick="adminManager.loadAnnouncements(${i})">${i}</button>`;
+        }
+        
+        // 下一页
+        html += `<button ${page >= totalPages ? 'disabled' : ''} onclick="adminManager.loadAnnouncements(${page + 1})">
+            <i class="fas fa-chevron-right"></i>
+        </button>`;
+        
+        container.innerHTML = html;
+    },
+    
+    // 获取公告类型文本
+    getAnnouncementTypeText: function(type) {
+        const types = {
+            'info': '普通',
+            'success': '成功',
+            'warning': '警告',
+            'danger': '危险'
+        };
+        return types[type] || type;
+    },
+    
+    // 显示添加公告模态框
+    showAddAnnouncementModal: function() {
+        document.getElementById('announcementModalTitle').innerHTML = '<i class="fas fa-bullhorn"></i> 发布公告';
+        document.getElementById('announcement-title').value = '';
+        document.getElementById('announcement-content').value = '';
+        document.getElementById('announcement-type').value = 'info';
+        document.getElementById('announcement-position').value = 'top';
+        document.getElementById('announcement-start-time').value = '';
+        document.getElementById('announcement-end-time').value = '';
+        document.getElementById('announcement-is-active').checked = true;
+        document.getElementById('announcement-is-pinned').checked = false;
+        document.getElementById('announcement-edit-id').value = '';
+        document.getElementById('announcement-char-count').textContent = '0';
+        
+        this.openModal('announcementModal');
+    },
+    
+    // 编辑公告
+    editAnnouncement: async function(id) {
+        try {
+            const response = await this.fetchWithTimeout(`/announcements/${id}`);
+            if (!response.ok) throw new Error('获取公告详情失败');
+            
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message);
+            
+            const announcement = data.announcement;
+            
+            document.getElementById('announcementModalTitle').innerHTML = '<i class="fas fa-edit"></i> 编辑公告';
+            document.getElementById('announcement-title').value = announcement.title;
+            document.getElementById('announcement-content').value = announcement.content;
+            document.getElementById('announcement-type').value = announcement.type;
+            document.getElementById('announcement-position').value = announcement.displayPosition;
+            document.getElementById('announcement-start-time').value = announcement.startTime ? 
+                new Date(announcement.startTime).toISOString().slice(0, 16) : '';
+            document.getElementById('announcement-end-time').value = announcement.endTime ? 
+                new Date(announcement.endTime).toISOString().slice(0, 16) : '';
+            document.getElementById('announcement-is-active').checked = announcement.isActive;
+            document.getElementById('announcement-is-pinned').checked = announcement.isPinned;
+            document.getElementById('announcement-edit-id').value = id;
+            document.getElementById('announcement-char-count').textContent = announcement.content.length;
+            
+            this.openModal('announcementModal');
+        } catch (error) {
+            console.error('获取公告详情失败:', error);
+            this.showNotification('获取公告详情失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 保存公告
+    saveAnnouncement: async function() {
+        try {
+            const title = document.getElementById('announcement-title').value.trim();
+            const content = document.getElementById('announcement-content').value.trim();
+            
+            if (!title) {
+                this.showNotification('请输入公告标题', 'error');
+                return;
+            }
+            
+            if (!content) {
+                this.showNotification('请输入公告内容', 'error');
+                return;
+            }
+            
+            const announcementData = {
+                title,
+                content,
+                type: document.getElementById('announcement-type').value,
+                displayPosition: document.getElementById('announcement-position').value,
+                isActive: document.getElementById('announcement-is-active').checked,
+                isPinned: document.getElementById('announcement-is-pinned').checked,
+                startTime: document.getElementById('announcement-start-time').value || null,
+                endTime: document.getElementById('announcement-end-time').value || null
+            };
+            
+            const editId = document.getElementById('announcement-edit-id').value;
+            const isEdit = !!editId;
+            
+            const url = isEdit ? `/admin/announcements/${editId}` : '/admin/announcements';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await this.fetchWithTimeout(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(announcementData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '保存失败');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification(isEdit ? '公告更新成功' : '公告发布成功', 'success');
+                this.closeModal('announcementModal');
+                this.loadAnnouncements(this.announcementsState.page);
+            } else {
+                throw new Error(data.message || '保存失败');
+            }
+        } catch (error) {
+            console.error('保存公告失败:', error);
+            this.showNotification('保存公告失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 切换公告状态
+    toggleAnnouncementStatus: async function(id, currentStatus) {
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/announcements/${id}/toggle-status`,
+                { method: 'PATCH' }
+            );
+            
+            if (!response.ok) throw new Error('切换状态失败');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification(data.message, 'success');
+                this.loadAnnouncements(this.announcementsState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('切换公告状态失败:', error);
+            this.showNotification('切换状态失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 切换置顶状态
+    toggleAnnouncementPinned: async function(id, currentPinned) {
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/announcements/${id}/toggle-pinned`,
+                { method: 'PATCH' }
+            );
+            
+            if (!response.ok) throw new Error('切换置顶失败');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification(data.message, 'success');
+                this.loadAnnouncements(this.announcementsState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('切换置顶状态失败:', error);
+            this.showNotification('切换置顶失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 显示删除公告确认框
+    showDeleteAnnouncementModal: function(id, title) {
+        document.getElementById('delete-announcement-id').value = id;
+        document.getElementById('delete-announcement-title').textContent = title;
+        this.openModal('deleteAnnouncementModal');
+    },
+    
+    // 确认删除公告
+    confirmDeleteAnnouncement: async function() {
+        try {
+            const id = document.getElementById('delete-announcement-id').value;
+            
+            const response = await this.fetchWithTimeout(
+                `/admin/announcements/${id}`,
+                { method: 'DELETE' }
+            );
+            
+            if (!response.ok) throw new Error('删除失败');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification('公告已删除', 'success');
+                this.closeModal('deleteAnnouncementModal');
+                this.loadAnnouncements(this.announcementsState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('删除公告失败:', error);
+            this.showNotification('删除失败: ' + error.message, 'error');
+        }
     }
 };
 
@@ -3054,8 +3751,8 @@ function confirmDeleteComment() {
 }
 
 // 日志管理函数
-function loadLogs() {
-    adminManager.loadLogs();
+function loadLogs(page) {
+    adminManager.loadLogs(page);
 }
 
 function refreshLogs() {
@@ -3075,6 +3772,11 @@ function logout() {
 // IP统计管理函数
 function loadIpStats() {
     adminManager.loadIpStats();
+}
+
+// 公告管理函数
+function loadAnnouncements(page) {
+    adminManager.loadAnnouncements(page);
 }
 
 // 初始化管理员系统 - 最终版

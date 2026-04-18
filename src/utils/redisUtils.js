@@ -187,12 +187,21 @@ const verificationCode = {
 const ipStats = {
   // IP访问计数的前缀key
   PREFIX: 'ip:stats:',
+  // IP最后访问时间的前缀key
+  LAST_ACCESS_PREFIX: 'ip:lastAccess:',
 
   /**
    * 获取IP统计的key
    */
   getKey(ip) {
     return `${this.PREFIX}${ip}`;
+  },
+
+  /**
+   * 获取IP最后访问时间的key
+   */
+  getLastAccessKey(ip) {
+    return `${this.LAST_ACCESS_PREFIX}${ip}`;
   },
 
   /**
@@ -206,7 +215,14 @@ const ipStats = {
     try {
       const client = getRedisClient();
       const key = this.getKey(ip);
-      await client.incr(key);
+      const lastAccessKey = this.getLastAccessKey(ip);
+      const now = new Date().toISOString();
+      
+      // 使用 multi 批量执行：增加计数 + 更新最后访问时间
+      const multi = client.multi();
+      multi.incr(key);
+      multi.set(lastAccessKey, now);
+      await multi.exec();
     } catch (error) {
       console.error('[Redis] 记录IP访问失败:', error.message);
     }
@@ -237,7 +253,7 @@ const ipStats = {
    * @param {object} options - 查询选项
    * @param {number} options.limit - 返回数量限制
    * @param {string} options.order - 排序方式 'asc' 或 'desc'
-   * @returns {Promise<Array>} IP访问统计数组 [{ip, count}, ...]
+   * @returns {Promise<Array>} IP访问统计数组 [{ip, count, lastAccess}, ...]
    */
   async getAllStats(options = {}) {
     const { limit = 100, order = 'desc' } = options;
@@ -258,14 +274,20 @@ const ipStats = {
         keys.push(key);
       }
 
-      // 获取所有IP的访问次数
+      // 获取所有IP的访问次数和最后访问时间
       const stats = [];
       for (const key of keys) {
         const count = await client.get(key);
         const ip = key.replace(this.PREFIX, '');
+        
+        // 获取最后访问时间
+        const lastAccessKey = this.getLastAccessKey(ip);
+        const lastAccess = await client.get(lastAccessKey);
+        
         stats.push({
           ip,
-          count: parseInt(count) || 0
+          count: parseInt(count) || 0,
+          lastAccess: lastAccess || null
         });
       }
 
@@ -287,31 +309,31 @@ const ipStats = {
 
   /**
    * 获取IP统计总数
-   * @returns {Promise<object>} { totalIps, totalAccess }
+   * @returns {Promise<object>} { uniqueIps, totalVisits }
    */
   async getSummary() {
     if (!isConnected) {
-      return { totalIps: 0, totalAccess: 0 };
+      return { uniqueIps: 0, totalVisits: 0 };
     }
     
     try {
       const client = getRedisClient();
-      let totalIps = 0;
-      let totalAccess = 0;
+      let uniqueIps = 0;
+      let totalVisits = 0;
 
       for await (const key of client.scanIterator({
         MATCH: `${this.PREFIX}*`,
         COUNT: 1000
       })) {
-        totalIps++;
+        uniqueIps++;
         const count = await client.get(key);
-        totalAccess += parseInt(count) || 0;
+        totalVisits += parseInt(count) || 0;
       }
 
-      return { totalIps, totalAccess };
+      return { uniqueIps, totalVisits };
     } catch (error) {
       console.error('[Redis] 获取IP统计摘要失败:', error.message);
-      return { totalIps: 0, totalAccess: 0 };
+      return { uniqueIps: 0, totalVisits: 0 };
     }
   },
 
@@ -326,7 +348,11 @@ const ipStats = {
     try {
       const client = getRedisClient();
       const key = this.getKey(ip);
+      const lastAccessKey = this.getLastAccessKey(ip);
+      
+      // 同时删除访问计数和最后访问时间
       await client.del(key);
+      await client.del(lastAccessKey);
       return true;
     } catch (error) {
       console.error('[Redis] 清除IP统计失败:', error.message);
@@ -345,12 +371,21 @@ const ipStats = {
       const client = getRedisClient();
       let clearedCount = 0;
 
+      // 清除访问计数
       for await (const key of client.scanIterator({
         MATCH: `${this.PREFIX}*`,
         COUNT: 1000
       })) {
         await client.del(key);
         clearedCount++;
+      }
+
+      // 清除最后访问时间
+      for await (const key of client.scanIterator({
+        MATCH: `${this.LAST_ACCESS_PREFIX}*`,
+        COUNT: 1000
+      })) {
+        await client.del(key);
       }
 
       return clearedCount;
@@ -361,11 +396,1023 @@ const ipStats = {
   }
 };
 
+/**
+ * 用户缓存相关操作
+ */
+const userCache = {
+  // 缓存前缀
+  PREFIX: 'user:',
+  // 过期时间（30分钟）
+  EXPIRE_TIME: 30 * 60,
+
+  getKey(userId) {
+    return `${this.PREFIX}${userId}`;
+  },
+
+  /**
+   * 获取用户缓存
+   */
+  async get(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const data = await client.get(this.getKey(userId));
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('[Redis] 获取用户缓存失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 设置用户缓存
+   */
+  async set(userId, userData) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(this.getKey(userId), this.EXPIRE_TIME, JSON.stringify(userData));
+      return true;
+    } catch (error) {
+      console.error('[Redis] 设置用户缓存失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 删除用户缓存
+   */
+  async delete(userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(this.getKey(userId));
+      return true;
+    } catch (error) {
+      console.error('[Redis] 删除用户缓存失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 批量删除用户缓存
+   */
+  async deleteMultiple(userIds) {
+    if (!isConnected || !userIds.length) return 0;
+    try {
+      const client = getRedisClient();
+      const keys = userIds.map(id => this.getKey(id));
+      return await client.del(keys);
+    } catch (error) {
+      console.error('[Redis] 批量删除用户缓存失败:', error.message);
+      return 0;
+    }
+  }
+};
+
+/**
+ * 帖子缓存相关操作
+ */
+const postCache = {
+  PREFIX: 'post:',
+  EXPIRE_TIME: 10 * 60, // 10分钟
+
+  getKey(postId) {
+    return `${this.PREFIX}${postId}`;
+  },
+
+  /**
+   * 获取帖子缓存
+   */
+  async get(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const data = await client.get(this.getKey(postId));
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('[Redis] 获取帖子缓存失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 设置帖子缓存
+   */
+  async set(postId, postData) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(this.getKey(postId), this.EXPIRE_TIME, JSON.stringify(postData));
+      return true;
+    } catch (error) {
+      console.error('[Redis] 设置帖子缓存失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 删除帖子缓存
+   */
+  async delete(postId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(this.getKey(postId));
+      // 同时删除相关的计数缓存
+      await client.del(`post:${postId}:likes`);
+      await client.del(`post:${postId}:views`);
+      await client.del(`post:${postId}:comments`);
+      return true;
+    } catch (error) {
+      console.error('[Redis] 删除帖子缓存失败:', error.message);
+      return false;
+    }
+  }
+};
+
+/**
+ * 关注关系缓存相关操作
+ */
+const followCache = {
+  FOLLOWING_PREFIX: 'user:following:',
+  FOLLOWER_COUNT_PREFIX: 'user:follower_count:',
+  FOLLOWING_COUNT_PREFIX: 'user:following_count:',
+  EXPIRE_TIME: 30 * 60,
+
+  /**
+   * 获取用户关注的人ID列表
+   */
+  async getFollowingIds(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const members = await client.sMembers(`${this.FOLLOWING_PREFIX}${userId}`);
+      return members;
+    } catch (error) {
+      console.error('[Redis] 获取关注列表缓存失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 设置用户关注的人ID列表
+   */
+  async setFollowingIds(userId, followingIds) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      const key = `${this.FOLLOWING_PREFIX}${userId}`;
+      // 先删除旧的
+      await client.del(key);
+      // 添加新的
+      if (followingIds.length > 0) {
+        await client.sAdd(key, followingIds);
+      }
+      await client.expire(key, this.EXPIRE_TIME);
+      return true;
+    } catch (error) {
+      console.error('[Redis] 设置关注列表缓存失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 检查是否关注（快速判断）
+   */
+  async isFollowing(followerId, followingId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const isMember = await client.sIsMember(`${this.FOLLOWING_PREFIX}${followerId}`, followingId);
+      return isMember;
+    } catch (error) {
+      console.error('[Redis] 检查关注状态失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 添加关注关系
+   */
+  async addFollowing(followerId, followingId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      // 添加到关注列表
+      await client.sAdd(`${this.FOLLOWING_PREFIX}${followerId}`, followingId);
+      // 增加计数
+      await this.incrFollowingCount(followerId);
+      await this.incrFollowerCount(followingId);
+      return true;
+    } catch (error) {
+      console.error('[Redis] 添加关注关系失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 移除关注关系
+   */
+  async removeFollowing(followerId, followingId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      // 从关注列表移除
+      await client.sRem(`${this.FOLLOWING_PREFIX}${followerId}`, followingId);
+      // 减少计数
+      await this.decrFollowingCount(followerId);
+      await this.decrFollowerCount(followingId);
+      return true;
+    } catch (error) {
+      console.error('[Redis] 移除关注关系失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 获取粉丝数
+   */
+  async getFollowerCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.FOLLOWER_COUNT_PREFIX}${userId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      console.error('[Redis] 获取粉丝数缓存失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 获取关注数
+   */
+  async getFollowingCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.FOLLOWING_COUNT_PREFIX}${userId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      console.error('[Redis] 获取关注数缓存失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 设置粉丝数
+   */
+  async setFollowerCount(userId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.FOLLOWER_COUNT_PREFIX}${userId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      console.error('[Redis] 设置粉丝数缓存失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 设置关注数
+   */
+  async setFollowingCount(userId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.FOLLOWING_COUNT_PREFIX}${userId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      console.error('[Redis] 设置关注数缓存失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 增加粉丝数
+   */
+  async incrFollowerCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.FOLLOWER_COUNT_PREFIX}${userId}`);
+    } catch (error) {
+      console.error('[Redis] 增加粉丝数失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 减少粉丝数
+   */
+  async decrFollowerCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.decr(`${this.FOLLOWER_COUNT_PREFIX}${userId}`);
+    } catch (error) {
+      console.error('[Redis] 减少粉丝数失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 增加关注数
+   */
+  async incrFollowingCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.FOLLOWING_COUNT_PREFIX}${userId}`);
+    } catch (error) {
+      console.error('[Redis] 增加关注数失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 减少关注数
+   */
+  async decrFollowingCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.decr(`${this.FOLLOWING_COUNT_PREFIX}${userId}`);
+    } catch (error) {
+      console.error('[Redis] 减少关注数失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 清除用户关注相关缓存
+   */
+  async clearUserFollowCache(userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(`${this.FOLLOWING_PREFIX}${userId}`);
+      await client.del(`${this.FOLLOWER_COUNT_PREFIX}${userId}`);
+      await client.del(`${this.FOLLOWING_COUNT_PREFIX}${userId}`);
+      return true;
+    } catch (error) {
+      console.error('[Redis] 清除用户关注缓存失败:', error.message);
+      return false;
+    }
+  }
+};
+
+/**
+ * 帖子计数器缓存（点赞、浏览、评论数）
+ */
+const postCounters = {
+  LIKES_PREFIX: 'post:likes:',
+  VIEWS_PREFIX: 'post:views:',
+  COMMENTS_PREFIX: 'post:comments:',
+  DISLIKES_PREFIX: 'post:dislikes:',
+  LIKED_BY_PREFIX: 'post:liked_by:',
+  DISLIKED_BY_PREFIX: 'post:disliked_by:',
+  EXPIRE_TIME: 5 * 60, // 5分钟
+
+  /**
+   * 获取点赞数
+   */
+  async getLikes(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.LIKES_PREFIX}${postId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置点赞数
+   */
+  async setLikes(postId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.LIKES_PREFIX}${postId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 增加点赞
+   */
+  async incrLikes(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.LIKES_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 减少点赞
+   */
+  async decrLikes(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.decr(`${this.LIKES_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 获取点踩数
+   */
+  async getDislikes(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.DISLIKES_PREFIX}${postId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置点踩数
+   */
+  async setDislikes(postId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.DISLIKES_PREFIX}${postId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 增加点踩
+   */
+  async incrDislikes(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.DISLIKES_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 减少点踩
+   */
+  async decrDislikes(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.decr(`${this.DISLIKES_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 获取浏览数
+   */
+  async getViews(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.VIEWS_PREFIX}${postId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 增加浏览数
+   */
+  async incrViews(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.VIEWS_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置浏览数
+   */
+  async setViews(postId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.set(`${this.VIEWS_PREFIX}${postId}`, count.toString());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 检查用户是否点赞
+   */
+  async isLiked(postId, userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.sIsMember(`${this.LIKED_BY_PREFIX}${postId}`, userId);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 添加点赞用户
+   */
+  async addLikedBy(postId, userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.sAdd(`${this.LIKED_BY_PREFIX}${postId}`, userId);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 移除点赞用户
+   */
+  async removeLikedBy(postId, userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.sRem(`${this.LIKED_BY_PREFIX}${postId}`, userId);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 检查用户是否点踩
+   */
+  async isDisliked(postId, userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.sIsMember(`${this.DISLIKED_BY_PREFIX}${postId}`, userId);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 添加点踩用户
+   */
+  async addDislikedBy(postId, userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.sAdd(`${this.DISLIKED_BY_PREFIX}${postId}`, userId);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 移除点踩用户
+   */
+  async removeDislikedBy(postId, userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.sRem(`${this.DISLIKED_BY_PREFIX}${postId}`, userId);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 清除帖子所有计数缓存
+   */
+  async clearPostCounters(postId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(`${this.LIKES_PREFIX}${postId}`);
+      await client.del(`${this.DISLIKES_PREFIX}${postId}`);
+      await client.del(`${this.VIEWS_PREFIX}${postId}`);
+      await client.del(`${this.COMMENTS_PREFIX}${postId}`);
+      await client.del(`${this.LIKED_BY_PREFIX}${postId}`);
+      await client.del(`${this.DISLIKED_BY_PREFIX}${postId}`);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+};
+
+/**
+ * 通知缓存相关操作
+ */
+const notificationCache = {
+  UNREAD_PREFIX: 'user:unread:',
+  COUNT_PREFIX: 'user:notification_count:',
+  EXPIRE_TIME: 60, // 1分钟
+
+  /**
+   * 获取未读通知数
+   */
+  async getUnreadCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.UNREAD_PREFIX}${userId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置未读通知数
+   */
+  async setUnreadCount(userId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.UNREAD_PREFIX}${userId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 增加未读通知数
+   */
+  async incrUnreadCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.UNREAD_PREFIX}${userId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 清除未读数（标记已读）
+   */
+  async clearUnreadCount(userId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.set(`${this.UNREAD_PREFIX}${userId}`, '0');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 减少未读数
+   */
+  async decrUnreadCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.decr(`${this.UNREAD_PREFIX}${userId}`);
+      // 确保不会变成负数
+      if (count < 0) {
+        await client.set(`${this.UNREAD_PREFIX}${userId}`, '0');
+        return 0;
+      }
+      return count;
+    } catch (error) {
+      return null;
+    }
+  }
+};
+
+/**
+ * 收藏缓存相关操作
+ */
+const favoriteCache = {
+  COUNT_PREFIX: 'post:favorite_count:',
+  USER_COUNT_PREFIX: 'user:favorite_count:',
+  USER_FAVORITES_PREFIX: 'user:favorites:',
+  EXPIRE_TIME: 5 * 60,
+
+  /**
+   * 获取帖子收藏数
+   */
+  async getPostFavoriteCount(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.COUNT_PREFIX}${postId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置帖子收藏数
+   */
+  async setPostFavoriteCount(postId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.COUNT_PREFIX}${postId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 增加收藏数
+   */
+  async incrPostFavoriteCount(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.incr(`${this.COUNT_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 减少收藏数
+   */
+  async decrPostFavoriteCount(postId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.decr(`${this.COUNT_PREFIX}${postId}`);
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 获取用户收藏数
+   */
+  async getUserFavoriteCount(userId) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const count = await client.get(`${this.USER_COUNT_PREFIX}${userId}`);
+      return count ? parseInt(count) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置用户收藏数
+   */
+  async setUserFavoriteCount(userId, count) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(`${this.USER_COUNT_PREFIX}${userId}`, this.EXPIRE_TIME, count.toString());
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 清除帖子收藏缓存
+   */
+  async clearPostFavoriteCache(postId) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(`${this.COUNT_PREFIX}${postId}`);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+};
+
+/**
+ * 会话管理（Token存储）
+ */
+const sessionCache = {
+  PREFIX: 'session:',
+  EXPIRE_TIME: 7 * 24 * 60 * 60, // 7天
+
+  getKey(token) {
+    return `${this.PREFIX}${token}`;
+  },
+
+  /**
+   * 设置会话
+   */
+  async set(token, userId, ttl = this.EXPIRE_TIME) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(this.getKey(token), ttl, userId);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 获取会话
+   */
+  async get(token) {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      return await client.get(this.getKey(token));
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 删除会话
+   */
+  async delete(token) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(this.getKey(token));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 刷新会话过期时间
+   */
+  async refresh(token, ttl = this.EXPIRE_TIME) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.expire(this.getKey(token), ttl);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+};
+
+/**
+ * 接口限流
+ */
+const rateLimiter = {
+  PREFIX: 'rate:',
+  
+  getKey(ip, endpoint) {
+    return `${this.PREFIX}${ip}:${endpoint}`;
+  },
+
+  /**
+   * 检查是否超过限制
+   * @param {string} ip - 客户端IP
+   * @param {string} endpoint - 接口路径
+   * @param {number} limit - 限制次数
+   * @param {number} window - 时间窗口（秒）
+   * @returns {object} { allowed: boolean, remaining: number, resetTime: number }
+   */
+  async check(ip, endpoint, limit = 100, window = 60) {
+    if (!isConnected) return { allowed: true, remaining: limit, resetTime: 0 };
+    
+    try {
+      const client = getRedisClient();
+      const key = this.getKey(ip, endpoint);
+      
+      const current = await client.get(key);
+      
+      if (!current) {
+        // 首次请求，设置计数
+        await client.setEx(key, window, '1');
+        return { allowed: true, remaining: limit - 1, resetTime: Date.now() + window * 1000 };
+      }
+      
+      const count = parseInt(current);
+      
+      if (count >= limit) {
+        // 超过限制
+        const ttl = await client.tTL(key);
+        return { allowed: false, remaining: 0, resetTime: Date.now() + ttl * 1000 };
+      }
+      
+      // 增加计数
+      await client.incr(key);
+      return { allowed: true, remaining: limit - count - 1, resetTime: Date.now() + window * 1000 };
+    } catch (error) {
+      // 出错时允许请求
+      return { allowed: true, remaining: limit, resetTime: 0 };
+    }
+  },
+
+  /**
+   * 重置限制
+   */
+  async reset(ip, endpoint) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(this.getKey(ip, endpoint));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+};
+
+/**
+ * 热门帖子缓存
+ */
+const hotPostsCache = {
+  KEY: 'hot_posts',
+  EXPIRE_TIME: 5 * 60,
+
+  /**
+   * 获取热门帖子列表
+   */
+  async get() {
+    if (!isConnected) return null;
+    try {
+      const client = getRedisClient();
+      const data = await client.get(this.KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
+   * 设置热门帖子列表
+   */
+  async set(posts) {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.setEx(this.KEY, this.EXPIRE_TIME, JSON.stringify(posts));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  /**
+   * 清除热门帖子缓存
+   */
+  async clear() {
+    if (!isConnected) return false;
+    try {
+      const client = getRedisClient();
+      await client.del(this.KEY);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+};
+
 module.exports = {
   initRedis,
   getRedisClient,
   closeRedis,
   isRedisConnected,
   verificationCode,
-  ipStats
+  ipStats,
+  // 新增缓存模块
+  userCache,
+  postCache,
+  followCache,
+  postCounters,
+  notificationCache,
+  favoriteCache,
+  sessionCache,
+  rateLimiter,
+  hotPostsCache
 };

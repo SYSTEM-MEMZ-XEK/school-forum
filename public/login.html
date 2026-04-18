@@ -80,7 +80,14 @@
         <div id="admin-login-form" class="form-section">
           <div class="admin-login-notice">
             <i class="fas fa-shield-alt"></i>
-            <span>管理员登录需要管理员权限验证</span>
+            <span>管理员登录需要邮箱验证</span>
+          </div>
+          <div class="form-group">
+            <label for="email-admin">管理员邮箱</label>
+            <div class="email-input-group">
+              <input type="email" id="email-admin" placeholder="请输入管理员邮箱" required>
+              <button type="button" id="send-admin-verification-code" class="verification-code-button">获取验证码</button>
+            </div>
           </div>
           <div class="form-group">
             <label for="qq-admin">管理员QQ号</label>
@@ -89,6 +96,10 @@
           <div class="form-group">
             <label for="password-admin">管理员密码</label>
             <input type="password" id="password-admin" placeholder="请输入管理员密码" required>
+          </div>
+          <div class="form-group">
+            <label for="verification-code-admin">验证码</label>
+            <input type="text" id="verification-code-admin" placeholder="请输入邮箱验证码" required maxlength="6">
           </div>
           <button id="confirm-admin-login" class="login-button admin-button">管理员登录</button>
         </div>
@@ -116,6 +127,22 @@
           <div class="form-group">
             <label for="confirm-password">确认密码</label>
             <input type="password" id="confirm-password" placeholder="再次输入密码" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="birthday-register">出生日期</label>
+              <input type="date" id="birthday-register" placeholder="请选择出生日期">
+            </div>
+            <div class="form-group">
+              <label for="gender-register">性别</label>
+              <select id="gender-register">
+                <option value="">请选择性别</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-group">

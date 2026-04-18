@@ -18,12 +18,12 @@ setInterval(() => {
 // 创建邮件传输器
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: 'smtp.163.com',
-    port: 465,
-    secure: true,
+    host: process.env.SMTP_HOST || 'smtp.163.com',
+    port: parseInt(process.env.SMTP_PORT) || 465,
+    secure: process.env.SMTP_SECURE !== 'false',
     auth: {
-      user: 'XEK20090428@163.com',
-      pass: 'APuE5udeNTBQpC6N'
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
     }
   });
 };
@@ -65,6 +65,16 @@ const generateEmailTemplate = (code, scenario = 'register') => {
         { icon: '🔒', text: '安全修改' },
         { icon: '🔄', text: '快速更新' },
         { icon: '✅', text: '验证通过' }
+      ]
+    },
+    deletion: {
+      title: '账户注销验证码',
+      welcome: '亲爱的同学，您好！<br><br>我们收到了您注销账户的请求。这是一个不可逆的操作，为了确保是您本人操作，请使用以下验证码完成账户注销。',
+      subject: '【校园论坛】账户注销验证码',
+      features: [
+        { icon: '⚠️', text: '谨慎操作' },
+        { icon: '🔒', text: '安全验证' },
+        { icon: '❌', text: '不可恢复' }
       ]
     }
   };
@@ -268,7 +278,8 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
     const scenarios = {
       register: '【校园论坛】注册验证码',
       login: '【校园论坛】登录验证码',
-      password: '【校园论坛】密码修改验证码'
+      password: '【校园论坛】密码修改验证码',
+      deletion: '【校园论坛】账户注销验证码'
     };
     const subject = scenarios[scenario] || scenarios.register;
 
@@ -277,7 +288,7 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
 
     // 发送邮件
     const info = await transporter.sendMail({
-      from: '"校园论坛" <XEK20090428@163.com>',
+      from: `"校园论坛" <${process.env.SMTP_USER}>`,
       to: email, // 发送给原始邮箱地址
       subject: subject,
       html: htmlTemplate
@@ -309,7 +320,7 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
 };
 
 // 验证验证码
-const verifyCode = async (email, code) => {
+const verifyCode = async (email, code, scenario = null) => {
   // 统一使用小写邮箱作为 key
   const normalizedEmail = email.toLowerCase();
   
@@ -322,36 +333,24 @@ const verifyCode = async (email, code) => {
   const storedData = memoryStore.get(normalizedEmail);
   
   if (!storedData) {
-    return {
-      valid: false,
-      message: '验证码不存在或已过期'
-    };
+    return { valid: false, message: '验证码不存在或已过期' };
   }
   
   // 检查验证码是否过期（5分钟）
   if (Date.now() - storedData.timestamp > 5 * 60 * 1000) {
     memoryStore.delete(normalizedEmail);
-    return {
-      valid: false,
-      message: '验证码已过期，请重新获取'
-    };
+    return { valid: false, message: '验证码已过期' };
   }
   
   // 验证验证码是否正确
   if (storedData.code !== code) {
-    return {
-      valid: false,
-      message: '验证码错误'
-    };
+    return { valid: false, message: '验证码错误' };
   }
   
   // 验证成功，删除验证码
   memoryStore.delete(normalizedEmail);
   
-  return {
-    valid: true,
-    message: '验证码验证成功'
-  };
+  return { valid: true, message: '验证码验证成功' };
 };
 
 module.exports = {

@@ -377,8 +377,8 @@ const followingManager = {
     btn.disabled = true;
     
     try {
-      const response = await fetch('/follow', {
-        method: 'DELETE',
+      const response = await fetch('/unfollow', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
