@@ -554,3 +554,131 @@ input[type="file"] {
   font-size: 12px;
   color: var(--text-light);
 }
+
+/* 帖子可见性设置样式 */
+.visibility-settings {
+  background: var(--background-light);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.visibility-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visibility-header i {
+  color: var(--primary-color);
+}
+
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.visibility-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 15px;
+  background: var(--background-card);
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.visibility-option:hover {
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+}
+
+.visibility-option input[type="radio"] {
+  display: none;
+}
+
+.visibility-option input[type="radio"]:checked + .visibility-radio {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+.visibility-option input[type="radio"]:checked + .visibility-radio::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.visibility-option input[type="radio"]:checked ~ .visibility-info .visibility-title {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.visibility-radio {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: var(--transition);
+}
+
+.visibility-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.visibility-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.visibility-title i {
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+.visibility-desc {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .visibility-settings {
+    padding: 15px;
+  }
+  
+  .visibility-option {
+    padding: 10px 12px;
+  }
+  
+  .visibility-title {
+    font-size: 13px;
+  }
+  
+  .visibility-desc {
+    font-size: 11px;
+  }
+}

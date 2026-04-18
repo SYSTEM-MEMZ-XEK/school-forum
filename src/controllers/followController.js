@@ -2,13 +2,28 @@ const Follow = require('../models/Follow');
 const User = require('../models/User');
 const Post = require('../models/Post');
 const Notification = require('../models/Notification');
+const Blacklist = require('../models/Blacklist');
 const { v4: uuidv4 } = require('uuid');
 const {
   generateErrorResponse,
   generateSuccessResponse,
   userExists
 } = require('../utils/validationUtils');
+const { followCache, notificationCache, userCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
+
+// 检查用户是否启用了关注通知
+async function isFollowNotificationEnabled(userId) {
+  try {
+    const user = await User.findOne({ id: userId });
+    if (!user || !user.settings || !user.settings.notifications) {
+      return true;
+    }
+    return user.settings.notifications.follow !== false;
+  } catch (error) {
+    return true;
+  }
+}
 
 const followController = {
   // 关注用户
@@ -30,6 +45,18 @@ const followController = {
         return res.status(404).json(generateErrorResponse('用户不存在'));
       }
 
+      // 检查黑名单：如果被关注者拉黑了关注者，则不能关注
+      const isBlockedByTarget = await Blacklist.isBlocked(followingId, followerId);
+      if (isBlockedByTarget) {
+        return res.status(403).json(generateErrorResponse('无法关注该用户'));
+      }
+
+      // 检查黑名单：如果关注者拉黑了被关注者，也禁止关注
+      const hasBlockedTarget = await Blacklist.isBlocked(followerId, followingId);
+      if (hasBlockedTarget) {
+        return res.status(403).json(generateErrorResponse('您已拉黑该用户，请先取消拉黑'));
+      }
+
       // 检查是否已关注
       const isFollowing = await Follow.isFollowing(followerId, followingId);
       if (isFollowing) {
@@ -47,16 +74,24 @@ const followController = {
         createdAt: new Date()
       });
 
-      // 创建关注通知
-      await Notification.create({
-        id: uuidv4(),
-        userId: followingId,
-        type: 'follow',
-        fromUserId: followerId,
-        fromUsername: followerUsername,
-        timestamp: new Date(),
-        read: false
-      });
+      // 更新Redis缓存
+      await followCache.addFollowing(followerId, followingId);
+
+      // 创建关注通知（如果用户启用了关注通知）
+      if (await isFollowNotificationEnabled(followingId)) {
+        await Notification.create({
+          id: uuidv4(),
+          userId: followingId,
+          type: 'follow',
+          fromUserId: followerId,
+          fromUsername: followerUsername,
+          timestamp: new Date(),
+          read: false
+        });
+        
+        // 增加Redis中的未读通知数
+        await notificationCache.incrUnreadCount(followingId);
+      }
 
       logger.logUserAction('关注用户', followerId, '', {
         followingId
@@ -87,6 +122,9 @@ const followController = {
         return res.status(400).json(generateErrorResponse('未关注该用户'));
       }
 
+      // 更新Redis缓存
+      await followCache.removeFollowing(followerId, followingId);
+
       logger.logUserAction('取消关注', followerId, '', {
         followingId
       });
@@ -109,7 +147,17 @@ const followController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
+      logger.logger.debug('检查关注状态', { followerId, followingId });
+
+      // 直接从数据库检查（更可靠）
       const isFollowing = await Follow.isFollowing(followerId, followingId);
+      
+      logger.logger.debug('关注状态检查结果', { followerId, followingId, isFollowing });
+
+      // 同步更新Redis缓存
+      if (isFollowing) {
+        await followCache.addFollowing(followerId, followingId);
+      }
 
       res.json(generateSuccessResponse({
         isFollowing
@@ -129,8 +177,20 @@ const followController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
-      const followingCount = await Follow.getFollowingCount(userId);
-      const followerCount = await Follow.getFollowerCount(userId);
+      // 优先从Redis缓存获取
+      let followingCount = await followCache.getFollowingCount(userId);
+      let followerCount = await followCache.getFollowerCount(userId);
+
+      // 如果缓存未命中，从数据库获取并缓存
+      if (followingCount === null) {
+        followingCount = await Follow.getFollowingCount(userId);
+        await followCache.setFollowingCount(userId, followingCount);
+      }
+
+      if (followerCount === null) {
+        followerCount = await Follow.getFollowerCount(userId);
+        await followCache.setFollowerCount(userId, followerCount);
+      }
 
       res.json(generateSuccessResponse({
         followingCount,

@@ -11,8 +11,14 @@
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.1",
     "express": "^4.21.2",
+    "express-async-errors": "^3.1.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "helmet": "^8.1.0",
     "highlight.js": "^11.11.1",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.3",
     "katex": "^0.16.27",
     "markdown-it": "^14.1.0",
     "mathjax": "^3.2.2",
@@ -20,6 +26,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^8.0.1",
     "redis": "^4.7.1",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "xss": "^1.0.15"
   }
 }

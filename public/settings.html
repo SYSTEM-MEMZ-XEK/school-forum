@@ -59,7 +59,13 @@
                 <i class="fas fa-cog"></i> 设置
               </a>
               <a href="message.html" class="header-menu-item">
-                <i class="fas fa-bell"></i> 消息
+                <i class="fas fa-bell"></i> 消息通知
+              </a>
+              <a href="chat.html" class="header-menu-item">
+                <i class="fas fa-envelope"></i> 私信
+              </a>
+              <a href="blacklist.html" class="header-menu-item">
+                <i class="fas fa-ban"></i> 黑名单
               </a>
               <div class="header-menu-divider"></div>
               <button id="header-logout-btn" class="header-menu-item logout">
@@ -74,6 +80,14 @@
           <a href="following.html">
             <i class="fas fa-rss"></i>
             <span id="updates-badge" class="updates-badge">0</span>
+          </a>
+        </div>
+        
+        <!-- 私信按钮（登录后显示） -->
+        <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
+          <a href="chat.html">
+            <i class="fas fa-envelope"></i>
+            <span id="chat-badge" class="message-badge" style="display: none;">0</span>
           </a>
         </div>
         
@@ -327,6 +341,208 @@
                 </div>
               </div>
               
+              <!-- 个人信息修改区域 -->
+              <div class="personal-info-section">
+                <div class="password-section-header">
+                  <i class="fas fa-id-card"></i> 个人信息
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="settings-school">
+                      <i class="fas fa-school"></i> 学校
+                    </label>
+                    <select id="settings-school" name="school">
+                      <option value="">请选择学校</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="settings-enrollment-year">
+                      <i class="fas fa-calendar"></i> 入学年份
+                    </label>
+                    <select id="settings-enrollment-year" name="enrollmentYear">
+                      <option value="">请选择入学年份</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="settings-class">
+                      <i class="fas fa-users"></i> 班级
+                    </label>
+                    <select id="settings-class" name="className" disabled>
+                      <option value="">请先选择学校和年份</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="settings-birthday">
+                      <i class="fas fa-birthday-cake"></i> 出生日期
+                    </label>
+                    <input type="date" id="settings-birthday" name="birthday">
+                  </div>
+                  <div class="form-group">
+                    <label for="settings-gender">
+                      <i class="fas fa-user"></i> 性别
+                    </label>
+                    <select id="settings-gender" name="gender">
+                      <option value="">请选择性别</option>
+                      <option value="male">男</option>
+                      <option value="female">女</option>
+                      <option value="other">其他</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 邮箱修改区域 -->
+              <div class="email-change-section">
+                <div class="password-section-header">
+                  <i class="fas fa-envelope"></i> 修改邮箱
+                </div>
+                
+                <div class="email-current-display">
+                  <span>当前邮箱：</span>
+                  <strong id="current-email-display">未设置</strong>
+                </div>
+                
+                <!-- 邮箱修改步骤指示器 -->
+                <div class="password-steps">
+                  <div class="step active" data-step="1" id="email-step-1-indicator">
+                    <div class="step-number">1</div>
+                    <div class="step-label">验证密码</div>
+                  </div>
+                  <div class="step-line" id="email-step-line-1"></div>
+                  <div class="step" data-step="2" id="email-step-2-indicator">
+                    <div class="step-number">2</div>
+                    <div class="step-label">验证新邮箱</div>
+                  </div>
+                  <div class="step-line" id="email-step-line-2"></div>
+                  <div class="step" data-step="3" id="email-step-3-indicator">
+                    <div class="step-number">3</div>
+                    <div class="step-label">完成修改</div>
+                  </div>
+                </div>
+                
+                <!-- 邮箱修改步骤1：验证密码 -->
+                <div class="password-step-content" id="email-step-1">
+                  <div class="form-group">
+                    <label for="email-change-password">
+                      <i class="fas fa-lock"></i> 当前密码
+                    </label>
+                    <input type="password" id="email-change-password" placeholder="请输入当前密码验证身份">
+                    <small class="form-hint">修改邮箱需要验证您的身份</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="new-email">
+                      <i class="fas fa-envelope"></i> 新邮箱
+                    </label>
+                    <input type="email" id="new-email" placeholder="请输入新邮箱地址">
+                  </div>
+                  <button type="button" class="settings-button primary" id="verify-email-password-btn">
+                    <i class="fas fa-arrow-right"></i> 验证并发送验证码
+                  </button>
+                </div>
+                
+                <!-- 邮箱修改步骤2：验证新邮箱 -->
+                <div class="password-step-content" id="email-step-2" style="display: none;">
+                  <div class="verification-info">
+                    <i class="fas fa-envelope"></i>
+                    <span>验证码已发送到新邮箱：<strong id="new-email-display"></strong></span>
+                  </div>
+                  <div class="form-group">
+                    <label for="email-verification-code">
+                      <i class="fas fa-shield-alt"></i> 验证码
+                    </label>
+                    <div class="verification-code-input-wrapper">
+                      <input type="text" id="email-verification-code" placeholder="请输入6位验证码" maxlength="6">
+                      <button type="button" class="send-code-btn" id="resend-email-code-btn">
+                        <i class="fas fa-paper-plane"></i> 重发验证码
+                      </button>
+                    </div>
+                    <small class="form-hint">验证码有效期5分钟，请查收邮件</small>
+                  </div>
+                  <div class="password-step-actions">
+                    <button type="button" class="settings-button secondary" id="back-to-email-step-1-btn">
+                      <i class="fas fa-arrow-left"></i> 返回
+                    </button>
+                    <button type="button" class="settings-button primary" id="verify-email-code-btn">
+                      <i class="fas fa-check"></i> 确认修改
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- 邮箱修改成功提示 -->
+                <div class="password-step-content" id="email-step-success" style="display: none;">
+                  <div class="password-success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>邮箱修改成功！</h3>
+                    <p>您的邮箱已成功修改为：<strong id="updated-email-display"></strong></p>
+                    <button type="button" class="settings-button primary" id="reset-email-form-btn">
+                      <i class="fas fa-redo"></i> 重新修改邮箱
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- QQ号修改区域 -->
+              <div class="qq-change-section">
+                <div class="password-section-header">
+                  <i class="fab fa-qq"></i> 修改QQ号
+                </div>
+                
+                <div class="qq-current-display">
+                  <span>当前QQ号：</span>
+                  <strong id="current-qq-display">未设置</strong>
+                </div>
+                
+                <!-- QQ号修改步骤指示器 -->
+                <div class="password-steps">
+                  <div class="step active" data-step="1" id="qq-step-1-indicator">
+                    <div class="step-number">1</div>
+                    <div class="step-label">验证密码</div>
+                  </div>
+                  <div class="step-line" id="qq-step-line-1"></div>
+                  <div class="step" data-step="2" id="qq-step-2-indicator">
+                    <div class="step-number">2</div>
+                    <div class="step-label">完成修改</div>
+                  </div>
+                </div>
+                
+                <!-- QQ号修改步骤1：验证密码 -->
+                <div class="password-step-content" id="qq-step-1">
+                  <div class="form-group">
+                    <label for="qq-change-password">
+                      <i class="fas fa-lock"></i> 当前密码
+                    </label>
+                    <input type="password" id="qq-change-password" placeholder="请输入当前密码验证身份">
+                    <small class="form-hint">修改QQ号需要验证您的身份</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="new-qq">
+                      <i class="fab fa-qq"></i> 新QQ号
+                    </label>
+                    <input type="text" id="new-qq" placeholder="请输入新QQ号" maxlength="15">
+                    <small class="form-hint">QQ号必须是5-15位数字</small>
+                  </div>
+                  <button type="button" class="settings-button primary" id="verify-qq-password-btn">
+                    <i class="fas fa-check"></i> 确认修改
+                  </button>
+                </div>
+                
+                <!-- QQ号修改成功提示 -->
+                <div class="password-step-content" id="qq-step-success" style="display: none;">
+                  <div class="password-success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>QQ号修改成功！</h3>
+                    <p>您的QQ号已成功修改为：<strong id="updated-qq-display"></strong></p>
+                    <button type="button" class="settings-button primary" id="reset-qq-form-btn">
+                      <i class="fas fa-redo"></i> 重新修改QQ号
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <div class="form-actions">
                 <button type="submit" class="settings-button primary" id="save-account">
                   <i class="fas fa-save"></i> 保存账户设置
@@ -384,33 +600,6 @@
                 </div>
                 <span class="coming-soon">即将推出</span>
               </div>
-              
-              <div class="placeholder-item">
-                <i class="fas fa-code"></i>
-                <div>
-                  <h3>代码编辑器主题</h3>
-                  <p>自定义代码高亮和编辑器主题</p>
-                </div>
-                <span class="coming-soon">即将推出</span>
-              </div>
-              
-              <div class="placeholder-item">
-                <i class="fas fa-font"></i>
-                <div>
-                  <h3>字体设置</h3>
-                  <p>调整界面字体大小和样式</p>
-                </div>
-                <span class="coming-soon">即将推出</span>
-              </div>
-              
-              <div class="placeholder-item">
-                <i class="fas fa-columns"></i>
-                <div>
-                  <h3>布局设置</h3>
-                  <p>自定义论坛界面布局</p>
-                </div>
-                <span class="coming-soon">即将推出</span>
-              </div>
             </div>
             
             <!-- 扩展提示 -->
@@ -418,6 +607,278 @@
               <i class="fas fa-lightbulb"></i>
               <p>更多个性化功能正在开发中，如果您有功能建议，欢迎在论坛中提出！</p>
             </div>
+          </div>
+          
+          <!-- 通知设置 -->
+          <div class="settings-card">
+            <h2 class="settings-card-title">
+              <i class="fas fa-bell"></i> 通知设置
+            </h2>
+            <p class="settings-card-description">管理您接收哪些类型的通知</p>
+            
+            <div class="privacy-settings">
+              <div class="privacy-item">
+                <div class="privacy-item-info">
+                  <h3><i class="fas fa-heart"></i> 点赞通知</h3>
+                  <p>当有人点赞您的帖子时接收通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notify-like" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="privacy-item">
+                <div class="privacy-item-info">
+                  <h3><i class="fas fa-comment"></i> 评论通知</h3>
+                  <p>当有人评论您的帖子时接收通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notify-comment" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="privacy-item">
+                <div class="privacy-item-info">
+                  <h3><i class="fas fa-reply"></i> 回复通知</h3>
+                  <p>当有人回复您的评论时接收通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notify-commentReply" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="privacy-item">
+                <div class="privacy-item-info">
+                  <h3><i class="fas fa-thumbs-up"></i> 评论点赞通知</h3>
+                  <p>当有人点赞您的评论时接收通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notify-commentLike" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="privacy-item">
+                <div class="privacy-item-info">
+                  <h3><i class="fas fa-user-plus"></i> 关注通知</h3>
+                  <p>当有人关注您时接收通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notify-follow" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="privacy-item" style="opacity: 0.6; pointer-events: none;">
+                <div class="privacy-item-info">
+                  <h3><i class="fas fa-cog"></i> 系统通知</h3>
+                  <p>接收系统通知（帖子删除、账户相关等重要通知）</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notify-system" checked disabled>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-actions" style="margin-top: 20px;">
+              <button type="button" class="settings-button primary" id="save-notifications">
+                <i class="fas fa-save"></i> 保存通知设置
+              </button>
+            </div>
+            
+            <div id="notification-save-status" class="save-status"></div>
+          </div>
+          
+          <!-- 隐私设置 -->
+          <div class="settings-card">
+            <h2 class="settings-card-title">
+              <i class="fas fa-shield-alt"></i> 隐私设置
+            </h2>
+            <p class="settings-card-description">管理您的隐私偏好，控制个人信息和帖子的可见性</p>
+            
+            <!-- 黑名单相关设置 -->
+            <div class="privacy-settings-section">
+              <h3 class="privacy-section-title">
+                <i class="fas fa-ban"></i> 黑名单设置
+              </h3>
+              <div class="privacy-settings">
+                <div class="privacy-item">
+                  <div class="privacy-item-info">
+                    <h3><i class="fas fa-ban"></i> 隐藏黑名单用户的帖子</h3>
+                    <p>开启后，帖子列表将不会显示您拉黑的用户发布的帖子</p>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="hide-blocked-posts">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="privacy-item">
+                  <div class="privacy-item-info">
+                    <h3><i class="fas fa-eye-slash"></i> 隐藏黑名单用户的评论</h3>
+                    <p>开启后，帖子详情页将不会显示您拉黑的用户的评论</p>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="hide-blocked-comments">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 帖子展示时间范围 -->
+            <div class="privacy-settings-section">
+              <h3 class="privacy-section-title">
+                <i class="fas fa-clock"></i> 帖子展示时间范围
+              </h3>
+              <p class="privacy-section-desc">设置其他用户在您的个人主页可以看到多长时间内的帖子（您自己查看时显示全部）</p>
+              
+              <div class="form-group">
+                <label for="post-display-range">
+                  <i class="fas fa-calendar-alt"></i> 展示时间范围
+                </label>
+                <select id="post-display-range" name="postDisplayRange">
+                  <option value="all">全部帖子</option>
+                  <option value="3days">近3天</option>
+                  <option value="7days">近7天</option>
+                  <option value="1month">近1个月</option>
+                  <option value="6months">近半年</option>
+                  <option value="1year">近1年</option>
+                </select>
+                <small class="form-hint">此设置仅影响他人查看您的帖子，您自己可以看到所有帖子</small>
+              </div>
+            </div>
+            
+            <!-- 个人信息可见性 -->
+            <div class="privacy-settings-section">
+              <h3 class="privacy-section-title">
+                <i class="fas fa-user-shield"></i> 个人信息可见性
+              </h3>
+              <p class="privacy-section-desc">设置您的个人信息对哪些人可见</p>
+              
+              <div class="visibility-settings-grid">
+                <!-- 性别可见性 -->
+                <div class="visibility-setting-item">
+                  <div class="visibility-setting-label">
+                    <i class="fas fa-user"></i> 性别
+                  </div>
+                  <select id="visibility-gender" class="visibility-select">
+                    <option value="public">公开可见</option>
+                    <option value="followers">仅粉丝可见</option>
+                    <option value="self">仅自己可见</option>
+                  </select>
+                </div>
+                
+                <!-- 生日可见性 -->
+                <div class="visibility-setting-item">
+                  <div class="visibility-setting-label">
+                    <i class="fas fa-birthday-cake"></i> 生日
+                  </div>
+                  <select id="visibility-birthday" class="visibility-select">
+                    <option value="public">公开可见</option>
+                    <option value="followers">仅粉丝可见</option>
+                    <option value="self">仅自己可见</option>
+                  </select>
+                </div>
+                
+                <!-- 学校/班级可见性 -->
+                <div class="visibility-setting-item">
+                  <div class="visibility-setting-label">
+                    <i class="fas fa-school"></i> 学校/班级
+                  </div>
+                  <select id="visibility-school" class="visibility-select">
+                    <option value="public">公开可见</option>
+                    <option value="followers">仅粉丝可见</option>
+                    <option value="self">仅自己可见</option>
+                  </select>
+                </div>
+                
+                <!-- 签名可见性 -->
+                <div class="visibility-setting-item">
+                  <div class="visibility-setting-label">
+                    <i class="fas fa-quote-left"></i> 个性签名
+                  </div>
+                  <select id="visibility-signature" class="visibility-select">
+                    <option value="public">公开可见</option>
+                    <option value="followers">仅粉丝可见</option>
+                    <option value="self">仅自己可见</option>
+                  </select>
+                </div>
+                
+                <!-- 加入时间可见性 -->
+                <div class="visibility-setting-item">
+                  <div class="visibility-setting-label">
+                    <i class="fas fa-calendar-check"></i> 加入时间
+                  </div>
+                  <select id="visibility-joinDate" class="visibility-select">
+                    <option value="public">公开可见</option>
+                    <option value="followers">仅粉丝可见</option>
+                    <option value="self">仅自己可见</option>
+                  </select>
+                </div>
+                
+                <!-- 最后登录可见性 -->
+                <div class="visibility-setting-item">
+                  <div class="visibility-setting-label">
+                    <i class="fas fa-clock"></i> 最后登录
+                  </div>
+                  <select id="visibility-lastLogin" class="visibility-select">
+                    <option value="public">公开可见</option>
+                    <option value="followers">仅粉丝可见</option>
+                    <option value="self">仅自己可见</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-actions" style="margin-top: 20px;">
+              <button type="button" class="settings-button primary" id="save-privacy">
+                <i class="fas fa-save"></i> 保存隐私设置
+              </button>
+            </div>
+            
+            <div id="privacy-save-status" class="save-status"></div>
+          </div>
+        </div>
+        
+        <!-- 账户注销 -->
+        <div class="settings-card" id="account-deletion">
+          <h2 class="settings-card-title">
+            <i class="fas fa-exclamation-triangle"></i> 账户注销
+          </h2>
+          <p class="settings-card-description">注销账户将永久删除您的账户信息，此操作不可恢复</p>
+          
+          <div class="deletion-warning">
+            <div class="warning-icon">
+              <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="warning-content">
+              <h3>注销前请注意</h3>
+              <ul>
+                <li>账户注销后无法恢复</li>
+                <li>您可以选择保留或删除发布的帖子和评论</li>
+                <li>关注、粉丝、收藏等数据将被清除</li>
+                <li>私信和通知将被删除</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="deletion-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="keep-data-checkbox">
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">保留我发布的帖子和评论（将以"已注销用户"显示）</span>
+            </label>
+          </div>
+          
+          <div class="deletion-actions">
+            <button type="button" class="settings-button danger" id="btn-delete-account">
+              <i class="fas fa-trash-alt"></i> 注销账户
+            </button>
           </div>
         </div>
       </div>
@@ -451,6 +912,11 @@
             <li class="nav-item">
               <a href="#data">
                 <i class="fas fa-download"></i> 数据管理
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="blacklist.html">
+                <i class="fas fa-ban"></i> 黑名单管理
               </a>
             </li>
           </ul>
@@ -499,27 +965,24 @@
   </script>
   <script>
     // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       console.log('DOMContentLoaded 事件触发');
       
-      // 初始化用户管理
-      userManager.init();
+      // 初始化用户管理并等待完成
+      await userManager.initAsync();
       
-      // 等待一小段时间确保用户数据加载完成
-      setTimeout(() => {
-        console.log('开始初始化设置页面');
-        console.log('typeof settingsManager:', typeof settingsManager);
-        
-        // 初始化设置页面
-        if (typeof settingsManager === 'object' && settingsManager !== null) {
-          settingsManager.init();
-        } else {
-          console.error('settingsManager 未定义！');
-        }
-        
-        // 设置登录/注册按钮事件
-        userManager.setupEventListeners();
-      }, 100);
+      console.log('开始初始化设置页面');
+      console.log('typeof settingsManager:', typeof settingsManager);
+      
+      // 初始化设置页面
+      if (typeof settingsManager === 'object' && settingsManager !== null) {
+        settingsManager.init();
+      } else {
+        console.error('settingsManager 未定义！');
+      }
+      
+      // 设置登录/注册按钮事件
+      userManager.setupEventListeners();
     });
   </script>
 </body>

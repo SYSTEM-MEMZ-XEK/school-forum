@@ -6,7 +6,6 @@ const {
   validateUserInput
 } = require('../utils/authUtils');
 const {
-  getUsers,
   createUser,
   updateUser,
   getUserById
@@ -20,7 +19,12 @@ const {
   generateSuccessResponse
 } = require('../utils/validationUtils');
 const { sendVerificationEmail, verifyCode } = require('../utils/emailUtils');
+const { userCache, notificationCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
+const User = require('../models/User');
+
+// 公共邮箱验证正则
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const userController = {
   // 发送验证码
@@ -33,7 +37,6 @@ const userController = {
       }
 
       // 验证邮箱格式
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
       }
@@ -58,7 +61,6 @@ const userController = {
       }
 
       // 验证邮箱格式
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
       }
@@ -148,10 +150,71 @@ const userController = {
     }
   },
 
+  // 修改密码（验证验证码后）
+  async changePassword(req, res) {
+    try {
+      const { userId, currentPassword, newPassword, verificationCode } = req.body;
+
+      if (!userId) {
+        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      if (!currentPassword) {
+        return res.status(400).json(generateErrorResponse('请输入当前密码'));
+      }
+
+      if (!newPassword) {
+        return res.status(400).json(generateErrorResponse('请输入新密码'));
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json(generateErrorResponse('密码至少6个字符'));
+      }
+
+      if (!verificationCode) {
+        return res.status(400).json(generateErrorResponse('请输入验证码'));
+      }
+
+      // 获取用户信息
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 验证当前密码
+      const isPasswordValid = await comparePassword(currentPassword, user.password);
+      if (!isPasswordValid) {
+        logger.logSecurityEvent('密码修改失败：密码错误', { userId, ip: req.ip });
+        return res.status(401).json(generateErrorResponse('当前密码错误'));
+      }
+
+      // 验证验证码
+      const codeVerification = await verifyCode(user.email, verificationCode);
+      if (!codeVerification.valid) {
+        logger.logSecurityEvent('密码修改失败：验证码错误', { userId, ip: req.ip });
+        return res.status(400).json(generateErrorResponse(codeVerification.message));
+      }
+
+      // 加密新密码
+      const hashedPassword = await hashPassword(newPassword);
+
+      // 更新密码
+      await updateUser(userId, { password: hashedPassword });
+
+      logger.logUserAction('密码修改成功', userId, user.username, { ip: req.ip });
+
+      res.json(generateSuccessResponse({}, '密码修改成功'));
+    } catch (error) {
+      logger.logError('修改密码失败', { error: error.message, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
   // 用户注册
   async register(req, res) {
     try {
-      const { qq, username, password, email, verificationCode, school, enrollmentYear, className } = req.body;
+      const { qq, username, password, email, verificationCode, school, enrollmentYear, className, birthday, gender } = req.body;
 
       // 验证输入
       const validationErrors = validateUserInput(req.body);
@@ -165,7 +228,6 @@ const userController = {
         return res.status(400).json(generateErrorResponse('邮箱不能为空'));
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
       }
@@ -217,6 +279,8 @@ const userController = {
         enrollmentYear: parseInt(enrollmentYear),
         className,
         grade: currentGrade,
+        birthday: birthday || null,
+        gender: gender || '',
         createdAt: new Date().toISOString(),
         lastLogin: null,
         postCount: 0,
@@ -237,39 +301,63 @@ const userController = {
         className: newUser.className
       });
 
-      // 返回用户信息（不包含密码）
+      // 生成登录 Token
+      const { generateAccessToken, generateRefreshToken } = require('../middleware/jwtAuth');
+      const accessToken = generateAccessToken(newUser.id);
+      const refreshToken = generateRefreshToken(newUser.id);
+
+      // 返回用户信息（不包含密码）和 Token
       const { password: _, ...safeUser } = newUser;
 
-      res.status(201).json(generateSuccessResponse({ user: safeUser }, '注册成功'));
+      res.status(201).json(generateSuccessResponse({ 
+        user: safeUser,
+        accessToken,
+        refreshToken
+      }, '注册成功'));
     } catch (error) {
       logger.logError('注册失败', { error: error.message, body: req.body });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
 
-  // 用户登录
+  // 用户登录（安全增强版）
   async login(req, res) {
     try {
       const { email, qq, password, verificationCode } = req.body;
 
+      // 获取客户端 IP
+      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                       req.headers['x-real-ip'] || 
+                       req.connection?.remoteAddress || 
+                       req.socket?.remoteAddress ||
+                       req.ip;
+
+      // 导入 JWT 认证工具
+      const { 
+        generateAccessToken, 
+        generateRefreshToken, 
+        generateAdminToken,
+        recordLoginAttempt, 
+        checkLoginLocked 
+      } = require('../middleware/jwtAuth');
+
       // 验证邮箱
       if (!email) {
-        logger.logWarn('登录失败：邮箱为空', { ip: req.ip });
+        logger.logWarn('登录失败：邮箱为空', { ip: clientIp });
         return res.status(400).json(generateErrorResponse('邮箱不能为空'));
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
       }
 
       if (!qq) {
-        logger.logWarn('登录失败：QQ号为空', { ip: req.ip });
+        logger.logWarn('登录失败：QQ号为空', { ip: clientIp });
         return res.status(400).json(generateErrorResponse('QQ号不能为空'));
       }
 
       if (!password) {
-        logger.logWarn('登录失败：密码为空', { qq, ip: req.ip });
+        logger.logWarn('登录失败：密码为空', { qq, ip: clientIp });
         return res.status(400).json(generateErrorResponse('密码不能为空'));
       }
 
@@ -278,43 +366,85 @@ const userController = {
         return res.status(400).json(generateErrorResponse('验证码不能为空'));
       }
 
-      // 验证验证码是否正确（使用原始邮箱验证）
+      // 检查登录是否被锁定
+      const lockStatus = await checkLoginLocked(qq);
+      if (lockStatus.locked) {
+        const remainingMinutes = Math.ceil(lockStatus.lockTimeRemaining / 60000);
+        logger.logSecurityEvent('登录被拒绝：账户锁定', { qq, ip: clientIp, remainingMinutes });
+        return res.status(429).json(generateErrorResponse(
+          `账户已锁定，请 ${remainingMinutes} 分钟后再试`
+        ));
+      }
+
+      // 验证验证码是否正确
       const codeVerification = await verifyCode(email, verificationCode);
       if (!codeVerification.valid) {
-        logger.logSecurityEvent('登录失败：验证码验证失败', { email, ip: req.ip });
+        logger.logSecurityEvent('登录失败：验证码验证失败', { email, ip: clientIp });
         return res.status(400).json(generateErrorResponse(codeVerification.message));
       }
 
-      const users = await getUsers();
-      const user = users.find(u => u.qq === qq);
+      // 直接查询用户（避免全量查询）
+      const user = await User.findOne({ qq });
 
       if (!user) {
-        logger.logSecurityEvent('登录失败：用户不存在', { qq, ip: req.ip });
+        // 记录登录失败
+        await recordLoginAttempt(qq, false, clientIp);
+        logger.logSecurityEvent('登录失败：用户不存在', { qq, ip: clientIp });
         return res.status(404).json(generateErrorResponse('用户不存在'));
       }
 
-      // 验证邮箱是否匹配（不区分大小写）
+      // 验证邮箱是否匹配
       if (user.email.toLowerCase() !== email.toLowerCase()) {
-        logger.logSecurityEvent('登录失败：邮箱与QQ不匹配', { qq, email, ip: req.ip });
+        await recordLoginAttempt(qq, false, clientIp);
+        logger.logSecurityEvent('登录失败：邮箱与QQ不匹配', { qq, email, ip: clientIp });
         return res.status(400).json(generateErrorResponse('邮箱与QQ号不匹配'));
       }
 
       // 验证密码
       const isPasswordValid = await comparePassword(password, user.password);
       if (!isPasswordValid) {
+        // 记录登录失败
+        const attemptResult = await recordLoginAttempt(qq, false, clientIp);
+        
         logger.logSecurityEvent('登录失败：密码错误', {
           userId: user.id,
           username: user.username,
           qq: user.qq,
-          ip: req.ip
+          ip: clientIp,
+          attempts: attemptResult.attempts,
+          remaining: attemptResult.remaining
         });
-        return res.status(401).json(generateErrorResponse('密码错误'));
+
+        const message = attemptResult.remaining 
+          ? `密码错误，还剩 ${attemptResult.remaining} 次尝试机会`
+          : '密码错误';
+        
+        return res.status(401).json(generateErrorResponse(message));
       }
+
+      // 登录成功，清除失败记录
+      await recordLoginAttempt(qq, true, clientIp);
 
       // 检查是否是管理员
       const { getAdminUsers } = require('../config/constants');
       const adminUsers = getAdminUsers();
       const isAdmin = adminUsers.includes(user.qq) || adminUsers.includes(user.id);
+
+      // 生成 JWT Token
+      const accessToken = generateAccessToken(user.id, {
+        username: user.username,
+        qq: user.qq
+      });
+      const refreshToken = generateRefreshToken(user.id);
+
+      // 管理员额外生成管理员 Token
+      let adminToken = null;
+      if (isAdmin) {
+        adminToken = generateAdminToken(user.id, {
+          username: user.username,
+          qq: user.qq
+        });
+      }
 
       // 更新用户最后登录时间和年级
       const currentGrade = calculateCurrentGrade(user.enrollmentYear);
@@ -329,17 +459,37 @@ const userController = {
       // 记录用户登录日志
       logger.logUserAction('用户登录', user.id, user.username, {
         isAdmin: isAdmin,
-        ip: req.ip
+        ip: clientIp
       });
 
-      // 返回用户信息（不包含密码）
-      const { password: _, ...safeUser } = user;
+      // 记录安全事件
+      logger.logSecurityEvent('login_success', {
+        userId: user.id,
+        username: user.username,
+        qq: user.qq,
+        isAdmin: isAdmin,
+        ip: clientIp
+      });
 
-      // 添加管理员标记
+      // 返回用户信息（不包含密码和MongoDB特有字段）
+      const { password: _, _id, __v, ...safeUser } = user;
+
+      // 缓存用户信息到Redis
+      await userCache.set(user.id, safeUser);
+
+      // 构建响应数据
       const responseData = {
         user: safeUser,
-        isAdmin: isAdmin
+        isAdmin: isAdmin,
+        // JWT Token
+        token: accessToken,
+        refreshToken: refreshToken
       };
+
+      // 管理员返回额外 Token
+      if (isAdmin) {
+        responseData.adminToken = adminToken;
+      }
 
       res.json(generateSuccessResponse(responseData, isAdmin ? '管理员登录成功' : '登录成功'));
     } catch (error) {
@@ -352,7 +502,9 @@ const userController = {
   async getUserProfile(req, res) {
     try {
       const userId = req.params.id;
+      const viewerId = req.query.viewerId; // 当前查看者的用户ID
       const { getPostsByUserId } = require('../utils/dataUtils');
+      const Follow = require('../models/Follow');
       
       const user = await getUserById(userId);
       
@@ -360,25 +512,45 @@ const userController = {
         return res.status(404).json(generateErrorResponse('用户不存在'));
       }
       
+      // 判断查看者与用户的关系
+      const isSelf = viewerId === userId;
+      let isFollower = false;
+      
+      if (viewerId && !isSelf) {
+        // 检查是否是粉丝
+        const followStatus = await Follow.findOne({ follower: viewerId, following: userId });
+        isFollower = !!followStatus;
+      }
+      
       // 获取用户的帖子
       const activePosts = await getPostsByUserId(userId, false);
       
+      // 根据用户的帖子时间范围设置过滤帖子
+      const postDisplayRange = user.settings?.privacy?.postDisplayRange || 'all';
+      const filteredPostsByTime = filterPostsByTimeRange(activePosts, postDisplayRange, isSelf);
+      
+      // 根据帖子可见性过滤帖子
+      const filteredPosts = filterPostsByVisibility(filteredPostsByTime, userId, viewerId, isFollower);
+      
+      // 根据隐私设置过滤用户信息
+      const safeUser = filterUserInfoByPrivacy(user, isSelf, isFollower);
+      
       // 计算用户统计数据
       const userStats = {
-        postCount: activePosts.length,
+        postCount: filteredPosts.length,
         commentCount: user.commentCount || 0,
-        totalLikes: activePosts.reduce((sum, post) => sum + (post.likes || 0), 0),
-        totalViews: activePosts.reduce((sum, post) => sum + (post.viewCount || 0), 0),
+        totalLikes: filteredPosts.reduce((sum, post) => sum + (post.likes || 0), 0),
+        totalViews: filteredPosts.reduce((sum, post) => sum + (post.viewCount || 0), 0),
         joinDate: user.createdAt,
         lastLogin: user.lastLogin
       };
       
-      const { password, ...safeUser } = user;
-      
       res.json(generateSuccessResponse({
         user: safeUser,
         stats: userStats,
-        recentPosts: activePosts.slice(0, 10)
+        recentPosts: filteredPosts.slice(0, 10),
+        isSelf,
+        isFollower
       }));
     } catch (error) {
       logger.logError('获取用户资料失败', { error: error.message, userId: req.params.id });
@@ -389,11 +561,10 @@ const userController = {
   // 修改用户资料
   async updateUserProfile(req, res) {
     try {
-      const userId = req.params.id;
-      const { currentPassword, newPassword, username, settings } = req.body;
+      const userId = req.params.id || req.body.userId || (req.user && req.user.id);
+      const { currentPassword, newPassword, username, settings, school, enrollmentYear, className, birthday, gender, signature } = req.body;
       
-      const users = await getUsers();
-      const user = users.find(u => u.id === userId);
+      const user = await getUserById(userId);
       
       if (!user) {
         return res.status(404).json(generateErrorResponse('用户不存在'));
@@ -418,12 +589,51 @@ const userController = {
       
       // 更新用户名（如果提供了）
       if (username && username !== user.username) {
-        // 检查用户名是否已存在
-        const usernameExists = users.some(u => u.username === username && u.id !== userId);
-        if (usernameExists) {
+        // 检查用户名是否已存在（直接查询，避免全量加载）
+        const existingUser = await User.findOne({ username, id: { $ne: userId } });
+        if (existingUser) {
           return res.status(400).json(generateErrorResponse('用户名已存在'));
         }
         updateData.username = username;
+      }
+      
+      // 更新学校（如果提供了）
+      if (school && school !== user.school) {
+        updateData.school = school;
+      }
+      
+      // 更新入学年份（如果提供了）
+      if (enrollmentYear && enrollmentYear !== user.enrollmentYear) {
+        updateData.enrollmentYear = parseInt(enrollmentYear);
+        // 重新计算年级
+        const currentGrade = calculateCurrentGrade(enrollmentYear);
+        updateData.grade = currentGrade;
+      }
+      
+      // 更新班级（如果提供了）
+      if (className && className !== user.className) {
+        updateData.className = className;
+      }
+      
+      // 更新出生日期（如果提供了）
+      if (birthday !== undefined) {
+        updateData.birthday = birthday || null;
+      }
+      
+      // 更新性别（如果提供了）
+      if (gender !== undefined) {
+        const validGenders = ['male', 'female', 'other', 'secret', ''];
+        if (gender && !validGenders.includes(gender)) {
+          return res.status(400).json(generateErrorResponse('无效的性别值'));
+        }
+        // "secret" 在客户端表示保密，映射为空字符串（不在资料页显示）
+        updateData.gender = (gender === 'secret') ? '' : (gender || '');
+      }
+      
+      // 更新个性签名（如果提供了）
+      if (signature !== undefined) {
+        const currentSettings = user.settings || {};
+        updateData.settings = { ...currentSettings, ...updateData.settings, signature: signature || '' };
       }
       
       // 更新设置（如果提供了）
@@ -431,17 +641,20 @@ const userController = {
         // 确保用户有settings对象
         const currentSettings = user.settings || {};
         
-        // 合并设置（浅合并）
-        updateData.settings = { ...currentSettings, ...settings };
+        // 合并设置（浅合并），保留已有的 signature 更新
+        updateData.settings = { ...currentSettings, ...updateData.settings, ...settings };
       }
       
       const updatedUser = await updateUser(userId, updateData);
+      
+      // 清除用户缓存
+      await userCache.delete(userId);
       
       const { password: _, ...safeUser } = updatedUser;
       
       res.json(generateSuccessResponse({ user: safeUser }, '资料更新成功'));
     } catch (error) {
-      logger.logError('更新用户资料失败', { error: error.message, userId: req.params.id });
+      logger.logError('更新用户资料失败', { error: error.message, userId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -450,9 +663,10 @@ const userController = {
   async updateUserSettings(req, res) {
     try {
       const userId = req.params.id;
-      const settings = req.body.settings;
+      // 支持两种格式：直接发送设置对象，或发送 { settings: {...} }
+      const settings = req.body.settings || req.body;
       
-      if (!settings || typeof settings !== 'object') {
+      if (!settings || typeof settings !== 'object' || Object.keys(settings).length === 0) {
         return res.status(400).json(generateErrorResponse('设置数据无效'));
       }
       
@@ -465,10 +679,38 @@ const userController = {
       // 确保用户有settings对象
       const currentSettings = user.settings || {};
       
-      // 合并设置（浅合并）
-      const updateData = { settings: { ...currentSettings, ...settings } };
+      // 深度合并设置
+      const mergedSettings = { ...currentSettings };
+      
+      // 处理隐私设置的深度合并
+      if (settings.privacy) {
+        mergedSettings.privacy = {
+          ...currentSettings.privacy,
+          ...settings.privacy
+        };
+        
+        // 处理 profileVisibility 的深度合并
+        if (settings.privacy.profileVisibility) {
+          mergedSettings.privacy.profileVisibility = {
+            ...(currentSettings.privacy?.profileVisibility || {}),
+            ...settings.privacy.profileVisibility
+          };
+        }
+      }
+      
+      // 合并其他设置
+      Object.keys(settings).forEach(key => {
+        if (key !== 'privacy') {
+          mergedSettings[key] = settings[key];
+        }
+      });
+      
+      const updateData = { settings: mergedSettings };
       
       const updatedUser = await updateUser(userId, updateData);
+      
+      // 清除用户缓存
+      await userCache.delete(userId);
       
       const { password: _, ...safeUser } = updatedUser;
       
@@ -489,7 +731,7 @@ const userController = {
       }
       
       // 验证文件类型
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'];
       if (!allowedTypes.includes(req.file.mimetype)) {
         return res.status(400).json(generateErrorResponse('只支持 JPG、PNG、GIF、WEBP 格式的图片'));
       }
@@ -509,6 +751,9 @@ const userController = {
       // 更新用户头像路径
       const avatar = `/images/avatars/${req.file.filename}`;
       const updatedUser = await updateUser(userId, { avatar });
+      
+      // 清除用户缓存
+      await userCache.delete(userId);
       
       const { password: _, ...safeUser } = updatedUser;
       
@@ -536,6 +781,9 @@ const userController = {
       // 删除头像（设置为null，使用默认头像）
       const updatedUser = await updateUser(userId, { avatar: null });
       
+      // 清除用户缓存
+      await userCache.delete(userId);
+      
       const { password: _, ...safeUser } = updatedUser;
       
       res.json(generateSuccessResponse({ 
@@ -556,10 +804,21 @@ const userController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
       
-      const user = await getUserById(userId);
+      // 优先从Redis缓存获取用户信息
+      let user = await userCache.get(userId);
       
       if (!user) {
-        return res.status(404).json(generateErrorResponse('用户不存在'));
+        // 缓存未命中，从数据库获取
+        user = await getUserById(userId);
+        
+        if (!user) {
+          return res.status(404).json(generateErrorResponse('用户不存在'));
+        }
+        
+        // 缓存用户信息
+        const { password: _, _id, __v, ...safeUser } = user;
+        await userCache.set(userId, safeUser);
+        user = safeUser;
       }
       
       // 检查是否是管理员
@@ -570,20 +829,616 @@ const userController = {
       // 检查用户是否被禁用
       const isBanned = user.isActive === false;
       
-      // 返回最新的用户信息
-      const { password: _, ...safeUser } = user;
-      
       res.json(generateSuccessResponse({ 
-        user: safeUser,
+        user: user,
         isAdmin: isAdmin,
-        isBanned: isBanned,
-        valid: true
-      }, '用户验证通过'));
+      isBanned: isBanned,
+      valid: true
+    }, '用户验证通过'));
     } catch (error) {
       logger.logError('验证用户状态失败', { error: error.message, userId: req.body.userId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
+  },
+
+  // 发送邮箱修改验证码（需要验证当前密码）
+  async sendEmailChangeCode(req, res) {
+    try {
+      const { userId, currentPassword, newEmail } = req.body;
+
+      if (!userId) {
+        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      if (!currentPassword) {
+        return res.status(400).json(generateErrorResponse('请输入当前密码'));
+      }
+
+      if (!newEmail) {
+        return res.status(400).json(generateErrorResponse('请输入新邮箱'));
+      }
+
+      // 验证邮箱格式
+      if (!emailRegex.test(newEmail)) {
+        return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
+      }
+
+      // 获取用户信息
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 验证当前密码
+      const isPasswordValid = await comparePassword(currentPassword, user.password);
+      if (!isPasswordValid) {
+        logger.logSecurityEvent('邮箱修改验证码发送失败：密码错误', { userId, ip: req.ip });
+        return res.status(401).json(generateErrorResponse('当前密码错误'));
+      }
+
+      // 检查新邮箱是否已被注册
+      const { isEmailRegistered } = require('../utils/dataUtils');
+      if (await isEmailRegistered(newEmail)) {
+        return res.status(400).json(generateErrorResponse('该邮箱已被其他用户使用'));
+      }
+
+      // 发送验证码到新邮箱
+      await sendVerificationEmail(newEmail, 'emailChange');
+
+      logger.logUserAction('发送邮箱修改验证码', userId, user.username, { newEmail, ip: req.ip });
+
+      res.json(generateSuccessResponse({}, '验证码已发送到新邮箱'));
+    } catch (error) {
+      logger.logError('发送邮箱修改验证码失败', { error: error.message, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse(error.message || '发送验证码失败', 500));
+    }
+  },
+
+  // 验证邮箱修改并完成修改
+  async verifyEmailChange(req, res) {
+    try {
+      const { userId, verificationCode, newEmail } = req.body;
+
+      if (!userId) {
+        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      if (!verificationCode) {
+        return res.status(400).json(generateErrorResponse('验证码不能为空'));
+      }
+
+      if (!newEmail) {
+        return res.status(400).json(generateErrorResponse('新邮箱不能为空'));
+      }
+
+      // 获取用户信息
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 验证验证码
+      const codeVerification = await verifyCode(newEmail, verificationCode);
+      if (!codeVerification.valid) {
+        logger.logSecurityEvent('邮箱修改验证码验证失败', { userId, newEmail, ip: req.ip });
+        return res.status(400).json(generateErrorResponse(codeVerification.message));
+      }
+
+      // 再次检查邮箱是否已被注册
+      const { isEmailRegistered } = require('../utils/dataUtils');
+      if (await isEmailRegistered(newEmail)) {
+        return res.status(400).json(generateErrorResponse('该邮箱已被其他用户使用'));
+      }
+
+      // 更新邮箱
+      const updatedUser = await updateUser(userId, { email: newEmail.toLowerCase() });
+
+      logger.logUserAction('邮箱修改成功', userId, user.username, { 
+        oldEmail: user.email, 
+        newEmail: newEmail.toLowerCase(), 
+        ip: req.ip 
+      });
+
+      const { password: _, ...safeUser } = updatedUser;
+
+      res.json(generateSuccessResponse({ user: safeUser }, '邮箱修改成功'));
+    } catch (error) {
+      logger.logError('验证邮箱修改失败', { error: error.message, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 修改QQ号
+  async changeQQ(req, res) {
+    try {
+      const { userId, newQQ, qq } = req.body;
+      const qqNumber = newQQ || qq;
+
+      if (!userId) {
+        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      if (!qqNumber) {
+        return res.status(400).json(generateErrorResponse('请输入新QQ号'));
+      }
+
+      // 验证QQ号格式
+      const qqRegex = /^[1-9]\d{4,14}$/;
+      if (!qqRegex.test(qqNumber)) {
+        return res.status(400).json(generateErrorResponse('请输入有效的QQ号（5-15位数字）'));
+      }
+
+      // 获取用户信息
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 检查新QQ号是否已被其他用户使用
+      if (await isQQRegistered(qqNumber) && user.qq !== qqNumber) {
+        return res.status(400).json(generateErrorResponse('该QQ号已被其他用户使用'));
+      }
+
+      // 更新QQ号
+      await updateUser(userId, { qq: qqNumber });
+
+      // 重新获取更新后的用户信息
+      const updatedUser = await getUserById(userId);
+
+      logger.logUserAction('QQ号修改成功', userId, user.username, { 
+        oldQQ: user.qq, 
+        newQQ: qqNumber, 
+        ip: req.ip 
+      });
+
+      const { password: _, ...safeUser } = updatedUser;
+
+      res.json(generateSuccessResponse({ user: safeUser }, 'QQ号修改成功'));
+    } catch (error) {
+      logger.logError('修改QQ号失败', { error: error.message, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 刷新访问令牌
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return res.status(400).json(generateErrorResponse('刷新令牌不能为空'));
+      }
+
+      const { verifyToken, generateAccessToken, invalidateToken } = require('../middleware/jwtAuth');
+
+      // 验证刷新令牌
+      const result = verifyToken(refreshToken);
+
+      if (!result.valid || result.decoded.type !== 'refresh') {
+        return res.status(401).json(generateErrorResponse('无效的刷新令牌'));
+      }
+
+      // 获取用户信息
+      const user = await getUserById(result.decoded.userId);
+      if (!user) {
+        return res.status(401).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 生成新的访问令牌
+      const newAccessToken = generateAccessToken(user.id, {
+        username: user.username,
+        qq: user.qq
+      });
+
+      res.json(generateSuccessResponse({
+        token: newAccessToken
+      }, '令牌刷新成功'));
+    } catch (error) {
+      logger.logError('刷新令牌失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 用户登出
+  async logout(req, res) {
+    try {
+      const { token } = req.body;
+
+      if (token) {
+        const { invalidateToken } = require('../middleware/jwtAuth');
+        await invalidateToken(token);
+      }
+
+      logger.logSecurityEvent('logout', {
+        ip: req.ip,
+        userId: req.user?.id
+      });
+
+      res.json(generateSuccessResponse({}, '登出成功'));
+    } catch (error) {
+      logger.logError('登出失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 管理员登出
+  async adminLogout(req, res) {
+    try {
+      const { token } = req.body;
+
+      if (token) {
+        const { invalidateToken } = require('../middleware/jwtAuth');
+        await invalidateToken(token, true);
+      }
+
+      logger.logSecurityEvent('admin_logout', {
+        ip: req.ip,
+        adminId: req.admin?.id
+      });
+
+      res.json(generateSuccessResponse({}, '管理员登出成功'));
+    } catch (error) {
+      logger.logError('管理员登出失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 发送账户注销验证码
+  async sendDeletionCode(req, res) {
+    try {
+      const { userId, password } = req.body;
+
+      if (!userId || !password) {
+        return res.status(400).json(generateErrorResponse('用户ID和密码不能为空'));
+      }
+
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 验证密码
+      const isPasswordValid = await comparePassword(password, user.password);
+      if (!isPasswordValid) {
+        logger.logSecurityEvent('账户注销验证码发送失败：密码错误', { userId, ip: req.ip });
+        return res.status(401).json(generateErrorResponse('密码错误'));
+      }
+
+      // 发送验证码邮件
+      await sendVerificationEmail(user.email, 'deletion');
+
+      logger.logUserAction('发送账户注销验证码', userId, user.username, {
+        ip: req.ip
+      });
+
+      res.json(generateSuccessResponse({ 
+        maskedEmail: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') 
+      }, '验证码已发送到您的邮箱'));
+    } catch (error) {
+      logger.logError('发送账户注销验证码失败', { error: error.message });
+      res.status(500).json(generateErrorResponse(error.message || '发送验证码失败', 500));
+    }
+  },
+
+  // 注销用户账户
+  async deleteAccount(req, res) {
+    try {
+      const { userId, password, verificationCode, keepData } = req.body;
+
+      if (!userId || !password || !verificationCode) {
+        return res.status(400).json(generateErrorResponse('缺少必要参数'));
+      }
+
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 验证密码
+      const isPasswordValid = await comparePassword(password, user.password);
+      if (!isPasswordValid) {
+        logger.logSecurityEvent('账户注销失败：密码错误', { userId, ip: req.ip });
+        return res.status(401).json(generateErrorResponse('密码错误'));
+      }
+
+      // 验证验证码
+      const codeVerification = await verifyCode(user.email, verificationCode, 'deletion');
+      if (!codeVerification.valid) {
+        logger.logSecurityEvent('账户注销失败：验证码错误', { userId, ip: req.ip });
+        return res.status(400).json(generateErrorResponse(codeVerification.message));
+      }
+
+      const keepPosts = keepData === true || keepData === 'true';
+      const Post = require('../models/Post');
+      const Follow = require('../models/Follow');
+      const Favorite = require('../models/Favorite');
+      const Notification = require('../models/Notification');
+      const Blacklist = require('../models/Blacklist');
+      const Message = require('../models/Message');
+      const Conversation = require('../models/Conversation');
+      const User = require('../models/User');
+
+      // 如果不保留数据，删除用户相关数据
+      if (!keepPosts) {
+        // 删除用户的所有帖子
+        await Post.deleteMany({ userId });
+        
+        // 删除用户的所有收藏
+        await Favorite.deleteMany({ userId });
+        
+        // 删除用户的黑名单
+        await Blacklist.deleteMany({ $or: [{ blocker: userId }, { blocked: userId }] });
+      } else {
+        // 保留数据但匿名化帖子
+        await Post.updateMany(
+          { userId },
+          { 
+            $set: { 
+              userId: 'deleted_' + userId,
+              username: '已注销用户',
+              userAvatar: null
+            } 
+          }
+        );
+      }
+      
+      // 删除关注关系
+      await Follow.deleteMany({ $or: [{ follower: userId }, { following: userId }] });
+      
+      // 删除通知
+      await Notification.deleteMany({ $or: [{ recipientId: userId }, { senderId: userId }] });
+      
+      // 删除消息和会话
+      await Message.deleteMany({ $or: [{ senderId: userId }, { recipientId: userId }] });
+      await Conversation.deleteMany({ participants: userId });
+      
+      // 删除用户头像文件
+      if (user.avatar) {
+        const fs = require('fs');
+        const path = require('path');
+        const avatarPath = path.join(__dirname, '../../public', user.avatar);
+        if (fs.existsSync(avatarPath)) {
+          fs.unlinkSync(avatarPath);
+        }
+      }
+      
+      // 删除用户账户
+      await User.deleteOne({ id: userId });
+      
+      // 清除缓存
+      await userCache.delete(userId);
+      
+      logger.logUserAction('账户注销成功', userId, user.username, {
+        ip: req.ip,
+        keepData: keepPosts
+      });
+      
+      res.json(generateSuccessResponse({}, '账户已注销'));
+    } catch (error) {
+      logger.logError('注销账户失败', { error: error.message, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 获取通知设置
+  async getNotificationSettings(req, res) {
+    try {
+      const { userId } = req.params;
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+      
+      const settings = user.settings?.notifications || {
+        like: true,
+        comment: true,
+        commentReply: true,
+        commentLike: true,
+        follow: true,
+        system: true
+      };
+      
+      res.json(generateSuccessResponse({ settings }));
+    } catch (error) {
+      logger.logError('获取通知设置失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 更新通知设置
+  async updateNotificationSettings(req, res) {
+    try {
+      const { userId, type, enabled } = req.body;
+      
+      if (!userId || !type) {
+        return res.status(400).json(generateErrorResponse('缺少必要参数'));
+      }
+      
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+      
+      if (!user.settings) {
+        user.settings = {};
+      }
+      if (!user.settings.notifications) {
+        user.settings.notifications = {
+          like: true,
+          comment: true,
+          commentReply: true,
+          commentLike: true,
+          follow: true,
+          system: true
+        };
+      }
+      
+      user.settings.notifications[type] = enabled === 'true' || enabled === true;
+      await updateUser(userId, { 'settings.notifications': user.settings.notifications });
+      
+      res.json(generateSuccessResponse({}, '设置已更新'));
+    } catch (error) {
+      logger.logError('更新通知设置失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 更新隐私设置
+  async updatePrivacySettings(req, res) {
+    try {
+      const { userId, field, value } = req.body;
+      
+      if (!userId || !field || !value) {
+        return res.status(400).json(generateErrorResponse('缺少必要参数'));
+      }
+      
+      const user = await getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+      
+      if (!user.privacySettings) {
+        user.privacySettings = {
+          gender: 'public',
+          birthday: 'public',
+          school: 'public',
+          signature: 'public',
+          joinDate: 'public',
+          lastLogin: 'public'
+        };
+      }
+      
+      user.privacySettings[field] = value;
+      await updateUser(userId, { privacySettings: user.privacySettings });
+      
+      res.json(generateSuccessResponse({}, '设置已更新'));
+    } catch (error) {
+      logger.logError('更新隐私设置失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
   }
 };
+
+// 辅助函数：根据时间范围过滤帖子
+function filterPostsByTimeRange(posts, range, isSelf) {
+  // 如果是自己查看，显示所有帖子
+  if (isSelf) {
+    return posts;
+  }
+  
+  const now = new Date();
+  let cutoffDate;
+  
+  switch (range) {
+    case '3days':
+      cutoffDate = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      break;
+    case '7days':
+      cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case '1month':
+      cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case '6months':
+      cutoffDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+      break;
+    case '1year':
+      cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      break;
+    case 'all':
+    default:
+      return posts;
+  }
+  
+  return posts.filter(post => new Date(post.timestamp) >= cutoffDate);
+}
+
+// 辅助函数：根据帖子可见性过滤帖子
+function filterPostsByVisibility(posts, authorId, viewerId, isFollower) {
+  return posts.filter(post => {
+    const visibility = post.visibility || 'public';
+    
+    // 公开帖子：所有人可见
+    if (visibility === 'public') {
+      return true;
+    }
+    
+    // 仅自己可见：只有作者可见
+    if (visibility === 'self') {
+      return viewerId === authorId;
+    }
+    
+    // 仅粉丝可见：粉丝和作者可见
+    if (visibility === 'followers') {
+      return viewerId === authorId || isFollower;
+    }
+    
+    return true;
+  });
+}
+
+// 辅助函数：根据隐私设置过滤用户信息
+function filterUserInfoByPrivacy(user, isSelf, isFollower) {
+  const { password, ...safeUser } = user;
+  
+  // 如果是自己，显示所有信息
+  if (isSelf) {
+    return safeUser;
+  }
+  
+  const profileVisibility = user.settings?.privacy?.profileVisibility || {};
+  
+  // 检查某个字段是否可见
+  const isFieldVisible = (field) => {
+    const visibility = profileVisibility[field] || 'public';
+    if (visibility === 'public') return true;
+    if (visibility === 'followers') return isFollower;
+    if (visibility === 'self') return false;
+    return true;
+  };
+  
+  // 过滤个人信息
+  const filteredUser = { ...safeUser };
+  
+  if (!isFieldVisible('gender')) {
+    filteredUser.gender = '';
+  }
+  
+  if (!isFieldVisible('birthday')) {
+    filteredUser.birthday = null;
+  }
+  
+  if (!isFieldVisible('school')) {
+    filteredUser.school = '';
+    filteredUser.grade = '';
+    filteredUser.className = '';
+  }
+  
+  if (!isFieldVisible('signature')) {
+    if (filteredUser.settings) {
+      filteredUser.settings = { ...filteredUser.settings, signature: '' };
+    } else {
+      filteredUser.settings = { signature: '' };
+    }
+  }
+  
+  if (!isFieldVisible('joinDate')) {
+    filteredUser.createdAt = null;
+  }
+  
+  if (!isFieldVisible('lastLogin')) {
+    filteredUser.lastLogin = null;
+  }
+  
+  return filteredUser;
+}
 
 module.exports = userController;

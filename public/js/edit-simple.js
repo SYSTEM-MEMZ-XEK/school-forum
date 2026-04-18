@@ -132,6 +132,13 @@ const simpleEditManager = {
         this.renderExistingImages(post.images);
       }
       
+      // 设置可见性
+      const visibility = post.visibility || 'public';
+      const visibilityRadio = document.querySelector(`input[name="post-visibility"][value="${visibility}"]`);
+      if (visibilityRadio) {
+        visibilityRadio.checked = true;
+      }
+      
       utils.showNotification('帖子内容已加载', 'info');
     } catch (error) {
       console.error('加载帖子失败:', error);
@@ -571,7 +578,7 @@ const simpleEditManager = {
     const filesArray = Array.from(files).slice(0, remainingSlots);
     
     filesArray.forEach(file => {
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'];
       if (!allowedTypes.includes(file.type)) {
         utils.showNotification(`文件 "${file.name}" 不是支持的图片格式`, 'error');
         return;
@@ -719,6 +726,10 @@ const simpleEditManager = {
   updatePost: async function() {
     const content = this.dom.contentInput?.value;
     
+    // 获取可见性设置
+    const visibilityRadio = document.querySelector('input[name="post-visibility"]:checked');
+    const visibility = visibilityRadio ? visibilityRadio.value : 'public';
+    
     // 禁用按钮防止重复提交
     if (this.dom.submitPostBtn) {
       this.dom.submitPostBtn.disabled = true;
@@ -756,6 +767,7 @@ const simpleEditManager = {
       formData.append('userId', this.state.currentUser.id);
       formData.append('content', processedContent);
       formData.append('deletedImages', JSON.stringify(this.state.deletedImages));
+      formData.append('visibility', visibility);
       
       // 添加新图片文件
       this.state.selectedImages.forEach((image) => {
@@ -781,7 +793,9 @@ const simpleEditManager = {
       }
       
       if (data.success) {
-        utils.showNotification('帖子修改成功！', 'success');
+        const visibilityText = visibility === 'public' ? '' : 
+          visibility === 'followers' ? '（仅粉丝可见）' : '（仅自己可见）';
+        utils.showNotification(`帖子修改成功${visibilityText}！`, 'success');
         
         // 延迟跳转到帖子详情页
         setTimeout(() => {
@@ -807,6 +821,10 @@ const simpleEditManager = {
   // 提交新帖子
   submitNewPost: async function() {
     const content = this.dom.contentInput?.value;
+    
+    // 获取可见性设置
+    const visibilityRadio = document.querySelector('input[name="post-visibility"]:checked');
+    const visibility = visibilityRadio ? visibilityRadio.value : 'public';
     
     // 禁用按钮防止重复提交
     if (this.dom.submitPostBtn) {
@@ -874,6 +892,7 @@ const simpleEditManager = {
       formData.append('anonymous', 'false');
       formData.append('title', '');
       formData.append('tags', '');
+      formData.append('visibility', visibility);
       
       // 添加图片文件
       this.state.selectedImages.forEach((image) => {
@@ -893,7 +912,9 @@ const simpleEditManager = {
       
       const data = await response.json();
       if (data.success) {
-        utils.showNotification(`帖子发布成功${this.state.selectedImages.length > 0 ? '，包含' + this.state.selectedImages.length + '张图片' : ''}！`, 'success');
+        const visibilityText = visibility === 'public' ? '' : 
+          visibility === 'followers' ? '（仅粉丝可见）' : '（仅自己可见）';
+        utils.showNotification(`帖子发布成功${visibilityText}${this.state.selectedImages.length > 0 ? '，包含' + this.state.selectedImages.length + '张图片' : ''}！`, 'success');
         
         // 清空表单
         if (this.dom.contentInput) this.dom.contentInput.value = '';
@@ -922,7 +943,7 @@ const simpleEditManager = {
         this.dom.submitPostBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发布帖子';
       }
     }
-  }
+  },
 };
 
 // 当DOM加载完成后初始化

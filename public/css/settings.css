@@ -347,7 +347,9 @@
 }
 
 .settings-form input[type="text"],
-.settings-form input[type="password"] {
+.settings-form input[type="password"],
+.settings-form input[type="email"],
+.settings-form input[type="date"] {
   width: 100%;
   padding: 12px 15px;
   border: 1px solid var(--border-color);
@@ -356,6 +358,20 @@
   background: var(--background-card);
   color: var(--text-color);
   transition: var(--transition);
+}
+
+.settings-form input[type="date"] {
+  cursor: pointer;
+}
+
+.settings-form input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.settings-form input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .settings-form input:focus {
@@ -666,6 +682,105 @@
   font-size: 14px;
   line-height: 1.5;
   flex: 1;
+}
+
+/* 隐私设置样式 */
+.privacy-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.privacy-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--background-light);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.privacy-item:hover {
+  border-color: var(--primary-light);
+}
+
+.privacy-item-info {
+  flex: 1;
+}
+
+.privacy-item-info h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.privacy-item-info h3 i {
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.privacy-item-info p {
+  font-size: 13px;
+  color: var(--text-light);
+  margin: 0;
+}
+
+/* 开关样式 */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-color);
+  transition: 0.3s;
+  border-radius: 26px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--primary-color);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
 }
 
 /* 设置页面加载动画 */
@@ -1123,4 +1238,308 @@
   .password-step-actions .settings-button {
     width: 100%;
   }
+}
+
+/* 隐私设置分区样式 */
+.privacy-settings-section {
+  margin-bottom: 30px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.privacy-settings-section:last-of-type {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.privacy-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.privacy-section-title i {
+  color: var(--primary-color);
+}
+
+.privacy-section-desc {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* 个人信息可见性设置网格 */
+.visibility-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .visibility-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.visibility-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--background-light);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.visibility-setting-item:hover {
+  border-color: var(--primary-light);
+  background: var(--background-card);
+}
+
+.visibility-setting-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.visibility-setting-label i {
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.visibility-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--background-card);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 120px;
+}
+
+.visibility-select:hover {
+  border-color: var(--primary-color);
+}
+
+.visibility-select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* 深色模式下的可见性设置 */
+[data-theme="dark"] .visibility-setting-item {
+  background: var(--background-card);
+}
+
+[data-theme="dark"] .visibility-select {
+  background: var(--background-light);
+}
+
+/* 账户注销样式 */
+.deletion-warning {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #fff8e7;
+  border: 1px solid #fbbf24;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.deletion-warning .warning-icon {
+  font-size: 24px;
+  color: #f59e0b;
+}
+
+.deletion-warning .warning-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #92400e;
+}
+
+.deletion-warning .warning-content ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #78350f;
+}
+
+.deletion-warning .warning-content li {
+  margin: 4px 0;
+}
+
+.deletion-options {
+  margin: 20px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px;
+  background: var(--background-card);
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.checkbox-label:hover {
+  background: var(--primary-light);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.deletion-actions {
+  margin-top: 20px;
+}
+
+.settings-button.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.settings-button.danger:hover {
+  background: #dc2626;
+}
+
+/* 注销对话框样式 */
+.deletion-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.deletion-modal-content {
+  background: var(--background-card);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+}
+
+.deletion-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.deletion-modal-header h3 {
+  margin: 0;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deletion-modal-header .close-modal {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-light);
+}
+
+.deletion-modal-body {
+  padding: 20px;
+}
+
+.deletion-step .step-description {
+  color: var(--text-light);
+  margin-bottom: 16px;
+}
+
+.deletion-step .form-group {
+  margin-bottom: 16px;
+}
+
+.deletion-step .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.deletion-step .form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--background-light);
+  color: var(--text-color);
+}
+
+.deletion-step-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.deletion-step-actions .settings-button {
+  flex: 1;
+}
+
+.deletion-success {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.deletion-success i {
+  font-size: 64px;
+  color: #22c55e;
+  margin-bottom: 16px;
+}
+
+.deletion-success h3 {
+  margin: 0 0 8px 0;
+  color: var(--text-color);
+}
+
+.deletion-success p {
+  color: var(--text-light);
+}
+
+/* 深色模式下的注销样式 */
+[data-theme="dark"] .deletion-warning {
+  background: #422006;
+  border-color: #f59e0b;
+}
+
+[data-theme="dark"] .deletion-warning .warning-content h3 {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .deletion-warning .warning-content ul {
+  color: #fcd34d;
 }

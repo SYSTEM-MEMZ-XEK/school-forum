@@ -317,9 +317,10 @@ const followListManager = {
     btn.disabled = true;
 
     try {
-      const method = isFollowing ? 'DELETE' : 'POST';
-      const response = await fetch('/follow', {
-        method: method,
+      // 关注使用 POST /follow，取消关注使用 POST /unfollow
+      const url = isFollowing ? '/unfollow' : '/follow';
+      const response = await fetch(url, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           followerId: this.state.currentUser.id,

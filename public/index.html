@@ -106,7 +106,13 @@
                 <i class="fas fa-cog"></i> 设置
               </a>
               <a href="message.html" class="header-menu-item">
-                <i class="fas fa-bell"></i> 消息
+                <i class="fas fa-bell"></i> 消息通知
+              </a>
+              <a href="chat.html" class="header-menu-item">
+                <i class="fas fa-envelope"></i> 私信
+              </a>
+              <a href="blacklist.html" class="header-menu-item">
+                <i class="fas fa-ban"></i> 黑名单
               </a>
               <div class="header-menu-divider"></div>
               <button id="header-logout-btn" class="header-menu-item logout">
@@ -124,12 +130,34 @@
           </a>
         </div>
         
+        <!-- 私信按钮（登录后显示） -->
+        <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
+          <a href="chat.html">
+            <i class="fas fa-envelope"></i>
+            <span id="chat-badge" class="message-badge" style="display: none;">0</span>
+          </a>
+        </div>
+        
         <!-- 登录/注册按钮（未登录时显示） -->
         <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
         <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
       </div>
     </div>
   </header>
+  
+  <!-- 公告横幅 -->
+  <div id="announcement-banner" class="announcement-banner" style="display: none;">
+    <div class="announcement-banner-content">
+      <i class="fas fa-bullhorn"></i>
+      <div class="announcement-banner-text">
+        <span id="announcement-banner-title"></span>
+        <span id="announcement-banner-message"></span>
+      </div>
+    </div>
+    <button class="announcement-close" onclick="closeAnnouncementBanner()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
   
   <div class="container">
     <div class="main-content">
@@ -166,6 +194,15 @@
           <div class="posts-section-header">
             <h2 class="section-title">最新帖子</h2>
           </div>
+          
+          <!-- 公告列表 -->
+          <div id="announcements-list" class="announcements-list-container" style="display: none;">
+            <div class="announcements-section-header">
+              <h3><i class="fas fa-bullhorn"></i> 公告通知</h3>
+            </div>
+            <div id="announcements-items"></div>
+          </div>
+          
           <div class="search-results-info" id="search-results-info" style="display: none;">
             <span id="search-keyword"></span>
             <button class="clear-search-btn" id="clear-search-btn">清除搜索</button>

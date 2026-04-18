@@ -12,7 +12,9 @@ const profileManager = {
     isFollowing: false, // 当前用户是否关注了该用户
     followingCount: 0, // 关注数
     followerCount: 0, // 粉丝数
-    isCurrentUser: false // 是否是当前用户的个人主页
+    isCurrentUser: false, // 是否是当前用户的个人主页
+    isBlocked: false, // 当前用户是否拉黑了该用户
+    isBlockedBy: false // 该用户是否拉黑了当前用户
   },
 
   // DOM元素
@@ -35,9 +37,11 @@ const profileManager = {
     followingCount: document.getElementById('following-count'),
     followerCount: document.getElementById('follower-count'),
     followBtn: document.getElementById('follow-btn'),
+    messageBtn: document.getElementById('message-btn'),
     profileActions: document.getElementById('profile-actions'),
     followingStat: document.getElementById('following-stat'),
-    followerStat: document.getElementById('follower-stat')
+    followerStat: document.getElementById('follower-stat'),
+    blockBtn: document.getElementById('block-btn')
   },
 
   // 初始化
@@ -146,7 +150,16 @@ const profileManager = {
   // 加载用户个人资料
   loadUserProfile: async function() {
     try {
-      const response = await fetch(`/users/${this.state.userId}`);
+      // 获取当前登录用户ID用于帖子可见性过滤
+      const currentUser = userManager.state.currentUser || 
+        (localStorage.getItem('forumUser') ? JSON.parse(localStorage.getItem('forumUser')) : null);
+      const viewerId = currentUser ? currentUser.id : '';
+      
+      const url = viewerId 
+        ? `/users/${this.state.userId}?viewerId=${encodeURIComponent(viewerId)}`
+        : `/users/${this.state.userId}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
       }
@@ -158,6 +171,7 @@ const profileManager = {
         this.state.userData = data.user;
         this.state.userStats = data.stats;
         this.state.userPosts = data.recentPosts || [];
+        this.state.isCurrentUser = data.isSelf || false;
         
         this.renderUserProfile();
         this.renderUserPosts();
@@ -202,6 +216,31 @@ const profileManager = {
       `已毕业 · ${user.school} ${user.enrollmentYear}级 ${user.className}` :
       `${user.school} · ${user.grade} ${user.className}`;
     this.dom.profileClass.textContent = gradeDisplay;
+    
+    // 渲染性别
+    const genderEl = document.getElementById('profile-gender');
+    const genderText = document.getElementById('gender-text');
+    if (genderEl && genderText && user.gender) {
+      const genderMap = { 'male': '男', 'female': '女', 'other': '其他' };
+      if (genderMap[user.gender]) {
+        genderText.textContent = genderMap[user.gender];
+        genderEl.style.display = 'inline-flex';
+      }
+    }
+    
+    // 渲染出生日期
+    const birthdayEl = document.getElementById('profile-birthday');
+    const birthdayText = document.getElementById('birthday-text');
+    if (birthdayEl && birthdayText && user.birthday) {
+      const birthday = new Date(user.birthday);
+      const today = new Date();
+      const age = today.getFullYear() - birthday.getFullYear();
+      const monthDiff = today.getMonth() - birthday.getMonth();
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate()) ? age - 1 : age;
+      
+      birthdayText.textContent = `${birthday.toLocaleDateString('zh-CN')} (${actualAge}岁)`;
+      birthdayEl.style.display = 'inline-flex';
+    }
     
     // 渲染统计数据
     const stats = this.calculateUserStats();
@@ -504,6 +543,13 @@ const profileManager = {
       });
     }
     
+    // 发私信按钮事件
+    if (this.dom.messageBtn) {
+      this.dom.messageBtn.addEventListener('click', function() {
+        window.location.href = `chat.html?user=${self.state.userId}`;
+      });
+    }
+    
     // 点击关注数
     if (this.dom.followingStat) {
       this.dom.followingStat.addEventListener('click', function() {
@@ -648,10 +694,10 @@ const profileManager = {
   },
 
   // 设置关注按钮
-  setupFollowButton: function() {
+  setupFollowButton: async function() {
     if (!this.dom.profileActions || !this.dom.followBtn) return;
     
-    // 如果是当前用户的个人主页，不显示关注按钮
+    // 如果是当前用户的个人主页，不显示关注和私信按钮
     if (this.state.isCurrentUser) {
       this.dom.profileActions.style.display = 'none';
       return;
@@ -664,9 +710,30 @@ const profileManager = {
       return;
     }
     
-    // 显示关注按钮
+    // 检查拉黑状态
+    await this.checkBlockStatus();
+    
+    // 显示关注和私信按钮
     this.dom.profileActions.style.display = 'block';
+    if (this.dom.messageBtn) {
+      this.dom.messageBtn.style.display = 'inline-flex';
+    }
+    
+    // 添加拉黑按钮（如果不存在）
+    if (!this.dom.blockBtn) {
+      this.dom.blockBtn = document.createElement('button');
+      this.dom.blockBtn.className = 'block-btn';
+      this.dom.blockBtn.id = 'block-btn';
+      this.dom.profileActions.appendChild(this.dom.blockBtn);
+      
+      const self = this;
+      this.dom.blockBtn.addEventListener('click', function() {
+        self.handleBlockClick();
+      });
+    }
+    
     this.updateFollowButton();
+    this.updateBlockButton();
   },
 
   // 更新关注按钮状态
@@ -699,9 +766,10 @@ const profileManager = {
     this.dom.followBtn.classList.add('processing');
     
     try {
-      const method = this.state.isFollowing ? 'DELETE' : 'POST';
-      const response = await fetch('/follow', {
-        method: method,
+      // 关注使用 POST /follow，取消关注使用 POST /unfollow
+      const url = this.state.isFollowing ? '/unfollow' : '/follow';
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -746,5 +814,120 @@ const profileManager = {
   showFollowList: function(type) {
     // 跳转到关注/粉丝列表页面
     window.location.href = `follow-list.html?id=${this.state.userId}&type=${type}`;
+  },
+
+  // 检查拉黑状态
+  checkBlockStatus: async function() {
+    const currentUser = userManager.state.currentUser;
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(`/block/status?blockerId=${currentUser.id}&blockedId=${this.state.userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          this.state.isBlocked = data.isBlocked;
+          this.state.isBlockedBy = data.isBlockedBy;
+        }
+      }
+    } catch (error) {
+      console.error('检查拉黑状态失败:', error);
+    }
+  },
+
+  // 更新拉黑按钮状态
+  updateBlockButton: function() {
+    if (!this.dom.blockBtn) return;
+    
+    // 如果被对方拉黑，禁用关注按钮
+    if (this.state.isBlockedBy) {
+      if (this.dom.followBtn) {
+        this.dom.followBtn.disabled = true;
+        this.dom.followBtn.innerHTML = '<i class="fas fa-ban"></i> 已被对方拉黑';
+        this.dom.followBtn.classList.add('disabled');
+      }
+      if (this.dom.messageBtn) {
+        this.dom.messageBtn.disabled = true;
+        this.dom.messageBtn.classList.add('disabled');
+      }
+    }
+    
+    if (this.state.isBlocked) {
+      this.dom.blockBtn.innerHTML = '<i class="fas fa-unlock"></i> 解除拉黑';
+      this.dom.blockBtn.classList.add('blocked');
+      this.dom.blockBtn.title = '解除拉黑后，对方可以关注您和查看您的帖子';
+    } else {
+      this.dom.blockBtn.innerHTML = '<i class="fas fa-ban"></i> 拉黑';
+      this.dom.blockBtn.classList.remove('blocked');
+      this.dom.blockBtn.title = '拉黑后，对方无法关注您或查看您的帖子';
+    }
+  },
+
+  // 处理拉黑按钮点击
+  handleBlockClick: async function() {
+    const currentUser = userManager.state.currentUser;
+    if (!currentUser) {
+      utils.showNotification('请先登录', 'error');
+      window.location.href = 'login.html';
+      return;
+    }
+    
+    // 防止重复点击
+    if (this.dom.blockBtn.classList.contains('processing')) {
+      return;
+    }
+    
+    // 确认操作
+    const action = this.state.isBlocked ? '解除拉黑' : '拉黑';
+    const username = this.state.userData ? this.state.userData.username : '该用户';
+    if (!confirm(`确定要${action}${username}吗？`)) {
+      return;
+    }
+    
+    this.dom.blockBtn.classList.add('processing');
+    
+    try {
+      // 拉黑使用 POST /block，取消拉黑使用 POST /unblock
+      const url = this.state.isBlocked ? '/unblock' : '/block';
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          blockerId: currentUser.id,
+          blockedId: this.state.userId
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '操作失败');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        this.state.isBlocked = data.blocked;
+        this.updateBlockButton();
+        
+        // 如果是拉黑操作，更新关注状态
+        if (data.blocked && this.state.isFollowing) {
+          this.state.isFollowing = false;
+          this.updateFollowButton();
+          this.state.followerCount = Math.max(0, this.state.followerCount - 1);
+          if (this.dom.followerCount) {
+            this.dom.followerCount.textContent = this.state.followerCount;
+          }
+        }
+        
+        utils.showNotification(data.message || (data.blocked ? '拉黑成功' : '解除拉黑成功'), 'success');
+      }
+    } catch (error) {
+      console.error('拉黑操作失败:', error);
+      utils.showNotification(error.message || '操作失败', 'error');
+    } finally {
+      this.dom.blockBtn.classList.remove('processing');
+    }
   }
 };

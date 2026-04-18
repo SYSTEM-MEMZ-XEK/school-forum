@@ -75,10 +75,24 @@ const reportController = {
         targetUsername = post.username;
         postId = targetId;
       } else if (targetType === 'comment') {
+        // 递归查找评论或回复
+        const findCommentOrReply = (comments, targetId) => {
+          for (const comment of comments) {
+            if (comment.id === targetId) {
+              return comment;
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              const found = findCommentOrReply(comment.replies, targetId);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
         let foundComment = false;
         for (const post of posts) {
           if (post.comments) {
-            const comment = post.comments.find(c => c.id === targetId);
+            const comment = findCommentOrReply(post.comments, targetId);
             if (comment) {
               targetContent = comment.content;
               targetUserId = comment.userId;
@@ -307,11 +321,26 @@ const reportController = {
             });
           } else if (report.targetType === 'comment') {
             const posts = await getPosts();
+            
+            // 递归删除评论或回复
+            const removeCommentOrReply = (comments, targetId) => {
+              for (let i = 0; i < comments.length; i++) {
+                if (comments[i].id === targetId) {
+                  comments.splice(i, 1);
+                  return true;
+                }
+                if (comments[i].replies && comments[i].replies.length > 0) {
+                  if (removeCommentOrReply(comments[i].replies, targetId)) {
+                    return true;
+                  }
+                }
+              }
+              return false;
+            };
+
             for (const post of posts) {
               if (post.comments) {
-                const commentIndex = post.comments.findIndex(c => c.id === report.targetId);
-                if (commentIndex !== -1) {
-                  post.comments.splice(commentIndex, 1);
+                if (removeCommentOrReply(post.comments, report.targetId)) {
                   await updatePost(post.id, { comments: post.comments });
                   break;
                 }

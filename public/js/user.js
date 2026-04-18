@@ -30,6 +30,17 @@ const userManager = {
     this.checkAutoLogin();
   },
 
+  // 异步初始化（返回 Promise，允许调用者等待初始化完成）
+  initAsync: function() {
+    // 防止重复初始化
+    if (this.state.initialized) {
+      console.log('userManager: 已经初始化，跳过重复初始化');
+      return Promise.resolve();
+    }
+    this.state.initialized = true;
+    return this.checkAutoLogin();
+  },
+
   // 检查自动登录
   checkAutoLogin: async function() {
     console.log('checkAutoLogin: 开始检查自动登录状态');
@@ -435,6 +446,14 @@ const userManager = {
           this.updateUpdatesCount();
         }
         
+        // 显示私信按钮
+        const chatBtn = document.getElementById('header-chat-btn');
+        if (chatBtn) {
+          chatBtn.style.display = 'block';
+          // 获取私信未读数量
+          this.updateChatUnreadCount();
+        }
+        
         // 添加头像点击事件（打开/关闭下拉菜单）
         this.setupHeaderAvatarClickEvent(headerAvatar);
         
@@ -460,6 +479,12 @@ const userManager = {
         const updatesBtn = document.getElementById('header-updates-btn');
         if (updatesBtn) {
           updatesBtn.style.display = 'none';
+        }
+        
+        // 隐藏私信按钮
+        const chatBtn = document.getElementById('header-chat-btn');
+        if (chatBtn) {
+          chatBtn.style.display = 'none';
         }
         
         // 重置信息
@@ -1126,12 +1151,14 @@ const userManager = {
     // 立即刷新一次
     this.updateUnreadMessageCount();
     this.updateUpdatesCount();
+    this.updateChatUnreadCount();
     
     // 每60秒刷新一次
     this.state.messageRefreshTimer = setInterval(() => {
       console.log('startMessageRefreshTimer: 定时刷新消息数量');
       this.updateUnreadMessageCount();
       this.updateUpdatesCount();
+      this.updateChatUnreadCount();
     }, 60000);
     
     console.log('startMessageRefreshTimer: 定时器已启动');
@@ -1192,6 +1219,55 @@ const userManager = {
     } else {
       badge.style.display = 'none';
       console.log('setUpdatesBadge: 隐藏徽章');
+    }
+  },
+
+  // 获取私信未读数量
+  updateChatUnreadCount: async function() {
+    const currentUser = this.state.currentUser;
+    if (!currentUser) {
+      console.log('updateChatUnreadCount: 用户未登录');
+      this.setChatBadge(0);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/messages/unread?userId=${currentUser.id}`);
+      if (!response.ok) {
+        console.error('updateChatUnreadCount: 获取私信未读数量失败');
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('updateChatUnreadCount: API返回数据:', data);
+      
+      if (data.success) {
+        const count = data.unreadCount || 0;
+        console.log('updateChatUnreadCount: 私信未读数量:', count);
+        this.setChatBadge(count);
+      }
+    } catch (error) {
+      console.error('updateChatUnreadCount: 获取私信未读数量失败:', error);
+    }
+  },
+
+  // 设置私信徽章
+  setChatBadge: function(count) {
+    const badge = document.getElementById('chat-badge');
+    console.log('setChatBadge: 徽章元素:', badge, '数量:', count);
+    
+    if (!badge) {
+      console.warn('setChatBadge: 找不到徽章元素');
+      return;
+    }
+    
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = 'flex';
+      console.log('setChatBadge: 显示徽章');
+    } else {
+      badge.style.display = 'none';
+      console.log('setChatBadge: 隐藏徽章');
     }
   }
 };

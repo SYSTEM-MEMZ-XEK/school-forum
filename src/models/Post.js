@@ -172,6 +172,17 @@ const PostSchema = new Schema({
   updatedAt: {
     type: Date,
     default: null
+  },
+  // 帖子可见性设置
+  visibility: {
+    type: String,
+    enum: ['public', 'followers', 'self'],
+    default: 'public'
+  },
+  // 设备信息
+  deviceInfo: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: false,

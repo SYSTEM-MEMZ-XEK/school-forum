@@ -154,6 +154,10 @@ const postsManager = {
           params.push(`sortBy=${this.state.sortBy}`);
         }
       }
+      // 添加当前用户ID用于黑名单过滤
+      if (this.state.currentUser && this.state.currentUser.id) {
+        params.push(`viewerId=${this.state.currentUser.id}`);
+      }
       if (params.length > 0) {
         url += '?' + params.join('&');
       }
@@ -529,7 +533,7 @@ const postsManager = {
               <i class="fas fa-thumbs-down ${currentUser && post.dislikedBy && post.dislikedBy.includes(currentUser.id) ? 'active' : ''}"></i> 点踩 <span>${post.dislikes || 0}</span>
             </div>
             <div class="action-btn favorite-btn ${userFavorited ? 'active' : ''}" data-id="${post.id}">
-              <i class="fas fa-star ${userFavorited ? 'active' : ''}"></i> 收藏
+              <i class="fas fa-star ${userFavorited ? 'active' : ''}"></i> 收藏 <span>${post.favoriteCount || 0}</span>
             </div>
             <div class="action-btn comment-btn">
               <i class="fas fa-comment"></i> 评论 <span>${post.comments ? post.comments.length : 0}</span>
@@ -1043,6 +1047,8 @@ const postsManager = {
         const likeBtn = e.target.closest('.like-btn');
         const postId = likeBtn.dataset.id;
         
+        console.log('点赞按钮被点击，帖子ID:', postId);
+        
         // 防止重复点击
         if (likeBtn.classList.contains('processing')) {
           return;
@@ -1054,17 +1060,34 @@ const postsManager = {
           return;
         }
         
+        // 验证用户ID
+        const userId = userManager.state.currentUser.id;
+        if (!userId) {
+          console.error('点赞失败: 用户ID为空');
+          utils.showNotification('用户信息错误，请重新登录', 'error');
+          return;
+        }
+        
+        // 验证帖子ID
+        if (!postId) {
+          console.error('点赞失败: 帖子ID为空');
+          utils.showNotification('帖子信息错误', 'error');
+          return;
+        }
+        
         // 禁用按钮并添加处理中状态
         likeBtn.classList.add('processing');
         
         try {
+          console.log('发送点赞请求:', { postId, userId });
+          
           const response = await fetch(`/posts/${postId}/like`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              userId: userManager.state.currentUser.id
+              userId: userId
             })
           });
           
@@ -1287,9 +1310,26 @@ const postsManager = {
         const deleteBtn = e.target.closest('.delete-btn');
         const postId = deleteBtn.dataset.id;
         
+        console.log('删除按钮被点击，帖子ID:', postId);
+        
         if (!userManager.state.currentUser) {
           utils.showNotification('请先登录后再操作', 'error');
           window.location.href = 'login.html';
+          return;
+        }
+        
+        // 验证用户ID
+        const userId = userManager.state.currentUser.id;
+        if (!userId) {
+          console.error('删除帖子失败: 用户ID为空');
+          utils.showNotification('用户信息错误，请重新登录', 'error');
+          return;
+        }
+        
+        // 验证帖子ID
+        if (!postId) {
+          console.error('删除帖子失败: 帖子ID为空');
+          utils.showNotification('帖子信息错误', 'error');
           return;
         }
         
@@ -1299,13 +1339,15 @@ const postsManager = {
         }
         
         try {
+          console.log('发送删除请求:', { postId, userId });
+          
           const response = await fetch(`/posts/${postId}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              userId: userManager.state.currentUser.id
+              userId: userId
             })
           });
           
