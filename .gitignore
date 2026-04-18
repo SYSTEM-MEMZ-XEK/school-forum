@@ -10,7 +10,6 @@ data/server-*.log
 # Environment variables
 .env
 .env.local
-.env.*
 
 # Redis
 Redis/
