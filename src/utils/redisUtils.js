@@ -4,6 +4,33 @@ const { readConfig } = require('./configUtils');
 let redisClient = null;
 let isConnected = false;
 
+// ===================== 连接配置读取 =====================
+
+/**
+ * 从环境变量 + config.json 读取 Redis 配置
+ * 环境变量优先级高于 config.json
+ */
+function buildRedisConfig() {
+  const fileConfig = readConfig().redis || {};
+
+  const host     = process.env.REDIS_HOST     || fileConfig.host     || 'localhost';
+  const port     = parseInt(process.env.REDIS_PORT || fileConfig.port || 6379, 10);
+  const password = process.env.REDIS_PASSWORD || fileConfig.password || undefined;
+  const db       = parseInt(process.env.REDIS_DB   || fileConfig.db   || 0, 10);
+  const username = process.env.REDIS_USERNAME || fileConfig.username || undefined;
+
+  // TLS：REDIS_TLS=true 或 rediss:// 协议时启用
+  const tlsEnabled = process.env.REDIS_TLS === 'true' || fileConfig.tls === true;
+
+  // 连接超时（毫秒），默认 5 秒
+  const connectTimeout = parseInt(process.env.REDIS_CONNECT_TIMEOUT || fileConfig.connectTimeout || 5000, 10);
+
+  // 命令超时（毫秒），默认 3 秒
+  const commandTimeout = parseInt(process.env.REDIS_COMMAND_TIMEOUT || fileConfig.commandTimeout || 3000, 10);
+
+  return { host, port, password, db, username, tlsEnabled, connectTimeout, commandTimeout };
+}
+
 /**
  * 初始化Redis连接
  */
@@ -12,35 +39,68 @@ async function initRedis() {
     return redisClient;
   }
 
-  const config = readConfig();
-  const redisConfig = config.redis || {
-    host: 'localhost',
-    port: 6379,
-    password: '',
-    db: 0
+  const { host, port, password, db, username, tlsEnabled, connectTimeout, commandTimeout } = buildRedisConfig();
+
+  const clientOptions = {
+    socket: {
+      host,
+      port,
+      connectTimeout,
+      // 自动重连策略：指数退避，最多重试 10 次
+      reconnectStrategy: (retries) => {
+        if (retries >= 10) {
+          console.error('[Redis] 达到最大重连次数，停止重连');
+          return new Error('Redis 重连失败：已超过最大重试次数');
+        }
+        const delay = Math.min(retries * 500, 5000); // 500ms ~ 5s
+        console.warn(`[Redis] 第 ${retries + 1} 次重连，等待 ${delay}ms...`);
+        return delay;
+      },
+      ...(tlsEnabled ? { tls: true } : {})
+    },
+    commandsQueueMaxLength: 512,
+    disableOfflineQueue: false
   };
 
-  redisClient = createClient({
-    socket: {
-      host: redisConfig.host,
-      port: redisConfig.port
-    },
-    password: redisConfig.password || undefined,
-    database: redisConfig.db || 0
-  });
+  // 认证信息
+  if (password) clientOptions.password = password;
+  if (username) clientOptions.username = username;
+  if (db)       clientOptions.database = db;
+
+  // 若设置了命令超时，使用 socket 层超时包装
+  if (commandTimeout > 0) {
+    clientOptions.socket.timeout = commandTimeout;
+  }
+
+  redisClient = createClient(clientOptions);
 
   redisClient.on('connect', () => {
-    isConnected = true;
-    console.log('[Redis] 连接成功');
+    console.log('[Redis] 正在连接...');
   });
 
-  redisClient.on('disconnect', () => {
+  redisClient.on('ready', () => {
+    isConnected = true;
+    console.log(`[Redis] 连接就绪 ${host}:${port} db=${db}${tlsEnabled ? ' (TLS)' : ''}`);
+  });
+
+  redisClient.on('reconnecting', () => {
     isConnected = false;
-    console.log('[Redis] 连接断开');
+    console.warn('[Redis] 连接断开，正在重连...');
+  });
+
+  redisClient.on('end', () => {
+    isConnected = false;
+    console.log('[Redis] 连接已关闭');
   });
 
   redisClient.on('error', (err) => {
-    console.error('[Redis] 连接错误:', err.message);
+    // ECONNREFUSED 等常见错误只打 warn，避免刷屏
+    const isCommonError = err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT';
+    if (isCommonError) {
+      console.warn('[Redis] 连接错误:', err.message);
+    } else {
+      console.error('[Redis] 连接错误:', err.message);
+    }
   });
 
   try {

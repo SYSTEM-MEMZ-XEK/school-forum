@@ -28,8 +28,43 @@ const {
   IMAGES_DIR,
   PORT,
   MONGODB_URI,
-  MONGODB_OPTIONS
+  MONGODB_OPTIONS,
+  MONGODB_AUTH,
+  REDIS_CONFIG
 } = require('./src/config/constants');
+
+// ===================== 启动前安全配置预检 =====================
+function checkAuthConfig() {
+  const warnings = [];
+
+  // MongoDB 认证检查
+  if (!MONGODB_AUTH.username || !MONGODB_AUTH.password) {
+    warnings.push(
+      '[安全警告] MongoDB 未配置用户名/密码认证（MONGODB_USERNAME / MONGODB_PASSWORD）。' +
+      '如在生产环境中使用，请务必启用 MongoDB 认证。'
+    );
+  }
+  if (process.env.NODE_ENV === 'production' && process.env.MONGODB_TLS !== 'true') {
+    warnings.push(
+      '[安全警告] 生产环境建议启用 MongoDB TLS 加密传输（MONGODB_TLS=true）。'
+    );
+  }
+
+  // Redis 认证检查
+  if (!REDIS_CONFIG.password) {
+    warnings.push(
+      '[安全警告] Redis 未配置密码认证（REDIS_PASSWORD）。' +
+      '如 Redis 暴露于网络，请务必设置密码。'
+    );
+  }
+  if (process.env.NODE_ENV === 'production' && !REDIS_CONFIG.tls) {
+    warnings.push(
+      '[安全警告] 生产环境建议启用 Redis TLS 加密传输（REDIS_TLS=true）。'
+    );
+  }
+
+  warnings.forEach(w => console.warn(w));
+}
 
 // 导入数据库连接
 const { connectDB, migrateFromJSON } = require('./src/models');
@@ -189,6 +224,8 @@ app.use(secureErrorHandler);
 // 启动服务器
 async function startServer() {
   try {
+    // 认证配置预检（发出警告，不阻止启动）
+    checkAuthConfig();
     // 连接 MongoDB
     logger.logSystemEvent('正在连接 MongoDB...');
     await connectDB(MONGODB_URI, MONGODB_OPTIONS);

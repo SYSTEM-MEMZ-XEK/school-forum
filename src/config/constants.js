@@ -15,18 +15,61 @@ const MONGODB_URI = process.env.MONGODB_URI || _initialConfig.mongodb?.uri || 'm
 
 // MongoDB 认证配置
 const MONGODB_AUTH = {
-  username: process.env.MONGODB_USERNAME || _initialConfig.mongodb?.username || '',
-  password: process.env.MONGODB_PASSWORD || _initialConfig.mongodb?.password || '',
+  username:   process.env.MONGODB_USERNAME   || _initialConfig.mongodb?.username   || '',
+  password:   process.env.MONGODB_PASSWORD   || _initialConfig.mongodb?.password   || '',
   authSource: process.env.MONGODB_AUTHSOURCE || _initialConfig.mongodb?.authSource || 'admin'
 };
 
 // 构建 mongoose 连接选项
-const MONGODB_OPTIONS = {};
+const MONGODB_OPTIONS = {
+  // 服务器选择超时：10s
+  serverSelectionTimeoutMS: parseInt(process.env.MONGODB_SERVER_SELECTION_TIMEOUT || 10000, 10),
+  // Socket 连接超时：10s
+  connectTimeoutMS: parseInt(process.env.MONGODB_CONNECT_TIMEOUT || 10000, 10),
+  // Socket 读写超时：30s
+  socketTimeoutMS: parseInt(process.env.MONGODB_SOCKET_TIMEOUT || 30000, 10),
+  // 连接池最大连接数
+  maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE || 10, 10),
+  // 连接池最小连接数
+  minPoolSize: parseInt(process.env.MONGODB_MIN_POOL_SIZE || 2, 10)
+};
+
+// 认证凭据
 if (MONGODB_AUTH.username && MONGODB_AUTH.password) {
-  MONGODB_OPTIONS.user = MONGODB_AUTH.username;
-  MONGODB_OPTIONS.pass = MONGODB_AUTH.password;
+  MONGODB_OPTIONS.user       = MONGODB_AUTH.username;
+  MONGODB_OPTIONS.pass       = MONGODB_AUTH.password;
   MONGODB_OPTIONS.authSource = MONGODB_AUTH.authSource;
 }
+
+// TLS/SSL 支持：MONGODB_TLS=true 时启用
+if (process.env.MONGODB_TLS === 'true') {
+  MONGODB_OPTIONS.tls = true;
+  // 自定义 CA 证书路径（可选）
+  if (process.env.MONGODB_TLS_CA_FILE) {
+    MONGODB_OPTIONS.tlsCAFile = process.env.MONGODB_TLS_CA_FILE;
+  }
+  // 客户端证书路径（可选，用于双向 TLS）
+  if (process.env.MONGODB_TLS_CERT_FILE) {
+    MONGODB_OPTIONS.tlsCertificateKeyFile = process.env.MONGODB_TLS_CERT_FILE;
+  }
+  // 开发/内网环境可关闭证书验证（不推荐生产使用）
+  if (process.env.MONGODB_TLS_ALLOW_INVALID_CERTS === 'true') {
+    MONGODB_OPTIONS.tlsAllowInvalidCertificates = true;
+    MONGODB_OPTIONS.tlsAllowInvalidHostnames    = true;
+  }
+}
+
+// ===================== Redis 配置（仅供 constants 导出，initRedis 内部有相同逻辑） =====================
+const REDIS_CONFIG = {
+  host:           process.env.REDIS_HOST           || 'localhost',
+  port:           parseInt(process.env.REDIS_PORT   || 6379, 10),
+  password:       process.env.REDIS_PASSWORD        || undefined,
+  username:       process.env.REDIS_USERNAME        || undefined,
+  db:             parseInt(process.env.REDIS_DB      || 0, 10),
+  tls:            process.env.REDIS_TLS === 'true',
+  connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT || 5000, 10),
+  commandTimeout: parseInt(process.env.REDIS_COMMAND_TIMEOUT || 3000, 10)
+};
 
 // 服务器端口（静态配置）
 const PORT = process.env.PORT || 2080;
@@ -143,6 +186,7 @@ module.exports = {
   MONGODB_URI,
   MONGODB_AUTH,
   MONGODB_OPTIONS,
+  REDIS_CONFIG,
   PORT,
   
   // 动态配置获取函数（推荐使用）
