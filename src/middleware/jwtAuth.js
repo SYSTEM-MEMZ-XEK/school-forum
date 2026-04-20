@@ -206,29 +206,7 @@ async function authenticateAdmin(req, res, next) {
   try {
     const token = extractToken(req);
     
-    // 兼容旧的 adminId 方式（过渡期）
     if (!token) {
-      const adminId = req.body?.adminId || req.query?.adminId;
-      if (adminId) {
-        // 检查是否是管理员
-        const { validateAdminPermission } = require('../utils/validationUtils');
-        const validationResult = await validateAdminPermission(adminId);
-        
-        if (validationResult.valid) {
-          req.admin = {
-            id: adminId,
-            username: validationResult.user.username,
-            legacyAuth: true
-          };
-          logger.logSecurityEvent('admin_legacy_auth', {
-            adminId,
-            path: req.path,
-            ip: req.ip
-          });
-          return next();
-        }
-      }
-      
       return res.status(401).json({
         success: false,
         message: '请提供管理员身份验证'

@@ -29,10 +29,12 @@ const followController = {
   // 关注用户
   async followUser(req, res) {
     try {
-      const { followerId, followingId } = req.body;
+      // followerId 来自已认证的 JWT，防止伪造
+      const followerId = req.user.id;
+      const { followingId } = req.body;
 
-      if (!followerId || !followingId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      if (!followingId) {
+        return res.status(400).json(generateErrorResponse('被关注的用户ID不能为空'));
       }
 
       // 不能关注自己
@@ -109,10 +111,12 @@ const followController = {
   // 取消关注
   async unfollowUser(req, res) {
     try {
-      const { followerId, followingId } = req.body;
+      // followerId 来自已认证的 JWT，防止伪造
+      const followerId = req.user.id;
+      const { followingId } = req.body;
 
-      if (!followerId || !followingId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      if (!followingId) {
+        return res.status(400).json(generateErrorResponse('被关注的用户ID不能为空'));
       }
 
       // 删除关注关系
@@ -147,12 +151,12 @@ const followController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
-      logger.logger.debug('检查关注状态', { followerId, followingId });
+      logger.logInfo('检查关注状态', { followerId, followingId });
 
       // 直接从数据库检查（更可靠）
       const isFollowing = await Follow.isFollowing(followerId, followingId);
       
-      logger.logger.debug('关注状态检查结果', { followerId, followingId, isFollowing });
+      logger.logInfo('关注状态检查结果', { followerId, followingId, isFollowing });
 
       // 同步更新Redis缓存
       if (isFollowing) {

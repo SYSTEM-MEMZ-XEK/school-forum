@@ -59,11 +59,8 @@ const notificationController = {
   // 获取用户的通知
   async getUserNotifications(req, res) {
     try {
-      const { userId } = req.query;
-      
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止获取他人通知
+      const userId = req.user.id;
       
       const notifications = await getNotifications(userId);
       const posts = await getPosts();
@@ -93,11 +90,8 @@ const notificationController = {
   async markAsRead(req, res) {
     try {
       const notificationId = req.params.id;
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人通知
+      const userId = req.user.id;
       
       const notifications = await getNotifications(userId);
       const notification = notifications.find(n => n.id === notificationId && n.userId === userId);
@@ -118,11 +112,8 @@ const notificationController = {
   // 标记所有通知为已读
   async markAllAsRead(req, res) {
     try {
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人通知
+      const userId = req.user.id;
       
       const result = await markAllNotificationsAsRead(userId);
       

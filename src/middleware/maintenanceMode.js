@@ -1,5 +1,7 @@
 const { getRunMode, RUN_MODES } = require('../config/constants');
 const { validateAdminPermission } = require('../utils/validationUtils');
+const { verifyToken, extractToken } = require('./jwtAuth');
+const User = require('../models/User');
 const logger = require('../utils/logger');
 
 /**
@@ -48,20 +50,26 @@ async function checkMaintenanceMode(req, res, next) {
       return next();
     }
     
-    // 对于其他请求，检查用户是否是管理员
-    const savedUser = req.headers['x-user-data'];
+    // 对于其他请求，通过 JWT 验证用户是否为管理员
+    // 注意：绝对不信任 x-user-data 等客户端可伪造的请求头
+    const token = extractToken(req);
     
-    if (savedUser) {
+    if (token) {
       try {
-        const user = typeof savedUser === 'string' ? JSON.parse(savedUser) : savedUser;
-        const validationResult = await validateAdminPermission(user.id || user.qq);
-        
-        if (validationResult.valid) {
-          // 管理员可以正常访问
-          return next();
+        const result = verifyToken(token);
+        if (result.valid && result.decoded.userId) {
+          // 从数据库查询用户，确保身份真实
+          const user = await User.findOne({ id: result.decoded.userId }).lean();
+          if (user) {
+            const validationResult = await validateAdminPermission(user.id || user.qq);
+            if (validationResult.valid) {
+              // 管理员可以正常访问
+              return next();
+            }
+          }
         }
       } catch (e) {
-        // 解析失败，继续处理为非管理员
+        // Token 验证失败，继续处理为非管理员
       }
     }
     

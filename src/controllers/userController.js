@@ -78,11 +78,9 @@ const userController = {
   // 发送密码修改验证码（需要验证当前密码）
   async sendPasswordChangeCode(req, res) {
     try {
-      const { userId, currentPassword } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { currentPassword } = req.body;
 
       if (!currentPassword) {
         return res.status(400).json(generateErrorResponse('请输入当前密码'));
@@ -117,11 +115,9 @@ const userController = {
   // 验证密码修改验证码
   async verifyPasswordChangeCode(req, res) {
     try {
-      const { userId, verificationCode } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { verificationCode } = req.body;
 
       if (!verificationCode) {
         return res.status(400).json(generateErrorResponse('验证码不能为空'));
@@ -153,11 +149,9 @@ const userController = {
   // 修改密码（验证验证码后）
   async changePassword(req, res) {
     try {
-      const { userId, currentPassword, newPassword, verificationCode } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { currentPassword, newPassword, verificationCode } = req.body;
 
       if (!currentPassword) {
         return res.status(400).json(generateErrorResponse('请输入当前密码'));
@@ -798,7 +792,9 @@ const userController = {
   // 验证用户登录状态
   async verifyAuth(req, res) {
     try {
-      const { userId } = req.body;
+      // userId 来自已认证的 JWT（verifyAuth 路由应配置 authenticateUser 中间件）
+      // 若 req.user 已由中间件注入，直接使用；否则尝试从 body 兼容旧客户端
+      const userId = req.user?.id || req.body.userId;
       
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
@@ -844,11 +840,9 @@ const userController = {
   // 发送邮箱修改验证码（需要验证当前密码）
   async sendEmailChangeCode(req, res) {
     try {
-      const { userId, currentPassword, newEmail } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { currentPassword, newEmail } = req.body;
 
       if (!currentPassword) {
         return res.status(400).json(generateErrorResponse('请输入当前密码'));
@@ -898,11 +892,9 @@ const userController = {
   // 验证邮箱修改并完成修改
   async verifyEmailChange(req, res) {
     try {
-      const { userId, verificationCode, newEmail } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { verificationCode, newEmail } = req.body;
 
       if (!verificationCode) {
         return res.status(400).json(generateErrorResponse('验证码不能为空'));
@@ -953,12 +945,10 @@ const userController = {
   // 修改QQ号
   async changeQQ(req, res) {
     try {
-      const { userId, newQQ, qq } = req.body;
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { newQQ, qq } = req.body;
       const qqNumber = newQQ || qq;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
 
       if (!qqNumber) {
         return res.status(400).json(generateErrorResponse('请输入新QQ号'));
@@ -1089,10 +1079,12 @@ const userController = {
   // 发送账户注销验证码
   async sendDeletionCode(req, res) {
     try {
-      const { userId, password } = req.body;
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { password } = req.body;
 
-      if (!userId || !password) {
-        return res.status(400).json(generateErrorResponse('用户ID和密码不能为空'));
+      if (!password) {
+        return res.status(400).json(generateErrorResponse('密码不能为空'));
       }
 
       const user = await getUserById(userId);
@@ -1127,9 +1119,11 @@ const userController = {
   // 注销用户账户
   async deleteAccount(req, res) {
     try {
-      const { userId, password, verificationCode, keepData } = req.body;
+      // userId 来自已认证的 JWT，防止操作他人账户
+      const userId = req.user.id;
+      const { password, verificationCode, keepData } = req.body;
 
-      if (!userId || !password || !verificationCode) {
+      if (!password || !verificationCode) {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
 
@@ -1254,9 +1248,11 @@ const userController = {
   // 更新通知设置
   async updateNotificationSettings(req, res) {
     try {
-      const { userId, type, enabled } = req.body;
+      // userId 来自已认证的 JWT，防止操作他人设置
+      const userId = req.user.id;
+      const { type, enabled } = req.body;
       
-      if (!userId || !type) {
+      if (!type) {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
       
@@ -1293,9 +1289,11 @@ const userController = {
   // 更新隐私设置
   async updatePrivacySettings(req, res) {
     try {
-      const { userId, field, value } = req.body;
+      // userId 来自已认证的 JWT，防止操作他人设置
+      const userId = req.user.id;
+      const { field, value } = req.body;
       
-      if (!userId || !field || !value) {
+      if (!field || !value) {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
       

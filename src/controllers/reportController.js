@@ -40,10 +40,12 @@ const reportController = {
   // 提交举报
   async submitReport(req, res) {
     try {
-      const { reporterId, targetType, targetId, reason, description } = req.body;
+      // reporterId 来自已认证的 JWT，防止客户端伪造举报人身份
+      const reporterId = req.user.id;
+      const { targetType, targetId, reason, description } = req.body;
 
       // 验证必填字段
-      if (!reporterId || !targetType || !targetId || !reason) {
+      if (!targetType || !targetId || !reason) {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
 
@@ -408,7 +410,8 @@ const reportController = {
   // 获取用户举报历史
   async getUserReports(req, res) {
     try {
-      const { userId } = req.params;
+      // 只允许查询自己的举报历史（userId 来自 JWT）
+      const userId = req.user.id;
       const reports = await getReports();
       const userReports = reports.filter(r => r.reporterId === userId);
 
