@@ -9,12 +9,10 @@ const favoriteController = {
   // 收藏帖子
   async addFavorite(req, res) {
     try {
-      const { userId, tagId } = req.body;
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { tagId } = req.body;
       const postId = req.params.postId;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
 
       if (!postId) {
         return res.status(400).json(generateErrorResponse('帖子ID不能为空'));
@@ -56,12 +54,9 @@ const favoriteController = {
   // 取消收藏
   async removeFavorite(req, res) {
     try {
-      const { userId } = req.body;
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
       const postId = req.params.postId;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
 
       const removed = await Favorite.removeFavorite(userId, postId);
       
@@ -194,12 +189,10 @@ const favoriteController = {
   // 更新收藏的标签
   async updateFavoriteTag(req, res) {
     try {
-      const { userId, tagId } = req.body;
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { tagId } = req.body;
       const postId = req.params.postId;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
 
       // 如果指定了标签，验证标签是否属于该用户
       if (tagId) {
@@ -256,11 +249,9 @@ const favoriteController = {
   // 创建标签
   async createTag(req, res) {
     try {
-      const { userId, name, color } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { name, color } = req.body;
 
       if (!name || !name.trim()) {
         return res.status(400).json(generateErrorResponse('标签名不能为空'));
@@ -285,11 +276,9 @@ const favoriteController = {
   async updateTag(req, res) {
     try {
       const tagId = req.params.tagId;
-      const { userId, name, color } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { name, color } = req.body;
 
       const updates = {};
       if (name !== undefined) updates.name = name.trim();
@@ -314,11 +303,8 @@ const favoriteController = {
   async deleteTag(req, res) {
     try {
       const tagId = req.params.tagId;
-      const { userId } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
 
       // 先清除该标签下所有收藏的标签引用
       await Favorite.clearTagFromFavorites(userId, tagId);
@@ -341,11 +327,9 @@ const favoriteController = {
   // 更新标签排序
   async updateTagOrder(req, res) {
     try {
-      const { userId, tagOrders } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { tagOrders } = req.body;
 
       if (!Array.isArray(tagOrders)) {
         return res.status(400).json(generateErrorResponse('排序数据格式错误'));
@@ -363,11 +347,9 @@ const favoriteController = {
   // 批量删除收藏
   async batchRemoveFavorites(req, res) {
     try {
-      const { userId, postIds } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { postIds } = req.body;
 
       if (!Array.isArray(postIds) || postIds.length === 0) {
         return res.status(400).json(generateErrorResponse('帖子ID列表不能为空'));
@@ -387,11 +369,9 @@ const favoriteController = {
   // 批量移动收藏到标签
   async batchMoveToTag(req, res) {
     try {
-      const { userId, postIds, tagId } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { postIds, tagId } = req.body;
 
       if (!Array.isArray(postIds) || postIds.length === 0) {
         return res.status(400).json(generateErrorResponse('帖子ID列表不能为空'));

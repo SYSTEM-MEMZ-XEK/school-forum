@@ -383,9 +383,11 @@ const postController = {
   // 发布新帖子
   async createPost(req, res) {
     try {
-      const { userId, username, school, grade, className, content, anonymous, visibility, deviceInfo } = req.body;
+      // userId 必须来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { username, school, grade, className, content, anonymous, visibility, deviceInfo } = req.body;
       
-      if (!userId || !username || !school || !grade || !className) {
+      if (!username || !school || !grade || !className) {
         return res.status(400).json(generateErrorResponse('请填写所有必填字段'));
       }
       
@@ -488,12 +490,8 @@ const postController = {
   async likePost(req, res) {
     try {
       const postId = req.params.id;
-      const { userId } = req.body;
-
-      if (!userId) {
-        logger.logWarn('点赞失败：用户ID为空', { ip: req.ip });
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，不信任客户端传值
+      const userId = req.user.id;
 
       const post = await getPostById(postId);
 
@@ -566,12 +564,8 @@ const postController = {
   async dislikePost(req, res) {
     try {
       const postId = req.params.id;
-      const { userId } = req.body;
-
-      if (!userId) {
-        logger.logWarn('点踩失败：用户ID为空', { ip: req.ip });
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，不信任客户端传值
+      const userId = req.user.id;
 
       const post = await getPostById(postId);
 
@@ -639,11 +633,13 @@ const postController = {
   async addComment(req, res) {
     try {
       const postId = req.params.id;
-      const { userId, username, content, anonymous } = req.body;
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { username, content, anonymous } = req.body;
 
-      if (!userId || !username || !content) {
+      if (!username || !content) {
         logger.logWarn('添加评论失败：缺少必要参数', { postId, userId });
-        return res.status(400).json(generateErrorResponse('用户ID、用户名和评论内容不能为空'));
+        return res.status(400).json(generateErrorResponse('用户名和评论内容不能为空'));
       }
 
       // 验证评论内容
@@ -720,11 +716,9 @@ const postController = {
   async deleteComment(req, res) {
     try {
       const { id: postId, commentId } = req.params;
-      const { userId, replyId, nestedReplyId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { replyId, nestedReplyId } = req.body;
       
       const post = await getPostById(postId);
       
@@ -830,14 +824,10 @@ const postController = {
   // 用户删除自己的帖子
   async deletePost(req, res) {
     try {
-      // 支持两种方式：DELETE /posts/:id 或 POST /posts/delete (body: {postId, userId})
+      // 支持两种方式：DELETE /posts/:id 或 POST /posts/delete (body: {postId})
       const postId = req.params.id || req.body.postId;
-      const { userId } = req.body;
-
-      if (!userId) {
-        logger.logWarn('删除帖子失败：用户ID为空', { postId });
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
 
       const post = await getPostById(postId, true);
 
@@ -890,12 +880,9 @@ const postController = {
   async updatePost(req, res) {
     try {
       const postId = req.params.id;
-      const { userId, content, deletedImages, visibility } = req.body;
-
-      if (!userId) {
-        logger.logWarn('编辑帖子失败：用户ID为空', { postId });
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { content, deletedImages, visibility } = req.body;
 
       const post = await getPostById(postId);
 
@@ -980,11 +967,13 @@ const postController = {
   async replyComment(req, res) {
     try {
       const { id: postId, commentId } = req.params;
-      const { userId, username, content, anonymous, replyToId } = req.body;
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+      const { username, content, anonymous, replyToId } = req.body;
 
-      if (!userId || !username || !content) {
+      if (!username || !content) {
         logger.logWarn('回复评论失败：缺少必要参数', { postId, commentId, userId });
-        return res.status(400).json(generateErrorResponse('用户ID、用户名和回复内容不能为空'));
+        return res.status(400).json(generateErrorResponse('用户名和回复内容不能为空'));
       }
 
       // 验证评论内容
@@ -1138,11 +1127,8 @@ const postController = {
   async likeComment(req, res) {
     try {
       const { id: postId, commentId } = req.params;
-      const { userId } = req.body;
-
-      if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
-      }
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
 
       const post = await getPostById(postId);
 

@@ -12,10 +12,12 @@ const blacklistController = {
   // 拉黑用户
   async blockUser(req, res) {
     try {
-      const { blockerId, blockedId } = req.body;
+      // blockerId 来自已认证的 JWT，防止客户端伪造
+      const blockerId = req.user.id;
+      const { blockedId } = req.body;
 
-      if (!blockerId || !blockedId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      if (!blockedId) {
+        return res.status(400).json(generateErrorResponse('被拉黑用户ID不能为空'));
       }
 
       // 不能拉黑自己
@@ -69,10 +71,12 @@ const blacklistController = {
   // 取消拉黑
   async unblockUser(req, res) {
     try {
-      const { blockerId, blockedId } = req.body;
+      // blockerId 来自已认证的 JWT，防止客户端伪造
+      const blockerId = req.user.id;
+      const { blockedId } = req.body;
 
-      if (!blockerId || !blockedId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      if (!blockedId) {
+        return res.status(400).json(generateErrorResponse('被拉黑用户ID不能为空'));
       }
 
       // 删除拉黑关系

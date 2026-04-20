@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const blacklistController = require('../controllers/blacklistController');
+const { authenticateUser } = require('../middleware/jwtAuth');
 
 // 拉黑用户
-router.post('/block', blacklistController.blockUser);
+router.post('/block', authenticateUser, blacklistController.blockUser);
 
 // 取消拉黑
-router.post('/unblock', blacklistController.unblockUser);
+router.post('/unblock', authenticateUser, blacklistController.unblockUser);
 
 // 检查拉黑状态
 router.get('/block/status', blacklistController.checkBlockStatus);
