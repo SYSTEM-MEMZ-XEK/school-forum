@@ -24,10 +24,12 @@ const adminController = {
     try {
       const paginationConfig = getPaginationConfig();
       const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '' } = req.query;
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
 
       logger.logInfo('管理员访问帖子列表', {
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         search,
         ip: req.ip
       });
@@ -45,15 +47,15 @@ const adminController = {
       }
 
       // 分页
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + parseInt(limit);
+      const startIndex = (pageNum - 1) * limitNum;
+      const endIndex = startIndex + limitNum;
       const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
 
       res.json(generateSuccessResponse({
         posts: paginatedPosts,
         pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(filteredPosts.length / limit),
+          currentPage: pageNum,
+          totalPages: Math.ceil(filteredPosts.length / limitNum),
           totalPosts: filteredPosts.length,
           hasNext: endIndex < filteredPosts.length,
           hasPrev: startIndex > 0
@@ -69,12 +71,9 @@ const adminController = {
   async deletePostPermanently(req, res) {
     try {
       const postId = req.params.id;
-      const { adminId, reason } = req.body;
-
-      if (!adminId) {
-        logger.logWarn('永久删除帖子失败：管理员ID为空', { postId });
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
+      const { reason } = req.body;
 
       const posts = await getPosts(true);
       const post = posts.find(p => p.id === postId);
@@ -108,7 +107,7 @@ const adminController = {
       
       res.json(generateSuccessResponse({}, '帖子已永久删除'));
     } catch (error) {
-      logger.logError('永久删除帖子失败', { error: error.message, postId: req.params.id, adminId: req.body.adminId });
+      logger.logError('永久删除帖子失败', { error: error.message, postId: req.params.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -117,11 +116,9 @@ const adminController = {
   async banUser(req, res) {
     try {
       const userId = req.params.id;
-      const { adminId, duration, reason } = req.body;
-      
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
+      const { duration, reason } = req.body;
       
       const user = await getUserById(userId);
       
@@ -189,7 +186,7 @@ const adminController = {
         }
       }, `用户 ${user.username} 已被封禁 ${banDuration === 365 ? '永久' : banDuration + ' 天'}`));
     } catch (error) {
-      logger.logError('封禁用户失败', { error: error.message, userId: req.params.id, adminId: req.body.adminId });
+      logger.logError('封禁用户失败', { error: error.message, userId: req.params.id, adminId: req.admin?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -198,11 +195,8 @@ const adminController = {
   async unbanUser(req, res) {
     try {
       const userId = req.params.id;
-      const { adminId } = req.body;
-      
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
       
       const user = await getUserById(userId);
       
@@ -227,7 +221,7 @@ const adminController = {
 
       res.json(generateSuccessResponse({}, `用户 ${user.username} 已解封`));
     } catch (error) {
-      logger.logError('解封用户失败', { error: error.message, userId: req.params.id, adminId: req.body.adminId });
+      logger.logError('解封用户失败', { error: error.message, userId: req.params.id, adminId: req.admin?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -426,6 +420,8 @@ const adminController = {
     try {
       const paginationConfig = getPaginationConfig();
       const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '' } = req.query;
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
       const posts = await getPosts();
       
       // 收集所有评论
@@ -454,15 +450,15 @@ const adminController = {
       allComments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
       // 分页
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + parseInt(limit);
+      const startIndex = (pageNum - 1) * limitNum;
+      const endIndex = startIndex + limitNum;
       const paginatedComments = allComments.slice(startIndex, endIndex);
       
       res.json(generateSuccessResponse({
         comments: paginatedComments,
         pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(allComments.length / limit),
+          currentPage: pageNum,
+          totalPages: Math.ceil(allComments.length / limitNum),
           totalComments: allComments.length,
           hasNext: endIndex < allComments.length,
           hasPrev: startIndex > 0
@@ -478,10 +474,12 @@ const adminController = {
   async deleteComment(req, res) {
     try {
       const commentId = req.params.id;
-      const { adminId, postId, reason } = req.body;
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
+      const { postId, reason } = req.body;
       
-      if (!adminId || !postId) {
-        return res.status(400).json(generateErrorResponse('管理员ID和帖子ID不能为空'));
+      if (!postId) {
+        return res.status(400).json(generateErrorResponse('帖子ID不能为空'));
       }
       
       const posts = await getPosts(true);
@@ -617,11 +615,9 @@ const adminController = {
   // 管理员功能 - 清空指定日期的日志
   clearLogs(req, res) {
     try {
-      const { adminId, date } = req.body;
-
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
+      const { date } = req.body;
 
       logger.logSecurityEvent('管理员清空日志', { adminId, date, ip: req.ip });
 
@@ -632,7 +628,7 @@ const adminController = {
 
       res.json(generateSuccessResponse({}, '日志已清空'));
     } catch (error) {
-      logger.logError('清空日志失败', { error: error.message, adminId: req.body.adminId });
+      logger.logError('清空日志失败', { error: error.message, adminId: req.admin?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -640,11 +636,9 @@ const adminController = {
   // 管理员功能 - 删除指定日期的日志文件
   deleteLogsByDate(req, res) {
     try {
-      const { adminId, date } = req.body;
-
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
+      const { date } = req.body;
 
       if (!date) {
         return res.status(400).json(generateErrorResponse('日期不能为空'));
@@ -662,7 +656,7 @@ const adminController = {
         res.status(404).json(generateErrorResponse('日志文件不存在'));
       }
     } catch (error) {
-      logger.logError('删除日志文件失败', { error: error.message, adminId: req.body.adminId, date: req.body.date });
+      logger.logError('删除日志文件失败', { error: error.message, adminId: req.admin?.id, date: req.body.date });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -701,11 +695,9 @@ const adminController = {
   // 管理员功能 - 清除指定IP统计
   async clearIpStats(req, res) {
     try {
-      const { adminId, ip } = req.body;
-      
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
+      const { ip } = req.body;
       
       if (!ip) {
         return res.status(400).json(generateErrorResponse('IP地址不能为空'));
@@ -726,11 +718,8 @@ const adminController = {
   // 管理员功能 - 清除所有IP统计
   async clearAllIpStats(req, res) {
     try {
-      const { adminId } = req.body;
-      
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件，不信任 req.body
+      const adminId = req.admin.id;
       
       const { ipStats } = require('../utils/redisUtils');
       await ipStats.clearAll();

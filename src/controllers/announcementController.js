@@ -182,8 +182,8 @@ exports.createAnnouncement = async (req, res) => {
       });
     }
     
-    // 获取管理员ID - 从中间件设置的 req.admin 或 body 中的 adminId
-    const createdBy = req.admin?.id || req.body.adminId;
+    // 获取管理员ID - 来自 JWT 认证中间件（req.admin 由 requireAdmin 设置）
+    const createdBy = req.admin?.id;
     
     logger.logInfo('创建者ID:', { createdBy });
     
