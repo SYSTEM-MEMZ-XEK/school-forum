@@ -1,13 +1,12 @@
 /**
  * 管理员权限验证中间件
- * 支持 JWT Token 认证，同时兼容旧的 adminId 方式（过渡期）
+ * 强制要求 JWT Token 认证（旧版 adminId 兼容方式已移除）
  */
 const { authenticateAdmin } = require('./jwtAuth');
 const logger = require('../utils/logger');
 
 /**
- * 管理员权限验证中间件（新版）
- * 优先使用 JWT Token，兼容旧的 adminId 方式
+ * 管理员权限验证中间件
  */
 async function requireAdmin(req, res, next) {
   try {
@@ -22,8 +21,7 @@ async function requireAdmin(req, res, next) {
           username: req.admin.username,
           path: req.path,
           method: req.method,
-          ip: req.ip,
-          legacyAuth: req.admin.legacyAuth || false
+          ip: req.ip
         });
       }
       
@@ -43,7 +41,6 @@ async function requireAdmin(req, res, next) {
 
 /**
  * 严格管理员权限验证（仅 JWT Token）
- * 不兼容旧的 adminId 方式
  */
 async function requireAdminStrict(req, res, next) {
   try {
