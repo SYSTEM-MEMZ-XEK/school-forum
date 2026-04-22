@@ -112,7 +112,9 @@ const chatManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/conversations?userId=${currentUser.id}`);
+      const response = await fetch(`/conversations?userId=${currentUser.id}`, {
+        headers: userManager.getAuthHeaders()
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -242,7 +244,9 @@ const chatManager = {
   // 检查发送权限
   checkSendPermission: async function(senderId, receiverId) {
     try {
-      const response = await fetch(`/messages/check-permission?senderId=${senderId}&receiverId=${receiverId}`);
+      const response = await fetch(`/messages/check-permission?senderId=${senderId}&receiverId=${receiverId}`, {
+        headers: userManager.getAuthHeaders()
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -314,7 +318,9 @@ const chatManager = {
         url += `&before=${before}`;
       }
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: userManager.getAuthHeaders()
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -456,7 +462,7 @@ const chatManager = {
     try {
       const response = await fetch('/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           senderId: currentUser.id,
           receiverId: this.state.currentOtherUser.id,
@@ -535,7 +541,9 @@ const chatManager = {
     const currentUser = this.getCurrentUser();
     
     try {
-      const response = await fetch(`/messages/contactable-users?userId=${currentUser.id}`);
+      const response = await fetch(`/messages/contactable-users?userId=${currentUser.id}`, {
+        headers: userManager.getAuthHeaders()
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -632,7 +640,7 @@ const chatManager = {
     try {
       const response = await fetch(`/conversations/${conversationId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })
       });
       

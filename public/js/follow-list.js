@@ -321,7 +321,7 @@ const followListManager = {
       const url = isFollowing ? '/unfollow' : '/follow';
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           followerId: this.state.currentUser.id,
           followingId: targetUserId

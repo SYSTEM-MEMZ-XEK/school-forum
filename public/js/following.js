@@ -82,7 +82,7 @@ const followingManager = {
     try {
       await fetch('/follow/mark-viewed', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: this.state.currentUser.id })
       });
       

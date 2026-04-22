@@ -131,6 +131,9 @@ function injectionGuard(req, res, next) {
     /(union\s+(all\s+)?select)/i     // UNION SELECT 注入
   ];
 
+  // 跳过注入检测的字段（密码等用户凭证不应被内容过滤）
+  const SKIP_FIELDS = new Set(['password', 'newPassword', 'confirmPassword', 'currentPassword']);
+
   /**
    * 递归检查对象
    */
@@ -164,6 +167,11 @@ function injectionGuard(req, res, next) {
             ip: req.ip
           });
           return true;
+        }
+
+        // 跳过密码等凭证字段的值内容检测
+        if (SKIP_FIELDS.has(key)) {
+          continue;
         }
         
         // 递归检查值

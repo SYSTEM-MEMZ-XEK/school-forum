@@ -385,7 +385,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/favorites/${this.postId}/tag`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id,
           tagId: tagId || null
@@ -826,9 +826,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           username: userManager.state.currentUser.username,
@@ -874,9 +872,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id
         })
@@ -942,9 +938,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/comments/${commentId}/replies`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           username: userManager.state.currentUser.username,
@@ -1021,9 +1015,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/comments/${commentId}/replies`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           username: userManager.state.currentUser.username,
@@ -1071,9 +1063,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           replyId: replyId
@@ -1110,9 +1100,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           replyId: replyId,
@@ -1141,9 +1129,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/view`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: userManager.getAuthHeaders()
       });
 
       if (response.ok) {
@@ -1181,9 +1167,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/like`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id
         })
@@ -1302,9 +1286,7 @@ const postDetailManager = {
       
       const response = await fetch(`/posts/${this.postId}/comments/${commentId}/like`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userId
         })
@@ -1354,9 +1336,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}/dislike`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id
         })
@@ -1440,9 +1420,7 @@ const postDetailManager = {
     try {
       const response = await fetch(`/posts/${this.postId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id
         })
@@ -1703,7 +1681,7 @@ const postDetailManager = {
       try {
         const response = await fetch(`/posts/${this.postId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: userManager.getAuthHeaders(),
           body: JSON.stringify({
             userId: userManager.state.currentUser.id,
             visibility: newVisibility
@@ -1850,7 +1828,7 @@ const postDetailManager = {
         
         const response = await fetch('/reports', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: userManager.getAuthHeaders(),
           body: JSON.stringify({
             reporterId: userId,
             targetType: targetType,
