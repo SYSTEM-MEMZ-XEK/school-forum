@@ -58,6 +58,14 @@ displayAdminInfo: function() {
   }
 },
 
+  // 获取携带 adminToken 的请求头（所有管理员 API 请求必须使用此函数）
+  getAdminHeaders: function(extra) {
+    const token = localStorage.getItem('adminToken');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return Object.assign(headers, extra);
+  },
+
     // 检查管理员权限 - 带服务器验证
 checkAdminAuth: async function() {
   const savedUser = localStorage.getItem('forumUser');
@@ -73,41 +81,28 @@ checkAdminAuth: async function() {
     const user = JSON.parse(savedUser);
     console.log('解析后的用户信息:', user);
     
-    // 向服务器验证用户状态
-    const isValid = await this.verifyUserWithServer(user);
-    if (!isValid) {
+    // 向服务器验证用户状态（同时获取服务端的 isAdmin 结果）
+    const verifyResult = await this.verifyUserWithServer(user);
+    if (!verifyResult) {
       return false;
     }
     
-    // 检查是否是管理员
-    const adminQQList = ['1635075096']; // 与后端保持一致
-    const adminIdList = ['cc99c0f3-7cb9-423a-b2d4-d328a6f33293']; // 用户ID列表
-    
-    const isAdmin = adminQQList.includes(user.qq) || adminIdList.includes(user.id);
-    
-    console.log('管理员检查结果:', { 
-      qq: user.qq, 
-      id: user.id, 
-      isAdmin: isAdmin,
-      adminQQList: adminQQList,
-      adminIdList: adminIdList
-    });
-    
-    if (!isAdmin) {
+    // 直接使用服务端返回的管理员标记，无需前端维护硬编码白名单
+    if (!verifyResult.isAdmin) {
       alert('您不是管理员，无法访问此页面');
       window.location.href = '/index.html';
       return false;
     }
     
-    // 检查用户状态
-    if (user.isActive === false) {
+    // 检查用户状态（服务端已检查，此处为双重保险）
+    if (verifyResult.user && verifyResult.user.isActive === false) {
       alert('您的账号已被禁用，无法访问管理员面板');
       window.location.href = '/index.html';
       return false;
     }
     
-    this.state.currentAdmin = user;
-    console.log('管理员验证通过，当前管理员:', user.username);
+    this.state.currentAdmin = verifyResult.user || user;
+    console.log('管理员验证通过，当前管理员:', this.state.currentAdmin.username);
     return true;
   } catch (error) {
     console.error('管理员权限检查失败:', error);
@@ -117,7 +112,7 @@ checkAdminAuth: async function() {
   }
 },
 
-// 向服务器验证用户状态
+// 向服务器验证用户状态，返回 { isAdmin, user } 或 false
 verifyUserWithServer: async function(user) {
   try {
     const response = await fetch('/auth/verify', {
@@ -151,16 +146,6 @@ verifyUserWithServer: async function(user) {
         }
       }
       
-      // 检查管理员状态
-      const localIsAdmin = user.isAdmin || false;
-      const serverIsAdmin = data.isAdmin || false;
-      if (localIsAdmin !== serverIsAdmin) {
-        localStorage.removeItem('forumUser');
-        alert('账户权限已变更，请重新登录');
-        window.location.href = 'login.html';
-        return false;
-      }
-      
       // 检查用户是否被禁用
       if (serverUser.isActive === false) {
         localStorage.removeItem('forumUser');
@@ -169,15 +154,16 @@ verifyUserWithServer: async function(user) {
         return false;
       }
       
-      return true;
+      // 返回服务端的 isAdmin 和用户信息
+      return { isAdmin: data.isAdmin || false, user: serverUser };
     }
     
     localStorage.removeItem('forumUser');
     return false;
   } catch (error) {
     console.error('验证用户状态失败:', error);
-    // 网络错误时保持登录状态
-    return true;
+    // 网络错误时保持登录状态，但无法判断 isAdmin，保守地返回 false
+    return false;
   }
 },
     // 设置事件监听器
@@ -255,8 +241,17 @@ fetchWithTimeout: function(url, options = {}) {
   
   console.log('发送管理员请求:', { url, method: options.method, currentAdmin: this.state.currentAdmin });
   
-  // 确保所有管理员请求都包含管理员ID
+  // 确保所有管理员请求都包含管理员ID 和 Authorization 头
   if (this.state.currentAdmin) {
+    // 统一注入 Authorization 头（adminToken）
+    if (!options.headers) {
+      options.headers = {};
+    }
+    const adminToken = localStorage.getItem('adminToken');
+    if (adminToken && !options.headers['Authorization']) {
+      options.headers['Authorization'] = `Bearer ${adminToken}`;
+    }
+
     // 如果是GET请求，在URL中添加adminId参数
     if ((!options.method || options.method === 'GET') && !url.includes('adminId=')) {
       const separator = url.includes('?') ? '&' : '?';
@@ -266,9 +261,6 @@ fetchWithTimeout: function(url, options = {}) {
     
     // 对于非GET请求，在body中添加adminId
     if (options.method && options.method !== 'GET') {
-      if (!options.headers) {
-        options.headers = {};
-      }
       if (!options.headers['Content-Type']) {
         options.headers['Content-Type'] = 'application/json';
       }

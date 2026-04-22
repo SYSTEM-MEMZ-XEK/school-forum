@@ -466,7 +466,8 @@ const userController = {
       });
 
       // 返回用户信息（不包含密码和MongoDB特有字段）
-      const { password: _, _id, __v, ...safeUser } = user;
+      // 注意：必须先 toObject() 将 Mongoose 文档转为普通对象，否则展开运算符无法枚举 Schema 字段
+      const { password: _, _id, __v, ...safeUser } = user.toObject();
 
       // 缓存用户信息到Redis
       await userCache.set(user.id, safeUser);

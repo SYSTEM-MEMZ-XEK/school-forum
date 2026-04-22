@@ -770,9 +770,7 @@ const profileManager = {
       const url = this.state.isFollowing ? '/unfollow' : '/follow';
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           followerId: currentUser.id,
           followingId: this.state.userId
@@ -891,9 +889,7 @@ const profileManager = {
       const url = this.state.isBlocked ? '/unblock' : '/block';
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           blockerId: currentUser.id,
           blockedId: this.state.userId

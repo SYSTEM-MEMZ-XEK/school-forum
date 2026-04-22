@@ -239,10 +239,12 @@ const reportController = {
   // 处理举报（管理员）
   async processReport(req, res) {
     try {
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
       const { reportId } = req.params;
-      const { adminId, action, banDuration, note } = req.body;
+      const { action, banDuration, note } = req.body;
 
-      if (!adminId || !action) {
+      if (!action) {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
 

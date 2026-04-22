@@ -136,7 +136,7 @@ const favoritesManager = {
     try {
       const response = await fetch('/favorites/tags', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id,
           name: name,
@@ -169,7 +169,7 @@ const favoritesManager = {
     try {
       const response = await fetch(`/favorites/tags/${tagId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id,
           name: name,
@@ -206,7 +206,7 @@ const favoritesManager = {
     try {
       const response = await fetch(`/favorites/tags/${tagId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })
       });
 
@@ -239,7 +239,7 @@ const favoritesManager = {
     try {
       const response = await fetch(`/favorites/${postId}/tag`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id,
           tagId: tagId
@@ -451,7 +451,7 @@ const favoritesManager = {
     try {
       const response = await fetch('/favorites/batch/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id,
           postIds: Array.from(this.selectedPostIds)
@@ -547,7 +547,7 @@ const favoritesManager = {
     try {
       const response = await fetch('/favorites/batch/move', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id,
           postIds: Array.from(this.selectedPostIds),
@@ -580,7 +580,7 @@ const favoritesManager = {
     try {
       const response = await fetch(`/favorites/${postId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })
       });
 

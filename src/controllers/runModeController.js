@@ -49,11 +49,9 @@ const runModeController = {
    */
   async setMode(req, res) {
     try {
-      const { adminId, mode, maintenanceMessage } = req.body;
-      
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { mode, maintenanceMessage } = req.body;
       
       if (!mode || !Object.values(RUN_MODES).includes(mode)) {
         return res.status(400).json(generateErrorResponse('无效的运行模式'));
@@ -114,7 +112,9 @@ const runModeController = {
    */
   async selfDestructLevel3(req, res) {
     try {
-      const { adminId, confirmation, verificationCode } = req.body;
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { confirmation, verificationCode } = req.body;
       
       // 验证确认字符串
       if (confirmation !== '确认删除所有内容') {
@@ -201,7 +201,9 @@ const runModeController = {
    */
   async selfDestructLevel2(req, res) {
     try {
-      const { adminId, confirmation } = req.body;
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { confirmation } = req.body;
       
       // 验证确认字符串
       if (confirmation !== '确认清空数据库') {
@@ -256,7 +258,9 @@ const runModeController = {
    */
   async selfDestructLevel1(req, res) {
     try {
-      const { adminId, confirmation } = req.body;
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { confirmation } = req.body;
       
       // 验证确认字符串
       if (confirmation !== '确认销毁论坛') {

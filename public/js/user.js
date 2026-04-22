@@ -19,6 +19,14 @@ const userManager = {
     registerBtn: document.getElementById('register-btn')
   },
 
+  // 获取携带 JWT Token 的请求头（所有需要认证的 fetch 调用必须使用此函数）
+  getAuthHeaders: function(extra) {
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return Object.assign(headers, extra);
+  },
+
   // 初始化
   init: function() {
     // 防止重复初始化
@@ -642,8 +650,11 @@ const userManager = {
     // 停止消息刷新定时器
     this.stopMessageRefreshTimer();
     
-    // 清除本地存储
+    // 清除本地存储（含 JWT Token）
     localStorage.removeItem('forumUser');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('adminToken');
 
     // 重置状态
     this.state.currentUser = null;
@@ -997,9 +1008,7 @@ const userManager = {
     try {
       const response = await fetch(`/users/${currentUser.id}/settings`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({ settings })
       });
       
@@ -1099,7 +1108,9 @@ const userManager = {
     
     try {
       console.log('updateUnreadMessageCount: 正在获取未读消息数量, userId:', currentUser.id);
-      const response = await fetch(`/notifications?userId=${currentUser.id}`);
+      const response = await fetch(`/notifications?userId=${currentUser.id}`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.error('updateUnreadMessageCount: 获取消息失败');
         return;
@@ -1232,7 +1243,9 @@ const userManager = {
     }
     
     try {
-      const response = await fetch(`/messages/unread?userId=${currentUser.id}`);
+      const response = await fetch(`/messages/unread?userId=${currentUser.id}`, {
+        headers: this.getAuthHeaders()
+      });
       if (!response.ok) {
         console.error('updateChatUnreadCount: 获取私信未读数量失败');
         return;

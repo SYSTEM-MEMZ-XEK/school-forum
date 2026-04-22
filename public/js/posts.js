@@ -747,9 +747,7 @@ const postsManager = {
       try {
         const response = await fetch(`/posts/${postId}/view`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: userManager.getAuthHeaders()
         });
   
         if (response.ok) {
@@ -868,7 +866,7 @@ const postsManager = {
       try {
         const response = await fetch(`/favorites/${postId}/tag`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: userManager.getAuthHeaders(),
           body: JSON.stringify({
             userId: currentUser.id,
             tagId: tagId || null
@@ -1083,9 +1081,7 @@ const postsManager = {
           
           const response = await fetch(`/posts/${postId}/like`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: userManager.getAuthHeaders(),
             body: JSON.stringify({
               userId: userId
             })
@@ -1173,9 +1169,7 @@ const postsManager = {
         try {
           const response = await fetch(`/posts/${postId}/dislike`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: userManager.getAuthHeaders(),
             body: JSON.stringify({
               userId: userManager.state.currentUser.id
             })
@@ -1343,9 +1337,7 @@ const postsManager = {
           
           const response = await fetch(`/posts/${postId}`, {
             method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: userManager.getAuthHeaders(),
             body: JSON.stringify({
               userId: userId
             })
@@ -1521,7 +1513,7 @@ const postsManager = {
         
         const response = await fetch('/reports', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: userManager.getAuthHeaders(),
           body: JSON.stringify({
             reporterId: userManager.state.currentUser.id,
             targetType: targetType,

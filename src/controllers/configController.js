@@ -68,11 +68,9 @@ const configController = {
   // 更新配置
   updateConfig(req, res) {
     try {
-      const { adminId, updates } = req.body;
-
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { updates } = req.body;
 
       if (!updates || typeof updates !== 'object') {
         return res.status(400).json(generateErrorResponse('配置更新数据无效'));
@@ -89,7 +87,7 @@ const configController = {
         res.status(500).json(generateErrorResponse('更新配置失败'));
       }
     } catch (error) {
-      logger.logError('更新配置失败', { error: error.message, adminId: req.body.adminId });
+      logger.logError('更新配置失败', { error: error.message, adminId: req.admin?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -97,11 +95,9 @@ const configController = {
   // 添加管理员
   addAdmin(req, res) {
     try {
-      const { adminId, newAdminId } = req.body;
-
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { newAdminId } = req.body;
 
       if (!newAdminId) {
         return res.status(400).json(generateErrorResponse('新管理员ID不能为空'));
@@ -118,7 +114,7 @@ const configController = {
         res.status(400).json(generateErrorResponse('管理员已存在'));
       }
     } catch (error) {
-      logger.logError('添加管理员失败', { error: error.message, adminId: req.body.adminId });
+      logger.logError('添加管理员失败', { error: error.message, adminId: req.admin?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -126,11 +122,9 @@ const configController = {
   // 删除管理员
   removeAdmin(req, res) {
     try {
-      const { adminId, targetAdminId } = req.body;
-
-      if (!adminId) {
-        return res.status(400).json(generateErrorResponse('管理员ID不能为空'));
-      }
+      // adminId 来自 JWT 认证中间件（requireAdmin），不信任 req.body
+      const adminId = req.admin.id;
+      const { targetAdminId } = req.body;
 
       if (!targetAdminId) {
         return res.status(400).json(generateErrorResponse('目标管理员ID不能为空'));
@@ -154,7 +148,7 @@ const configController = {
         res.status(404).json(generateErrorResponse('管理员不存在'));
       }
     } catch (error) {
-      logger.logError('删除管理员失败', { error: error.message, adminId: req.body.adminId });
+      logger.logError('删除管理员失败', { error: error.message, adminId: req.admin?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },

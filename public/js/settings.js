@@ -432,9 +432,7 @@ const settingsManager = {
       // 发送更新请求
       const response = await fetch(`/users/${userManager.state.currentUser.id}/settings`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ settings })
       });
       
@@ -513,9 +511,7 @@ const settingsManager = {
       // 发送更新请求
       const response = await fetch(`/users/${userManager.state.currentUser.id}/settings`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ settings })
       });
       
@@ -929,9 +925,7 @@ const settingsManager = {
     try {
       const response = await fetch('/send-password-change-code', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           currentPassword: currentPassword
@@ -985,9 +979,7 @@ const settingsManager = {
     try {
       const response = await fetch('/send-password-change-code', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           currentPassword: this.state.passwordChange.currentPassword
@@ -1054,9 +1046,7 @@ const settingsManager = {
     try {
       const response = await fetch('/verify-password-change-code', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           verificationCode: verificationCode
@@ -1115,9 +1105,7 @@ const settingsManager = {
     try {
       const response = await fetch(`/users/${userManager.state.currentUser.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           currentPassword: this.state.passwordChange.currentPassword,
           newPassword: newPassword
@@ -1549,9 +1537,7 @@ const settingsManager = {
       // 发送更新请求
       const response = await fetch(`/users/${userManager.state.currentUser.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify(updateData)
       });
       
@@ -1688,6 +1674,7 @@ const settingsManager = {
       
       const response = await fetch(`/users/${userManager.state.currentUser.id}/avatar`, {
         method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` },
         body: formData
       });
       
@@ -1732,7 +1719,8 @@ const settingsManager = {
       utils.showNotification('头像移除中...', 'info');
       
       const response = await fetch(`/users/${userManager.state.currentUser.id}/avatar`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` }
       });
       
       const data = await response.json();
@@ -1984,7 +1972,7 @@ const settingsManager = {
     try {
       const response = await fetch(`/users/${currentUser.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify(updateData)
       });
       
@@ -2041,7 +2029,7 @@ const settingsManager = {
     try {
       const response = await fetch('/send-email-change-code', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           currentPassword: currentPassword,
@@ -2123,7 +2111,7 @@ const settingsManager = {
     try {
       const response = await fetch('/verify-email-change', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           verificationCode: verificationCode,
@@ -2233,7 +2221,7 @@ const settingsManager = {
     try {
       const response = await fetch('/change-qq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           currentPassword: currentPassword,
@@ -2382,7 +2370,7 @@ const settingsManager = {
     try {
       const response = await fetch('/send-deletion-code', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           password: password
@@ -2428,7 +2416,7 @@ const settingsManager = {
     try {
       const response = await fetch('/delete-account', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id,
           password: this.state.deletionPassword,
@@ -2446,7 +2434,9 @@ const settingsManager = {
         
         // 清除本地存储
         localStorage.removeItem('forumUser');
-        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('adminToken');
         
         // 3秒后跳转到登录页
         setTimeout(() => {
