@@ -286,6 +286,7 @@ function setupEventListeners() {
   document.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       const activeForm = document.querySelector('.form-section.active');
+      if (!activeForm) return;
       if (activeForm.id === 'login-form') {
         loginUser();
       } else if (activeForm.id === 'register-form') {
@@ -355,6 +356,7 @@ async function sendVerificationCode() {
 
 // 开始倒计时
 function startCountdown() {
+  if (verificationCodeTimer) clearInterval(verificationCodeTimer);
   countdownSeconds = 60;
   
   if (dom.sendVerificationCodeBtn) {
@@ -440,6 +442,7 @@ async function sendLoginVerificationCode() {
 
 // 登录页面开始倒计时
 function startLoginCountdown() {
+  if (loginVerificationCodeTimer) clearInterval(loginVerificationCodeTimer);
   loginCountdownSeconds = 60;
   
   if (dom.sendLoginVerificationCodeBtn) {
@@ -493,7 +496,7 @@ async function sendAdminVerificationCode() {
   }
   
   try {
-    const response = await fetch('/send-login-verification-code', {
+    const response = await fetch('/send-admin-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -525,6 +528,7 @@ async function sendAdminVerificationCode() {
 
 // 管理员页面开始倒计时
 function startAdminCountdown() {
+  if (adminVerificationCodeTimer) clearInterval(adminVerificationCodeTimer);
   adminCountdownSeconds = 60;
   
   if (dom.sendAdminVerificationCodeBtn) {

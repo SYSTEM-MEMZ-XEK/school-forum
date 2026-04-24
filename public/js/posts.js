@@ -155,8 +155,8 @@ const postsManager = {
         }
       }
       // 添加当前用户ID用于黑名单过滤
-      if (this.state.currentUser && this.state.currentUser.id) {
-        params.push(`viewerId=${this.state.currentUser.id}`);
+      if (userManager && userManager.state && userManager.state.currentUser && userManager.state.currentUser.id) {
+        params.push(`viewerId=${userManager.state.currentUser.id}`);
       }
       if (params.length > 0) {
         url += '?' + params.join('&');
@@ -185,7 +185,9 @@ const postsManager = {
         this.state.posts = data.posts;
         
         // 更新搜索结果提示
-        this.updateSearchResultsInfo(data.pagination.totalPosts);
+        if (data.pagination && typeof data.pagination.totalPosts === 'number') {
+          this.updateSearchResultsInfo(data.pagination.totalPosts);
+        }
         
         const renderStart = performance.now();
         this.renderPosts(data.posts, favoritesData);
@@ -634,9 +636,8 @@ const postsManager = {
   restoreMathFormulas: function(html, placeholders) {
     let result = html;
     placeholders.forEach(({ placeholder, formula }) => {
-      // 处理可能的 HTML 实体编码
-      const decodedPlaceholder = placeholder.replace(/&/g, '&amp;');
-      result = result.replace(new RegExp(placeholder, 'g'), formula);
+      // 使用解码后的占位符进行替换（处理HTML实体编码情况）
+      result = result.replace(new RegExp(placeholder.replace(/&/g, '&amp;'), 'g'), formula);
     });
     return result;
   },

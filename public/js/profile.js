@@ -327,7 +327,6 @@ const profileManager = {
       postElement.dataset.id = post.id;
       
       // 格式化时间
-      const postTime = new Date(post.timestamp);
       const timeDisplay = utils.formatDate(post.timestamp);
       
       // 计算评论数
@@ -911,9 +910,10 @@ const profileManager = {
         if (data.blocked && this.state.isFollowing) {
           this.state.isFollowing = false;
           this.updateFollowButton();
-          this.state.followerCount = Math.max(0, this.state.followerCount - 1);
-          if (this.dom.followerCount) {
-            this.dom.followerCount.textContent = this.state.followerCount;
+          // 拉黑时解除关注，减少的是"关注数"而非"粉丝数"
+          this.state.followingCount = Math.max(0, this.state.followingCount - 1);
+          if (this.dom.followingCount) {
+            this.dom.followingCount.textContent = this.state.followingCount;
           }
         }
         

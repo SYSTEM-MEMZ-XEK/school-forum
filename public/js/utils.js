@@ -107,8 +107,8 @@ const utils = {
   // 自动刷新
   startAutoRefresh: function() {
     setInterval(() => {
-      if (postsManager.loadPosts) postsManager.loadPosts();
-      if (statsManager.loadStats) statsManager.loadStats();
+      if (typeof postsManager !== 'undefined' && postsManager.loadPosts) postsManager.loadPosts();
+      if (typeof statsManager !== 'undefined' && statsManager.loadStats) statsManager.loadStats();
     }, 60000); // 每1分钟刷新一次
   },
 

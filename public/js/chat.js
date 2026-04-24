@@ -202,6 +202,11 @@ const chatManager = {
     const currentUser = this.getCurrentUser();
     if (!currentUser) return;
     
+    // 重置消息状态（避免残留旧会话数据）
+    this.state.messages = [];
+    this.state.hasMoreMessages = true;
+    this.state.oldestMessageDate = null;
+    
     this.state.currentOtherUser = { id: userId };
     
     // 先获取对方用户信息
@@ -331,9 +336,9 @@ const chatManager = {
           this.state.messages = data.messages;
         }
         
-        // 更新最早消息时间
+        // 更新最早消息时间（默认返回 newest-first，取最后一个元素为最早消息）
         if (data.messages.length > 0) {
-          this.state.oldestMessageDate = data.messages[0].createdAt;
+          this.state.oldestMessageDate = data.messages[data.messages.length - 1].createdAt;
         }
         
         // 检查是否还有更多消息
