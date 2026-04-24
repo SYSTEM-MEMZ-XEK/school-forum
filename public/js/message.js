@@ -517,11 +517,9 @@ const messageManager = {
       
       const data = await response.json();
       if (data.success) {
-        // 更新本地状态
+        // 更新本地状态（标记所有通知为已读）
         this.state.notifications.forEach(notification => {
-          if (notification.userId === currentUser.id) {
-            notification.read = true;
-          }
+          notification.read = true;
         });
         
         // 更新UI
@@ -538,6 +536,7 @@ const messageManager = {
 
   // HTML转义函数，防止XSS攻击
   escapeHtml: function(text) {
+    if (text == null) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;

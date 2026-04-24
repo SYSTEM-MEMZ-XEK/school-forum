@@ -813,7 +813,7 @@ loadBannedUsers: async function() {
             const dateSelect = document.getElementById('log-date-select');
             const selectedDate = dateSelect?.value || '';
 
-            const level = this.currentLogLevel || 'ALL';
+            const level = this.state.currentLogLevel || 'ALL';
             const search = document.getElementById('logs-search')?.value || '';
 
             const params = new URLSearchParams({
@@ -881,7 +881,7 @@ loadBannedUsers: async function() {
 
     // 过滤日志级别
     filterLogsByLevel: function(level) {
-        this.currentLogLevel = level;
+        this.state.currentLogLevel = level;
 
         // 更新按钮状态
         document.querySelectorAll('.log-level-btn').forEach(btn => {
@@ -994,13 +994,13 @@ loadBannedUsers: async function() {
         let html = '';
 
         if (pagination.hasPrev) {
-            html += `<button onclick="loadLogs(${pagination.currentPage - 1})" class="page-btn"><i class="fas fa-chevron-left"></i></button>`;
+            html += `<button onclick="adminManager.loadLogs(${pagination.currentPage - 1})" class="page-btn"><i class="fas fa-chevron-left"></i></button>`;
         }
 
         html += `<span class="page-info">第 ${pagination.currentPage} / ${pagination.totalPages} 页 (共 ${pagination.totalLogs} 条)</span>`;
 
         if (pagination.hasNext) {
-            html += `<button onclick="loadLogs(${pagination.currentPage + 1})" class="page-btn"><i class="fas fa-chevron-right"></i></button>`;
+            html += `<button onclick="adminManager.loadLogs(${pagination.currentPage + 1})" class="page-btn"><i class="fas fa-chevron-right"></i></button>`;
         }
 
         container.innerHTML = html;
@@ -2045,6 +2045,9 @@ loadBannedUsers: async function() {
     showBanModal: function(userId, username) {
         this.state.selectedUserId = userId;
         document.getElementById('banModal').style.display = 'flex';
+        // 更新标题显示被封禁用户名
+        const banModalTitle = document.querySelector('#banModal .modal-header h3');
+        if (banModalTitle) banModalTitle.textContent = `封禁用户：${username}`;
         document.getElementById('banReason').value = '违反论坛规定';
     },
 
@@ -3006,7 +3009,7 @@ confirmDeletePost: async function() {
      */
     loadRunMode: async function() {
         try {
-            const response = await this.fetchWithTimeout('/api/run-mode');
+            const response = await this.fetchWithTimeout('/run-mode');
             if (!response.ok) {
                 throw new Error('获取运行模式失败');
             }
@@ -3092,7 +3095,7 @@ confirmDeletePost: async function() {
         }
 
         try {
-            const response = await this.fetchWithTimeout('/api/admin/run-mode', {
+            const response = await this.fetchWithTimeout('/admin/run-mode', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -3154,7 +3157,7 @@ confirmDeletePost: async function() {
                        '网站正在维护中，请稍后再试';
 
         try {
-            const response = await this.fetchWithTimeout('/api/admin/run-mode', {
+            const response = await this.fetchWithTimeout('/admin/run-mode', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -3288,7 +3291,7 @@ confirmDeletePost: async function() {
             this.closeModal('selfDestructModal');
             this.showNotification(`正在执行${level}级自毁...`, 'warning');
 
-            const endpoint = `/api/admin/self-destruct/level${level}`;
+            const endpoint = `/admin/self-destruct/level${level}`;
             
             const response = await this.fetchWithTimeout(endpoint, {
                 method: 'POST',
@@ -3298,8 +3301,9 @@ confirmDeletePost: async function() {
                 body: JSON.stringify({
                     adminId: this.state.currentAdmin.id,
                     confirmation: expectedConfirmation
-                })
-            }, 60000); // 60秒超时
+                }),
+                timeout: 60000  // 自毁操作使用 60 秒超时
+            });
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -3367,7 +3371,7 @@ confirmDeletePost: async function() {
                 
                 this.renderAnnouncementsList(data.announcements);
                 this.renderAnnouncementsPagination(data.pagination);
-                this.updateAnnouncementsStats(data.announcements);
+                this.updateAnnouncementsStats(data.announcements, data.pagination.total);
             }
         } catch (error) {
             console.error('加载公告失败:', error);
@@ -3446,12 +3450,12 @@ confirmDeletePost: async function() {
     },
     
     // 更新公告统计
-    updateAnnouncementsStats: function(announcements) {
-        const total = announcements.length;
+    updateAnnouncementsStats: function(announcements, totalCount) {
         const active = announcements.filter(a => a.isActive).length;
         const pinned = announcements.filter(a => a.isPinned).length;
         
-        document.getElementById('announcements-total').textContent = total;
+        // 总数使用服务端分页返回的总量，而非当前页的数组长度
+        document.getElementById('announcements-total').textContent = totalCount !== undefined ? totalCount : announcements.length;
         document.getElementById('announcements-active').textContent = active;
         document.getElementById('announcements-pinned').textContent = pinned;
     },

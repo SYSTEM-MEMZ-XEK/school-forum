@@ -379,9 +379,7 @@ const followingManager = {
     try {
       const response = await fetch('/unfollow', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           followerId: this.state.currentUser.id,
           followingId: followingId
@@ -502,7 +500,7 @@ const followingManager = {
     try {
       const response = await fetch(`/posts/${postId}/like`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: this.state.currentUser.id })
       });
       
@@ -553,7 +551,7 @@ const followingManager = {
       
       const response = await fetch(`/favorites/${postId}`, {
         method: method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: this.state.currentUser.id })
       });
       

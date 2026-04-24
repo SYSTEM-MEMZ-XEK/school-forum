@@ -724,6 +724,14 @@ const settingsManager = {
       });
     }
     
+    // 个人信息保存按钮
+    if (this.dom.savePersonalInfoBtn) {
+      this.dom.savePersonalInfoBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.savePersonalInfo();
+      });
+    }
+    
     // 学校选择变化事件
     if (this.dom.settingsSchool) {
       this.dom.settingsSchool.addEventListener('change', () => this.onSchoolChange());
@@ -1103,8 +1111,8 @@ const settingsManager = {
     this.dom.changePasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 修改中...';
     
     try {
-      const response = await fetch(`/users/${userManager.state.currentUser.id}`, {
-        method: 'PUT',
+      const response = await fetch('/change-password', {
+        method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           currentPassword: this.state.passwordChange.currentPassword,
@@ -1549,7 +1557,7 @@ const settingsManager = {
       const data = await response.json();
       
       if (data.success) {
-        // 更新本地存储的用户数据
+        // 使用 API 响应数据更新本地存储和内存状态（避免 localStorage 旧数据覆盖新状态）
         const forumUser = JSON.parse(localStorage.getItem('forumUser') || '{}');
         if (updateData.username) {
           forumUser.username = updateData.username;
@@ -1563,11 +1571,15 @@ const settingsManager = {
           Object.assign(forumUser.settings, updateData.settings);
         }
         
-        // 更新当前用户状态
-        Object.assign(userManager.state.currentUser, forumUser);
+        // 使用 API 响应数据更新当前用户状态（而非从 localStorage 读取旧数据）
+        if (data.user) {
+          Object.assign(userManager.state.currentUser, data.user);
+        } else {
+          Object.assign(userManager.state.currentUser, forumUser);
+        }
         
         // 更新本地存储
-        localStorage.setItem('forumUser', JSON.stringify(forumUser));
+        localStorage.setItem('forumUser', JSON.stringify(userManager.state.currentUser));
         
         // 更新UI
         userManager.updateUserUI(userManager.state.currentUser);

@@ -45,6 +45,9 @@ const app = {
   initAnnouncements: async function() {
     try {
       const response = await fetch('/announcements/active');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const data = await response.json();
       
       if (data.success && data.announcements && data.announcements.length > 0) {
