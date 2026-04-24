@@ -183,6 +183,12 @@ const PostSchema = new Schema({
   deviceInfo: {
     type: String,
     default: ''
+  },
+  // 所属栏目ID（可选，不填表示无栏目归属）
+  categoryId: {
+    type: String,
+    default: null,
+    index: true
   }
 }, {
   timestamps: false,

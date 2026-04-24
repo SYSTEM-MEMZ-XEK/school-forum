@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>栏目 - 校园论坛</title>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/post-detail.css">
+  <!-- Markdown-it 渲染支持 -->
+  <script defer src="/libs/markdown-it/markdown-it.min.js"></script>
+  <link rel="stylesheet" href="/libs/highlight.js/styles/github-dark.min.css">
+  <script src="/libs/highlight.js/highlight.min.js"></script>
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] },
+      startup: { typeset: false },
+      svg: { scale: 1.5 }
+    };
+  </script>
+  <script id="MathJax-script" src="/libs/mathjax/tex-svg-full.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); } else {
+      setTimeout(() => { if (window.hljs) hljs.highlightAll(); }, 100);
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <a href="/"><i class="fas fa-comments"></i><h1>校园论坛</h1></a>
+      </div>
+      <div class="header-search">
+        <div class="search-box-wrapper">
+          <i class="fas fa-search"></i>
+          <input type="text" id="search-input" placeholder="搜索栏目内帖子..." autocomplete="off">
+          <button class="search-btn" id="search-btn">搜索</button>
+        </div>
+      </div>
+      <div class="notification-area" id="notificationArea"></div>
+      <div id="user-actions">
+        <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
+          <i class="fas fa-user-circle"></i>
+          <div class="header-user-dropdown">
+            <div class="header-user-info">
+              <div class="header-user-name" id="header-username">用户名</div>
+              <div class="header-user-class" id="header-user-class">班级</div>
+            </div>
+            <div class="header-user-menu">
+              <a href="profile.html" class="header-menu-item"><i class="fas fa-user"></i> 个人资料</a>
+              <a href="favorites.html" class="header-menu-item"><i class="fas fa-star"></i> 我的收藏</a>
+              <a href="following.html" class="header-menu-item"><i class="fas fa-users"></i> 我的关注</a>
+              <a href="settings.html" class="header-menu-item"><i class="fas fa-cog"></i> 设置</a>
+              <a href="message.html" class="header-menu-item"><i class="fas fa-bell"></i> 消息通知</a>
+              <a href="chat.html" class="header-menu-item"><i class="fas fa-envelope"></i> 私信</a>
+              <div class="header-menu-divider"></div>
+              <button id="header-logout-btn" class="header-menu-item logout"><i class="fas fa-sign-out-alt"></i> 退出登录</button>
+            </div>
+          </div>
+        </div>
+        <div id="header-updates-btn" class="header-icon-btn" style="display: none;">
+          <a href="following.html"><i class="fas fa-rss"></i><span id="updates-badge" class="updates-badge">0</span></a>
+        </div>
+        <div id="header-chat-btn" class="header-icon-btn" style="display: none;">
+          <a href="chat.html"><i class="fas fa-envelope"></i><span id="chat-badge" class="message-badge" style="display:none;">0</span></a>
+        </div>
+        <button id="login-btn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button id="register-btn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- 栏目头部 -->
+    <div class="category-header" id="category-header">
+      <div class="category-header-info">
+        <div class="category-icon" id="category-icon">
+          <i class="fas fa-folder"></i>
+        </div>
+        <div class="category-details">
+          <h1 id="category-name">加载中...</h1>
+          <p id="category-description"></p>
+        </div>
+      </div>
+      <div class="category-header-actions">
+        <a href="/" class="back-home-btn"><i class="fas fa-arrow-left"></i> 返回首页</a>
+        <button id="apply-category-btn" class="apply-category-btn" style="display: none;">
+          <i class="fas fa-plus"></i> 申请新栏目
+        </button>
+      </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+      <div>
+        <!-- 栏目导航 -->
+        <div class="category-nav-bar" id="category-nav-bar">
+          <a href="/" class="category-nav-item">
+            <i class="fas fa-globe"></i> 全部
+          </a>
+        </div>
+
+        <!-- 排序选项 -->
+        <div class="sort-options" id="sort-options">
+          <span class="sort-label">排序：</span>
+          <div class="sort-buttons">
+            <button class="sort-btn active" data-sort="latest">最新</button>
+            <button class="sort-btn" data-sort="hot">热门</button>
+          </div>
+        </div>
+
+        <!-- 搜索结果提示 -->
+        <div class="search-results-info" id="search-results-info" style="display: none;">
+          <span id="search-keyword"></span>
+          <button class="clear-search-btn" id="clear-search-btn">清除搜索</button>
+        </div>
+
+        <!-- 帖子列表 -->
+        <div class="posts-list" id="posts-container">
+          <div class="loading-placeholder">
+            <i class="fas fa-spinner fa-spin"></i> 加载中...
+          </div>
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="load-more-container" id="load-more-container" style="display: none;">
+          <button id="load-more-btn" class="load-more-btn">加载更多</button>
+        </div>
+
+        <!-- 无帖子提示 -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+          <i class="fas fa-inbox"></i>
+          <p>该栏目暂无帖子</p>
+          <a href="/" class="btn-link">返回首页</a>
+        </div>
+      </div>
+
+      <!-- 侧边栏 -->
+      <div class="sidebar">
+        <div class="sidebar-card">
+          <h3><i class="fas fa-layer-group"></i> 全部栏目</h3>
+          <div class="category-list" id="sidebar-category-list">
+            <div class="loading-placeholder" style="font-size: 0.9em;"><i class="fas fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+        <div class="sidebar-card">
+          <h3><i class="fas fa-bullhorn"></i> 发起申请</h3>
+          <p class="sidebar-hint">没找到想要的栏目？发起申请，让管理员创建！</p>
+          <button id="apply-sidebar-btn" class="sidebar-apply-btn">
+            <i class="fas fa-plus"></i> 申请新栏目
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 申请栏目模态框 -->
+  <div id="apply-category-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fas fa-plus"></i> 申请新栏目</h3>
+        <button class="modal-close" onclick="closeApplyModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="apply-category-name">栏目名称 <span class="required">*</span></label>
+          <input type="text" id="apply-category-name" placeholder="例如：学习方法、校园活动、二手交易" maxlength="30">
+          <small class="form-hint">最多30个字符</small>
+        </div>
+        <div class="form-group">
+          <label for="apply-category-desc">申请理由</label>
+          <textarea id="apply-category-desc" placeholder="请简要说明为什么需要这个栏目..." maxlength="500" rows="4"></textarea>
+          <small class="form-hint">最多500个字符</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" onclick="closeApplyModal()">取消</button>
+        <button id="submit-apply-btn" class="modal-btn confirm"><i class="fas fa-paper-plane"></i> 提交申请</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图片预览模态框 -->
+  <div id="image-modal" class="image-modal" style="display: none;">
+    <span class="image-modal-close">&times;</span>
+    <img class="image-modal-content" id="image-modal-img">
+    <div id="image-modal-caption"></div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/user.js"></script>
+  <script src="/js/category.js"></script>
+  <script src="/js/posts.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    // 页面状态
+    const categoryPageState = {
+      categoryId: null,
+      categoryName: '',
+      page: 1,
+      sortBy: 'latest',
+      searchKeyword: '',
+      hasMore: true,
+      loading: false
+    };
+
+    // 获取 URL 参数
+    function getUrlParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    // 初始化
+    async function initCategoryPage() {
+      categoryPageState.categoryId = getUrlParam('id');
+      if (!categoryPageState.categoryId) {
+        window.location.href = '/';
+        return;
+      }
+
+      // 初始化用户管理器
+      userManager.init();
+
+      // 初始化栏目管理器
+      await categoryManager.init();
+
+      // 加载栏目信息
+      await loadCategoryInfo();
+
+      // 加载帖子
+      await loadCategoryPosts();
+
+      // 渲染侧边栏目列表
+      renderSidebarCategories();
+
+      // 设置事件监听
+      setupEventListeners();
+    }
+
+    // 加载栏目信息
+    async function loadCategoryInfo() {
+      const category = await categoryManager.getCategory(categoryPageState.categoryId);
+      if (!category) {
+        document.getElementById('category-name').textContent = '栏目不存在';
+        return;
+      }
+
+      categoryPageState.categoryName = category.name;
+      document.title = `${category.name} - 校园论坛`;
+      document.getElementById('category-name').textContent = category.name;
+      document.getElementById('category-description').textContent = category.description || '';
+
+      const iconEl = document.getElementById('category-icon');
+      iconEl.innerHTML = `<i class="fas ${category.icon || 'fa-folder'}" style="color: ${category.color || '#4361ee'}"></i>`;
+      iconEl.style.background = `${category.color || '#4361ee'}22`;
+
+      // 已登录用户显示申请按钮
+      if (userManager.state.currentUser) {
+        document.getElementById('apply-category-btn').style.display = 'inline-flex';
+        document.getElementById('apply-sidebar-btn').style.display = 'block';
+      }
+    }
+
+    // 加载栏目帖子
+    async function loadCategoryPosts(append = false) {
+      if (categoryPageState.loading) return;
+      categoryPageState.loading = true;
+
+      const container = document.getElementById('posts-container');
+
+      if (!append) {
+        container.innerHTML = '<div class="loading-placeholder"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+      }
+
+      try {
+        const params = new URLSearchParams({
+          page: categoryPageState.page,
+          limit: 20,
+          sortBy: categoryPageState.sortBy,
+          categoryId: categoryPageState.categoryId
+        });
+
+        if (categoryPageState.searchKeyword) {
+          params.append('search', categoryPageState.searchKeyword);
+        }
+
+        const response = await fetch(`/posts?${params.toString()}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.message || '加载失败');
+        }
+
+        const posts = data.posts || [];
+
+        if (!append) {
+          container.innerHTML = '';
+        }
+
+        if (posts.length === 0 && !append) {
+          document.getElementById('empty-state').style.display = 'block';
+          document.getElementById('load-more-container').style.display = 'none';
+        } else {
+          document.getElementById('empty-state').style.display = 'none';
+
+          // 渲染帖子
+          posts.forEach(post => {
+            const postEl = createPostElement(post);
+            container.appendChild(postEl);
+          });
+
+          // 更新加载更多按钮状态
+          categoryPageState.hasMore = posts.length >= 20;
+          const loadMoreContainer = document.getElementById('load-more-container');
+          if (categoryPageState.hasMore) {
+            loadMoreContainer.style.display = 'block';
+          } else {
+            loadMoreContainer.style.display = 'none';
+          }
+        }
+
+        // 类型设置
+        if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+          MathJax.typesetPromise([container]).catch(err => console.error('MathJax typeset failed:', err));
+        }
+      } catch (error) {
+        console.error('加载帖子失败:', error);
+        if (!append) {
+          container.innerHTML = '<div class="error-placeholder">加载失败，请刷新页面重试</div>';
+        }
+        utils.showNotification('加载帖子失败', 'error');
+      } finally {
+        categoryPageState.loading = false;
+      }
+    }
+
+    // 创建帖子元素
+    function createPostElement(post) {
+      const currentUser = userManager.state.currentUser;
+      const postEl = document.createElement('div');
+      postEl.className = 'post-item';
+      postEl.dataset.id = post.id;
+
+      const timeDisplay = utils.formatDate(post.timestamp);
+      const isLiked = currentUser && post.likedBy && post.likedBy.includes(currentUser.id);
+      const likesCount = post.likes || 0;
+      const commentsCount = post.comments ? post.comments.length : 0;
+      const displayUsername = post.anonymous ? '匿名用户' : utils.escapeHtml(post.username);
+
+      // 处理图片
+      let imagesHtml = '';
+      if (post.images && post.images.length > 0) {
+        imagesHtml = `<div class="post-images">${post.images.map(img =>
+          `<img src="${img.url}" alt="图片" class="post-image" data-full="${img.url}">`
+        ).join('')}</div>`;
+      }
+
+      postEl.innerHTML = `
+        <div class="post-header">
+          <div class="post-user">
+            ${post.anonymous ? '<i class="fas fa-user-circle anonymous-avatar"></i>' :
+              `<a href="profile.html?id=${post.userId}">${post.userAvatar ? `<img src="${post.userAvatar}" class="post-avatar">` : '<i class="fas fa-user-circle"></i>'}</a>`}
+            <div class="post-user-info">
+              <span class="post-username">${displayUsername}</span>
+              ${!post.anonymous ? `<span class="post-meta">${utils.escapeHtml(post.school || '')} ${utils.escapeHtml(post.grade || '')} ${utils.escapeHtml(post.className || '')}</span>` : ''}
+            </div>
+          </div>
+          <span class="post-time">${timeDisplay}</span>
+        </div>
+        <div class="post-content">
+          ${utils.escapeHtml(post.content || '')}
+        </div>
+        ${imagesHtml}
+        <div class="post-actions">
+          <button class="post-action like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">
+            <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+            <span>${likesCount}</span>
+          </button>
+          <a href="post-detail.html?id=${post.id}" class="post-action comment-btn">
+            <i class="far fa-comment"></i>
+            <span>${commentsCount}</span>
+          </a>
+        </div>
+      `;
+
+      // 点赞事件
+      const likeBtn = postEl.querySelector('.like-btn');
+      likeBtn.addEventListener('click', async () => {
+        if (!currentUser) {
+          utils.showNotification('请先登录', 'info');
+          return;
+        }
+        await handleLike(post.id, likeBtn);
+      });
+
+      // 图片点击预览
+      postEl.querySelectorAll('.post-image').forEach(img => {
+        img.addEventListener('click', () => openImageModal(img.dataset.full));
+      });
+
+      return postEl;
+    }
+
+    // 处理点赞
+    async function handleLike(postId, btn) {
+      try {
+        const response = await fetch(`/posts/${postId}/like`, {
+          method: 'POST',
+          headers: userManager.getAuthHeaders(),
+          body: JSON.stringify({ userId: userManager.state.currentUser.id })
+        });
+        const data = await response.json();
+        if (data.success) {
+          const icon = btn.querySelector('i');
+          const countSpan = btn.querySelector('span');
+          const isLiked = icon.classList.contains('fas');
+          if (isLiked) {
+            icon.classList.remove('fas');
+            icon.classList.add('far');
+            countSpan.textContent = Math.max(0, parseInt(countSpan.textContent) - 1);
+            btn.classList.remove('liked');
+          } else {
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            countSpan.textContent = parseInt(countSpan.textContent) + 1;
+            btn.classList.add('liked');
+          }
+        }
+      } catch (error) {
+        console.error('点赞失败:', error);
+        utils.showNotification('操作失败', 'error');
+      }
+    }
+
+    // 图片预览
+    function openImageModal(src) {
+      const modal = document.getElementById('image-modal');
+      const img = document.getElementById('image-modal-img');
+      img.src = src;
+      modal.style.display = 'flex';
+    }
+
+    // 渲染侧边栏目列表
+    async function renderSidebarCategories() {
+      const container = document.getElementById('sidebar-category-list');
+      const navBar = document.getElementById('category-nav-bar');
+      await categoryManager.loadCategories();
+      const categories = categoryManager.state.categories;
+
+      if (categories.length === 0) {
+        container.innerHTML = '<div class="no-categories">暂无栏目</div>';
+        return;
+      }
+
+      const html = categories.map(cat => `
+        <a href="category.html?id=${cat.id}" class="sidebar-category-item ${cat.id === categoryPageState.categoryId ? 'active' : ''}">
+          <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+          <span>${utils.escapeHtml(cat.name)}</span>
+          ${cat.postCount !== undefined ? `<span class="cat-count">${cat.postCount}</span>` : ''}
+        </a>
+      `).join('');
+
+      container.innerHTML = html;
+
+      // 顶部导航
+      navBar.innerHTML = `<a href="/" class="category-nav-item"><i class="fas fa-globe"></i> 全部</a>` + html;
+    }
+
+    // 设置事件监听
+    function setupEventListeners() {
+      // 排序按钮
+      document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          categoryPageState.sortBy = btn.dataset.sort;
+          categoryPageState.page = 1;
+          loadCategoryPosts(false);
+        });
+      });
+
+      // 加载更多
+      document.getElementById('load-more-btn').addEventListener('click', () => {
+        categoryPageState.page++;
+        loadCategoryPosts(true);
+      });
+
+      // 搜索
+      document.getElementById('search-btn').addEventListener('click', doSearch);
+      document.getElementById('search-input').addEventListener('keypress', e => {
+        if (e.key === 'Enter') doSearch();
+      });
+
+      // 清除搜索
+      document.getElementById('clear-search-btn').addEventListener('click', () => {
+        categoryPageState.searchKeyword = '';
+        categoryPageState.page = 1;
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results-info').style.display = 'none';
+        loadCategoryPosts(false);
+      });
+
+      // 申请栏目按钮
+      document.getElementById('apply-category-btn').addEventListener('click', openApplyModal);
+      document.getElementById('apply-sidebar-btn').addEventListener('click', openApplyModal);
+      document.getElementById('submit-apply-btn').addEventListener('click', submitApplication);
+
+      // 图片模态框
+      const imageModal = document.getElementById('image-modal');
+      imageModal.addEventListener('click', e => {
+        if (e.target === imageModal) imageModal.style.display = 'none';
+      });
+      imageModal.querySelector('.image-modal-close').addEventListener('click', () => {
+        imageModal.style.display = 'none';
+      });
+    }
+
+    function doSearch() {
+      const keyword = document.getElementById('search-input').value.trim();
+      categoryPageState.searchKeyword = keyword;
+      categoryPageState.page = 1;
+
+      if (keyword) {
+        document.getElementById('search-results-info').style.display = 'flex';
+        document.getElementById('search-keyword').textContent = `搜索: "${utils.escapeHtml(keyword)}"`;
+      } else {
+        document.getElementById('search-results-info').style.display = 'none';
+      }
+      loadCategoryPosts(false);
+    }
+
+    function openApplyModal() {
+      document.getElementById('apply-category-modal').style.display = 'flex';
+      document.getElementById('apply-category-name').value = '';
+      document.getElementById('apply-category-desc').value = '';
+    }
+
+    window.closeApplyModal = function() {
+      document.getElementById('apply-category-modal').style.display = 'none';
+    };
+
+    async function submitApplication() {
+      const name = document.getElementById('apply-category-name').value.trim();
+      const desc = document.getElementById('apply-category-desc').value.trim();
+
+      if (!name) {
+        utils.showNotification('请输入栏目名称', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submit-apply-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...';
+
+      const result = await categoryManager.applyForCategory(name, desc);
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> 提交申请';
+
+      if (result.success) {
+        closeApplyModal();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initCategoryPage);
+  </script>
+</body>
+</html>

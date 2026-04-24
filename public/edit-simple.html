@@ -191,6 +191,22 @@
     
     <!-- 提交按钮 -->
     <div class="submit-section">
+      <!-- 帖子分类设置 -->
+      <div class="visibility-settings">
+        <div class="visibility-header">
+          <i class="fas fa-folder-open"></i> 选择栏目
+        </div>
+        <div class="visibility-options">
+          <div class="category-select-container">
+            <select id="post-category" class="category-select">
+              <option value="">不选择栏目（发布到广场）</option>
+              <!-- 栏目选项将通过JS动态加载 -->
+            </select>
+            <span class="category-select-hint">选择栏目后，帖子会出现在对应栏目中</span>
+          </div>
+        </div>
+      </div>
+      
       <!-- 帖子可见性设置 -->
       <div class="visibility-settings">
         <div class="visibility-header">

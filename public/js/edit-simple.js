@@ -34,6 +34,7 @@ const simpleEditManager = {
   // 初始化
   init: async function() {
     await this.loadConfig();
+    await this.loadCategories();
     this.initializeMarkdownRenderer();
     this.checkLoginStatus();
     this.checkEditMode();
@@ -41,6 +42,31 @@ const simpleEditManager = {
     this.setupEditor();
     this.setupUpload();
     this.updatePreview();
+  },
+  
+  // 加载分类列表
+  loadCategories: async function() {
+    try {
+      const response = await fetch('/categories');
+      const data = await response.json();
+      
+      if (data.success && data.categories) {
+        const categorySelect = document.getElementById('post-category');
+        if (categorySelect) {
+          // 只显示启用的分类
+          const activeCategories = data.categories.filter(c => c.isActive);
+          categorySelect.innerHTML = '<option value="">不选择栏目（发布到广场）</option>';
+          activeCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = `${cat.icon ? cat.icon.replace('fa-', '') : '📁'} ${cat.name}`;
+            categorySelect.appendChild(option);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('加载分类列表失败:', error);
+    }
   },
   
   // 加载配置
@@ -137,6 +163,14 @@ const simpleEditManager = {
       const visibilityRadio = document.querySelector(`input[name="post-visibility"][value="${visibility}"]`);
       if (visibilityRadio) {
         visibilityRadio.checked = true;
+      }
+      
+      // 设置栏目
+      if (post.categoryId) {
+        const categorySelect = document.getElementById('post-category');
+        if (categorySelect) {
+          categorySelect.value = post.categoryId;
+        }
       }
       
       utils.showNotification('帖子内容已加载', 'info');
@@ -769,6 +803,12 @@ const simpleEditManager = {
       formData.append('deletedImages', JSON.stringify(this.state.deletedImages));
       formData.append('visibility', visibility);
       
+      // 添加栏目ID
+      const categorySelect = document.getElementById('post-category');
+      if (categorySelect) {
+        formData.append('categoryId', categorySelect.value || '');
+      }
+      
       // 添加新图片文件
       this.state.selectedImages.forEach((image) => {
         formData.append('images', image.file);
@@ -893,6 +933,12 @@ const simpleEditManager = {
       formData.append('title', '');
       formData.append('tags', '');
       formData.append('visibility', visibility);
+      
+      // 添加栏目ID
+      const categorySelect = document.getElementById('post-category');
+      if (categorySelect && categorySelect.value) {
+        formData.append('categoryId', categorySelect.value);
+      }
       
       // 添加图片文件
       this.state.selectedImages.forEach((image) => {

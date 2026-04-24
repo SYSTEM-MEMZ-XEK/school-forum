@@ -11,7 +11,9 @@ const postsManager = {
     tags: [], // 用户收藏标签
     searchKeyword: '', // 搜索关键词
     searchHistory: [], // 搜索历史
-    sortBy: 'relevance' // 排序方式
+    sortBy: 'recommended', // 排序方式：recommended(推荐), latest(最新), hot(热门), likes(点赞)
+    currentCategoryId: null, // 当前选中的分类ID
+    categories: [] // 分类列表
   },
 
   // 搜索历史存储键
@@ -39,10 +41,18 @@ const postsManager = {
     this.initializeMarkdownRenderer();
     console.log(`initializeMarkdownRenderer: ${(performance.now() - mdStart).toFixed(2)}ms`);
     
-    // 检查 URL 参数中的搜索关键词
+    // 检查 URL 参数中的搜索关键词和分类
     const urlParams = new URLSearchParams(window.location.search);
     const searchKeyword = urlParams.get('search');
     const sortBy = urlParams.get('sortBy');
+    const categoryId = urlParams.get('categoryId');
+    
+    // 加载分类列表
+    this.loadCategories();
+    
+    if (categoryId) {
+      this.state.currentCategoryId = categoryId;
+    }
     
     if (searchKeyword) {
       this.state.searchKeyword = searchKeyword.trim();
@@ -56,7 +66,7 @@ const postsManager = {
       if (sortOptionsEl) sortOptionsEl.style.display = 'flex';
     }
     
-    if (sortBy && searchKeyword) {
+    if (sortBy) {
       this.state.sortBy = sortBy;
       // 更新排序按钮状态
       const sortBtns = document.querySelectorAll('.sort-btn');
@@ -144,20 +154,33 @@ const postsManager = {
     const startTime = performance.now();
     
     try {
-      // 构建 URL，添加搜索和排序参数
+      // 构建 URL，添加搜索、排序和分类参数
       let url = '/posts';
       const params = [];
+      
+      // 搜索关键词
       if (this.state.searchKeyword) {
         params.push(`search=${encodeURIComponent(this.state.searchKeyword)}`);
-        // 只有搜索时才传递排序参数
-        if (this.state.sortBy) {
-          params.push(`sortBy=${this.state.sortBy}`);
-        }
       }
+      
+      // 排序方式（始终传递，除了搜索模式外的默认排序）
+      if (this.state.sortBy && this.state.sortBy !== 'relevance') {
+        params.push(`sortBy=${this.state.sortBy}`);
+      } else if (!this.state.searchKeyword) {
+        // 非搜索模式下，默认使用推荐排序
+        params.push('sortBy=recommended');
+      }
+      
+      // 分类筛选
+      if (this.state.currentCategoryId) {
+        params.push(`categoryId=${this.state.currentCategoryId}`);
+      }
+      
       // 添加当前用户ID用于黑名单过滤
       if (userManager && userManager.state && userManager.state.currentUser && userManager.state.currentUser.id) {
         params.push(`viewerId=${userManager.state.currentUser.id}`);
       }
+      
       if (params.length > 0) {
         url += '?' + params.join('&');
       }
@@ -182,7 +205,13 @@ const postsManager = {
       console.log(`postsManager.parseJSON: ${(performance.now() - parseStart).toFixed(2)}ms`);
       
       if (data.success) {
-        this.state.posts = data.posts;
+        this.state.posts = data.posts || [];
+        
+        // 更新分类列表（如果API返回了分类信息）
+        if (data.categories) {
+          this.state.categories = data.categories;
+          this.updateCategoryNavBar();
+        }
         
         // 更新搜索结果提示
         if (data.pagination && typeof data.pagination.totalPosts === 'number') {
@@ -238,9 +267,27 @@ const postsManager = {
     const titleEl = document.querySelector('.posts-section-header .section-title');
     if (!titleEl) return;
 
-    // 没有搜索时显示"最新帖子"
+    // 如果在浏览某个分类
+    if (this.state.currentCategoryId) {
+      const category = this.state.categories.find(c => c.id === this.state.currentCategoryId);
+      if (category) {
+        titleEl.textContent = category.name;
+        return;
+      }
+    }
+
+    // 没有搜索时显示排序方式
     if (!this.state.searchKeyword) {
-      titleEl.textContent = '最新帖子';
+      const sortTitles = {
+        recommended: '推荐',
+        latest: '最新帖子',
+        hot: '热门帖子',
+        likes: '最多点赞',
+        favorites: '最多收藏',
+        views: '最大浏览',
+        comments: '最多评论'
+      };
+      titleEl.textContent = sortTitles[this.state.sortBy] || '推荐';
       return;
     }
 
@@ -254,6 +301,77 @@ const postsManager = {
     };
 
     titleEl.textContent = sortTitles[this.state.sortBy] || '搜索结果';
+  },
+
+  // 加载分类列表
+  loadCategories: async function() {
+    try {
+      const response = await fetch('/categories');
+      const data = await response.json();
+      if (data.success && data.categories) {
+        this.state.categories = data.categories;
+        this.updateCategoryNavBar();
+      }
+    } catch (error) {
+      console.error('加载分类列表失败:', error);
+    }
+  },
+
+  // 更新分类导航栏
+  updateCategoryNavBar: function() {
+    const navBar = document.getElementById('category-nav-bar');
+    if (!navBar || !this.state.categories.length) return;
+
+    const categoriesHtml = this.state.categories
+      .filter(cat => cat.isActive)
+      .sort((a, b) => a.order - b.order)
+      .map(cat => `
+        <a href="javascript:void(0)" 
+           class="category-nav-item ${this.state.currentCategoryId === cat.id ? 'active' : ''}" 
+           data-category-id="${cat.id}"
+           title="${this.escapeHtml(cat.description || cat.name)}">
+          <i class="${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+          ${this.escapeHtml(cat.name)}
+        </a>
+      `).join('');
+
+    navBar.innerHTML = `
+      <a href="/" class="category-nav-item ${!this.state.currentCategoryId ? 'active' : ''}" id="nav-all">
+        <i class="fas fa-globe"></i> 全部
+      </a>
+      ${categoriesHtml}
+    `;
+  },
+
+  // 切换分类
+  switchCategory: function(categoryId) {
+    this.state.currentCategoryId = categoryId;
+    this.state.searchKeyword = ''; // 切换分类时清除搜索
+    this.state.sortBy = 'recommended'; // 重置为推荐排序
+    
+    // 更新UI
+    this.updateCategoryNavBar();
+    this.updateSectionTitle();
+    
+    // 清除搜索框状态
+    const searchInput = document.getElementById('search-input');
+    const clearBtn = document.getElementById('search-clear-btn');
+    const sortOptionsEl = document.getElementById('sort-options');
+    const searchResultsInfo = document.getElementById('search-results-info');
+    
+    if (searchInput) searchInput.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (sortOptionsEl) sortOptionsEl.style.display = 'none';
+    if (searchResultsInfo) searchResultsInfo.style.display = 'none';
+    
+    // 更新排序按钮状态
+    const sortBtns = document.querySelectorAll('.sort-btn');
+    sortBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sort === 'recommended');
+    });
+    
+    // 重新加载帖子
+    this.loadPosts();
   },
 
   // 执行搜索
@@ -292,7 +410,8 @@ const postsManager = {
   // 清除搜索
   clearSearch: function() {
     this.state.searchKeyword = '';
-    this.state.sortBy = 'relevance'; // 重置排序为综合
+    this.state.sortBy = 'recommended'; // 重置排序为推荐
+    // 注意：不清除 currentCategoryId，保持当前分类筛选
     
     const searchInput = document.getElementById('search-input');
     const clearBtn = document.getElementById('search-clear-btn');
@@ -300,11 +419,13 @@ const postsManager = {
     if (searchInput) searchInput.value = '';
     if (clearBtn) clearBtn.style.display = 'none';
     
-    // 重置排序按钮状态
-    const sortButtons = document.querySelectorAll('.sort-btn');
-    sortButtons.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.sort === 'relevance');
-    });
+    // 重置排序按钮状态（如果不在分类模式下）
+    if (!this.state.currentCategoryId) {
+      const sortButtons = document.querySelectorAll('.sort-btn');
+      sortButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sort === 'recommended');
+      });
+    }
     
     // 隐藏搜索历史下拉
     this.hideSearchHistory();
@@ -1036,6 +1157,23 @@ const postsManager = {
           self.updateSectionTitle();
           self.loadPosts();
         });
+      });
+      
+      // 分类导航栏点击事件
+      document.addEventListener('click', function(e) {
+        // 点击"全部"链接
+        if (e.target.closest('#nav-all')) {
+          self.switchCategory(null);
+          return;
+        }
+        
+        // 点击其他分类项
+        const categoryItem = e.target.closest('.category-nav-item[data-category-id]');
+        if (categoryItem) {
+          const categoryId = categoryItem.dataset.categoryId;
+          self.switchCategory(categoryId);
+          return;
+        }
       });
   
       // 全局点击事件监听

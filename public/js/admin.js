@@ -3694,6 +3694,531 @@ confirmDeletePost: async function() {
             console.error('删除公告失败:', error);
             this.showNotification('删除失败: ' + error.message, 'error');
         }
+    },
+    
+    // ==================== 栏目管理相关 ====================
+    
+    // 栏目状态管理
+    categoriesState: {
+        page: 1,
+        limit: 10,
+        total: 0,
+        list: []
+    },
+    
+    // 加载栏目列表
+    loadCategories: async function(page = 1) {
+        try {
+            this.categoriesState.page = page;
+            const skip = (page - 1) * this.categoriesState.limit;
+            
+            const response = await this.fetchWithTimeout(
+                `/admin/categories?page=${page}&limit=${this.categoriesState.limit}`
+            );
+            
+            if (!response.ok) throw new Error('加载栏目失败');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.categoriesState.list = data.categories;
+                this.categoriesState.total = data.pagination.total;
+                
+                this.renderCategoriesList(data.categories);
+                this.renderCategoriesPagination(data.pagination);
+                this.updateCategoriesStats(data.categories, data.pagination.total);
+                
+                // 检查是否有待处理的申请
+                this.checkPendingApplications();
+            }
+        } catch (error) {
+            console.error('加载栏目失败:', error);
+            this.showNotification('加载栏目失败: ' + error.message, 'error');
+            document.getElementById('categories-list').innerHTML = 
+                '<div class="empty-state"><i class="fas fa-folder-open"></i> 暂无栏目</div>';
+        }
+    },
+    
+    // 检查待处理的栏目申请
+    checkPendingApplications: async function() {
+        try {
+            const response = await this.fetchWithTimeout('/admin/category-applications?status=pending');
+            const data = await response.json();
+            
+            const alertBox = document.getElementById('category-applications-alert');
+            const countSpan = document.getElementById('category-applications-count');
+            
+            if (data.success && data.applications && data.applications.length > 0) {
+                if (alertBox) {
+                    alertBox.style.display = 'flex';
+                    if (countSpan) countSpan.textContent = data.applications.length;
+                }
+            } else {
+                if (alertBox) alertBox.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('检查栏目申请失败:', error);
+        }
+    },
+    
+    // 渲染栏目列表
+    renderCategoriesList: function(categories) {
+        const container = document.getElementById('categories-list');
+        if (!container) return;
+        
+        if (!categories || categories.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i> 暂无栏目</div>';
+            return;
+        }
+        
+        container.innerHTML = categories.map(category => {
+            const statusClass = category.isActive ? 'status-active' : 'status-inactive';
+            const totalPosts = category.postCount || 0;
+            
+            return `
+                <div class="announcement-card ${statusClass}">
+                    <div class="announcement-header">
+                        <div class="announcement-title">
+                            <i class="${category.icon || 'fa-folder'}" style="color: ${category.color || '#4361ee'}; margin-right: 8px;"></i>
+                            <span>${this.escapeHtml(category.name)}</span>
+                        </div>
+                        <div class="announcement-badges">
+                            ${category.isActive ? 
+                                '<span class="badge status-badge active">已启用</span>' : 
+                                '<span class="badge status-badge inactive">已禁用</span>'}
+                            <span class="badge"><i class="fas fa-file-alt"></i> ${totalPosts} 帖子</span>
+                        </div>
+                    </div>
+                    <div class="announcement-content">
+                        ${category.description ? this.escapeHtml(category.description) : '<span style="color: #999;">暂无描述</span>'}
+                    </div>
+                    <div class="announcement-meta">
+                        <span><i class="fas fa-sort-numeric-up"></i> 排序: ${category.order || 0}</span>
+                        <span><i class="fas fa-clock"></i> 创建于 ${this.formatDate(category.createdAt)}</span>
+                    </div>
+                    <div class="announcement-actions">
+                        <button onclick="adminManager.toggleCategoryStatus('${category.id}', ${category.isActive})" 
+                                class="action-btn ${category.isActive ? 'btn-warning' : 'btn-success'}" 
+                                title="${category.isActive ? '禁用' : '启用'}">
+                            <i class="fas fa-${category.isActive ? 'pause' : 'play'}"></i>
+                        </button>
+                        <button onclick="adminManager.editCategory('${category.id}')" 
+                                class="action-btn btn-info" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="adminManager.showDeleteCategoryModal('${category.id}', '${this.escapeHtml(category.name)}')" 
+                                class="action-btn btn-danger" title="删除">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    // 更新栏目统计
+    updateCategoriesStats: function(categories, totalCount) {
+        const active = categories.filter(c => c.isActive).length;
+        const totalPosts = categories.reduce((sum, c) => sum + (c.postCount || 0), 0);
+        
+        document.getElementById('categories-total').textContent = totalCount !== undefined ? totalCount : categories.length;
+        document.getElementById('categories-active').textContent = active;
+        document.getElementById('categories-posts').textContent = totalPosts;
+    },
+    
+    // 渲染栏目分页
+    renderCategoriesPagination: function(pagination) {
+        const container = document.getElementById('categories-pagination');
+        if (!container) return;
+        
+        const { total, page, totalPages } = pagination;
+        
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        // 上一页
+        html += `<button ${page <= 1 ? 'disabled' : ''} onclick="adminManager.loadCategories(${page - 1})">
+            <i class="fas fa-chevron-left"></i>
+        </button>`;
+        
+        // 页码
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(totalPages, page + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="${i === page ? 'active' : ''}" onclick="adminManager.loadCategories(${i})">${i}</button>`;
+        }
+        
+        // 下一页
+        html += `<button ${page >= totalPages ? 'disabled' : ''} onclick="adminManager.loadCategories(${page + 1})">
+            <i class="fas fa-chevron-right"></i>
+        </button>`;
+        
+        container.innerHTML = html;
+    },
+    
+    // 显示添加栏目模态框
+    showAddCategoryModal: function() {
+        document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-folder-plus"></i> 添加栏目';
+        document.getElementById('category-name').value = '';
+        document.getElementById('category-description').value = '';
+        document.getElementById('category-icon').value = 'fa-folder';
+        document.getElementById('category-color').value = '#4361ee';
+        document.getElementById('category-order').value = '0';
+        document.getElementById('category-is-active').checked = true;
+        document.getElementById('category-edit-id').value = '';
+        this.openModal('categoryModal');
+    },
+    
+    // 编辑栏目
+    editCategory: async function(categoryId) {
+        try {
+            const response = await this.fetchWithTimeout(`/admin/categories/${categoryId}`);
+            const data = await response.json();
+            
+            if (data.success && data.category) {
+                const category = data.category;
+                document.getElementById('categoryModalTitle').innerHTML = '<i class="fas fa-edit"></i> 编辑栏目';
+                document.getElementById('category-name').value = category.name;
+                document.getElementById('category-description').value = category.description || '';
+                document.getElementById('category-icon').value = category.icon || 'fa-folder';
+                document.getElementById('category-color').value = category.color || '#4361ee';
+                document.getElementById('category-order').value = category.order || 0;
+                document.getElementById('category-is-active').checked = category.isActive;
+                document.getElementById('category-edit-id').value = category.id;
+                this.openModal('categoryModal');
+            } else {
+                throw new Error(data.message || '获取栏目信息失败');
+            }
+        } catch (error) {
+            console.error('获取栏目信息失败:', error);
+            this.showNotification('获取栏目信息失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 保存栏目
+    saveCategory: async function() {
+        const name = document.getElementById('category-name').value.trim();
+        const description = document.getElementById('category-description').value.trim();
+        const icon = document.getElementById('category-icon').value;
+        const color = document.getElementById('category-color').value;
+        const order = parseInt(document.getElementById('category-order').value) || 0;
+        const isActive = document.getElementById('category-is-active').checked;
+        const editId = document.getElementById('category-edit-id').value;
+        
+        if (!name) {
+            this.showNotification('请输入栏目名称', 'error');
+            return;
+        }
+        
+        const saveBtn = document.getElementById('category-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+        
+        try {
+            const url = editId ? `/admin/categories/${editId}` : '/admin/categories';
+            const method = editId ? 'PUT' : 'POST';
+            
+            const response = await this.fetchWithTimeout(url, {
+                method: method,
+                headers: this.getAdminHeaders(),
+                body: JSON.stringify({ name, description, icon, color, order, isActive })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification(editId ? '栏目已更新' : '栏目已创建', 'success');
+                this.closeModal('categoryModal');
+                this.loadCategories(this.categoriesState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('保存栏目失败:', error);
+            this.showNotification('保存失败: ' + error.message, 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存';
+        }
+    },
+    
+    // 切换栏目状态
+    toggleCategoryStatus: async function(categoryId, currentStatus) {
+        try {
+            const response = await this.fetchWithTimeout(`/admin/categories/${categoryId}/toggle-status`, {
+                method: 'PATCH',
+                headers: this.getAdminHeaders()
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification(`栏目已${data.category.isActive ? '启用' : '禁用'}`, 'success');
+                this.loadCategories(this.categoriesState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('切换栏目状态失败:', error);
+            this.showNotification('操作失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 显示删除栏目模态框
+    showDeleteCategoryModal: function(categoryId, categoryName) {
+        document.getElementById('delete-category-name').textContent = categoryName;
+        document.getElementById('delete-category-id').value = categoryId;
+        this.openModal('deleteCategoryModal');
+    },
+    
+    // 确认删除栏目
+    confirmDeleteCategory: async function() {
+        const categoryId = document.getElementById('delete-category-id').value;
+        
+        const confirmBtn = document.getElementById('confirm-delete-category-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+        
+        try {
+            const response = await this.fetchWithTimeout(`/admin/categories/${categoryId}`, {
+                method: 'DELETE',
+                headers: this.getAdminHeaders()
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification('栏目已删除', 'success');
+                this.closeModal('deleteCategoryModal');
+                this.loadCategories(this.categoriesState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('删除栏目失败:', error);
+            this.showNotification('删除失败: ' + error.message, 'error');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '确认删除';
+        }
+    },
+    
+    // 显示栏目申请列表
+    showCategoryApplications: function() {
+        this.filterCategoryApplications('pending');
+        this.openModal('categoryApplicationsListModal');
+    },
+    
+    // 筛选栏目申请
+    filterCategoryApplications: async function(status) {
+        // 更新筛选按钮状态
+        document.querySelectorAll('#categoryApplicationsListModal .filter-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.status === status);
+        });
+        
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/category-applications?status=${status}`
+            );
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderCategoryApplicationsList(data.applications, status);
+                
+                // 更新待处理数量
+                if (status === 'pending') {
+                    document.getElementById('app-pending-badge').textContent = data.applications.length;
+                }
+            }
+        } catch (error) {
+            console.error('加载栏目申请失败:', error);
+            this.showNotification('加载申请列表失败', 'error');
+        }
+    },
+    
+    // 渲染栏目申请列表
+    renderCategoryApplicationsList: function(applications, currentStatus) {
+        const container = document.getElementById('category-applications-list');
+        if (!container) return;
+        
+        if (!applications || applications.length === 0) {
+            const statusText = {
+                'pending': '暂无待处理的申请',
+                'approved': '暂无已批准的申请',
+                'rejected': '暂无已拒绝的申请',
+                'all': '暂无申请记录'
+            }[currentStatus] || '暂无申请';
+            
+            container.innerHTML = `<div class="empty-state"><i class="fas fa-clipboard-list"></i> ${statusText}</div>`;
+            return;
+        }
+        
+        container.innerHTML = applications.map(app => {
+            const statusClass = {
+                'pending': 'status-pending',
+                'approved': 'status-active',
+                'rejected': 'status-inactive'
+            }[app.status] || '';
+            
+            const statusText = {
+                'pending': '待处理',
+                'approved': '已批准',
+                'rejected': '已拒绝'
+            }[app.status] || app.status;
+            
+            return `
+                <div class="announcement-card ${statusClass}">
+                    <div class="announcement-header">
+                        <div class="announcement-title">
+                            <i class="fas fa-folder-plus" style="color: #4361ee; margin-right: 8px;"></i>
+                            <span>${this.escapeHtml(app.categoryName)}</span>
+                        </div>
+                        <div class="announcement-badges">
+                            <span class="badge status-badge ${app.status}">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="announcement-content">
+                        ${app.description ? this.escapeHtml(app.description) : '<span style="color: #999;">暂无描述</span>'}
+                    </div>
+                    <div class="announcement-meta">
+                        <span><i class="fas fa-user"></i> 申请人: ${this.escapeHtml(app.applicantUsername)}</span>
+                        <span><i class="fas fa-clock"></i> 申请时间: ${this.formatDate(app.createdAt)}</span>
+                        ${app.reviewedByUsername ? `<span><i class="fas fa-user-shield"></i> 审核人: ${this.escapeHtml(app.reviewedByUsername)}</span>` : ''}
+                    </div>
+                    ${app.reviewNote ? `
+                    <div class="announcement-content" style="margin-top: 10px; color: #666;">
+                        <strong>审核备注:</strong> ${this.escapeHtml(app.reviewNote)}
+                    </div>
+                    ` : ''}
+                    ${app.status === 'pending' ? `
+                    <div class="announcement-actions">
+                        <button onclick="adminManager.showReviewApplicationModal('${app.id}')" 
+                                class="action-btn btn-primary" title="审核">
+                            <i class="fas fa-clipboard-check"></i> 审核
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    },
+    
+    // 显示审核申请模态框
+    showReviewApplicationModal: async function(applicationId) {
+        try {
+            // 获取申请详情
+            const response = await this.fetchWithTimeout(`/admin/category-applications?status=all`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const app = data.applications.find(a => a.id === applicationId);
+                if (app) {
+                    document.getElementById('current-application-id').value = app.id;
+                    document.getElementById('application-review-note').value = '';
+                    
+                    document.getElementById('category-application-detail').innerHTML = `
+                        <div class="announcement-card">
+                            <div class="announcement-header">
+                                <div class="announcement-title">
+                                    <i class="fas fa-folder-plus" style="color: #4361ee; margin-right: 8px;"></i>
+                                    <span>${this.escapeHtml(app.categoryName)}</span>
+                                </div>
+                                <div class="announcement-badges">
+                                    <span class="badge status-badge pending">待审核</span>
+                                </div>
+                            </div>
+                            <div class="announcement-content">
+                                <strong>申请描述:</strong><br>
+                                ${app.description ? this.escapeHtml(app.description) : '<span style="color: #999;">暂无描述</span>'}
+                            </div>
+                            <div class="announcement-meta">
+                                <span><i class="fas fa-user"></i> 申请人: ${this.escapeHtml(app.applicantUsername)}</span>
+                                <span><i class="fas fa-clock"></i> 申请时间: ${this.formatDate(app.createdAt)}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    this.closeModal('categoryApplicationsListModal');
+                    this.openModal('categoryApplicationModal');
+                }
+            }
+        } catch (error) {
+            console.error('获取申请详情失败:', error);
+            this.showNotification('获取申请详情失败', 'error');
+        }
+    },
+    
+    // 批准栏目申请
+    approveCategoryApplication: async function() {
+        const applicationId = document.getElementById('current-application-id').value;
+        const reviewNote = document.getElementById('application-review-note').value.trim();
+        
+        const approveBtn = document.getElementById('approve-category-app-btn');
+        approveBtn.disabled = true;
+        approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+        
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/category-applications/${applicationId}/approve`,
+                {
+                    method: 'POST',
+                    headers: this.getAdminHeaders(),
+                    body: JSON.stringify({ reviewNote })
+                }
+            );
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification('栏目申请已批准，栏目已创建', 'success');
+                this.closeModal('categoryApplicationModal');
+                this.loadCategories(this.categoriesState.page);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('批准申请失败:', error);
+            this.showNotification('操作失败: ' + error.message, 'error');
+        } finally {
+            approveBtn.disabled = false;
+            approveBtn.innerHTML = '<i class="fas fa-check"></i> 批准并创建栏目';
+        }
+    },
+    
+    // 拒绝栏目申请
+    rejectCategoryApplication: async function() {
+        const applicationId = document.getElementById('current-application-id').value;
+        const reviewNote = document.getElementById('application-review-note').value.trim();
+        
+        if (!confirm('确定要拒绝此栏目申请吗？')) return;
+        
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/category-applications/${applicationId}/reject`,
+                {
+                    method: 'POST',
+                    headers: this.getAdminHeaders(),
+                    body: JSON.stringify({ reviewNote })
+                }
+            );
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification('栏目申请已拒绝', 'success');
+                this.closeModal('categoryApplicationModal');
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('拒绝申请失败:', error);
+            this.showNotification('操作失败: ' + error.message, 'error');
+        }
     }
 };
 
@@ -3773,6 +4298,11 @@ function loadIpStats() {
 // 公告管理函数
 function loadAnnouncements(page) {
     adminManager.loadAnnouncements(page);
+}
+
+// 栏目管理函数
+function loadCategories(page) {
+    adminManager.loadCategories(page);
 }
 
 // 初始化管理员系统 - 最终版

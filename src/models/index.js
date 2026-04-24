@@ -14,6 +14,8 @@ const Message = require('./Message');
 const Conversation = require('./Conversation');
 const Blacklist = require('./Blacklist');
 const Announcement = require('./Announcement');
+const Category = require('./Category');
+const CategoryApplication = require('./CategoryApplication');
 
 // ===================== MongoDB 事件监听 =====================
 mongoose.connection.on('connected', () => {
@@ -84,5 +86,7 @@ module.exports = {
   Message,
   Conversation,
   Blacklist,
-  Announcement
+  Announcement,
+  Category,
+  CategoryApplication
 };

@@ -664,6 +664,44 @@ input[type="file"] {
   color: var(--text-light);
 }
 
+/* 栏目选择样式 */
+.category-select-container {
+  padding: 12px 15px;
+  background: var(--background-card);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.category-select {
+  width: 100%;
+  padding: 10px 15px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-color);
+  background: var(--background-color);
+  cursor: pointer;
+  transition: var(--transition);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 35px;
+}
+
+.category-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+.category-select-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 8px;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .visibility-settings {
