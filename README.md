@@ -22,7 +22,7 @@
 | 功能模块 | 描述 |
 |---------|------|
 | 用户系统 | 注册登录、个人资料、头像上传、密码/邮箱/QQ修改、账户注销 |
-| 帖子系统 | 发帖、编辑、删除、搜索、浏览量统计、评论点赞 |
+| 帖子系统 | 发帖、编辑、删除、搜索、浏览量统计、评论点赞、栏目分类 |
 | 互动系统 | 点赞、点踩、评论、回复 |
 | 社交功能 | 关注用户、粉丝列表、关注动态 |
 | 私信系统 | 发送私信、会话列表、消息记录、未读计数 |
@@ -30,7 +30,8 @@
 | 收藏系统 | 收藏帖子、标签分类、批量管理 |
 | 通知系统 | 系统通知、评论提醒、已读标记 |
 | 公告系统 | 发布公告、置顶、启用/禁用管理 |
-| 管理后台 | 用户管理、帖子审核、日志查看、举报处理、IP统计、运行模式 |
+| 栏目系统 | 论坛栏目管理、用户申请创建栏目、栏目帖子筛选、推荐排序算法 |
+| 管理后台 | 用户管理、帖子审核、日志查看、举报处理、IP统计、运行模式、栏目管理 |
 | 安全防护 | JWT 认证、限流、XSS过滤、MongoDB注入防护、登录锁定 |
 | 内容渲染 | Markdown、LaTeX 公式、代码高亮 |
 
@@ -65,6 +66,7 @@ school-forum/
 │   ├── chat.html                # 私信聊天页
 │   ├── blacklist.html           # 黑名单管理页
 │   ├── settings.html            # 设置页
+│   ├── category.html            # 栏目浏览页
 │   │
 │   ├── css/                     # 样式文件
 │   │   ├── style.css            # 主样式
@@ -97,6 +99,7 @@ school-forum/
 │   │   ├── settings.js          # 设置功能
 │   │   ├── admin.js             # 管理后台
 │   │   ├── stats.js             # 统计数据
+│   │   ├── category.js          # 栏目模块
 │   │   └── utils.js             # 工具函数
 │   │
 │   ├── images/                  # 图片资源
@@ -123,13 +126,14 @@ school-forum/
 │   │
 │   ├── controllers/             # 控制器
 │   │   ├── userController.js    # 用户控制器
-│   │   ├── postController.js    # 帖子控制器
+│   │   ├── postController.js    # 帖子控制器（含推荐算法）
 │   │   ├── followController.js  # 关注控制器
 │   │   ├── favoriteController.js# 收藏控制器
 │   │   ├── notificationController.js # 通知控制器
 │   │   ├── messageController.js # 私信控制器
 │   │   ├── blacklistController.js    # 黑名单控制器
 │   │   ├── announcementController.js # 公告控制器
+│   │   ├── categoryController.js # 栏目控制器
 │   │   ├── adminController.js   # 管理控制器
 │   │   ├── reportController.js  # 举报控制器
 │   │   ├── statsController.js   # 统计控制器
@@ -147,7 +151,7 @@ school-forum/
 │   ├── models/                  # 数据模型
 │   │   ├── index.js             # 数据库连接
 │   │   ├── User.js              # 用户模型
-│   │   ├── Post.js              # 帖子模型
+│   │   ├── Post.js              # 帖子模型（含categoryId字段）
 │   │   ├── Follow.js            # 关注模型
 │   │   ├── Favorite.js          # 收藏模型
 │   │   ├── FavoriteTag.js       # 收藏标签模型
@@ -158,7 +162,9 @@ school-forum/
 │   │   ├── Message.js           # 私信消息模型
 │   │   ├── Conversation.js      # 会话模型
 │   │   ├── Blacklist.js         # 黑名单模型
-│   │   └── Announcement.js      # 公告模型
+│   │   ├── Announcement.js      # 公告模型
+│   │   ├── Category.js          # 栏目模型
+│   │   └── CategoryApplication.js # 栏目申请模型
 │   │
 │   ├── routes/                  # 路由定义
 │   │   ├── index.js             # 路由汇总
@@ -170,6 +176,7 @@ school-forum/
 │   │   ├── messageRoutes.js     # 私信路由
 │   │   ├── blacklistRoutes.js   # 黑名单路由
 │   │   ├── announcementRoutes.js# 公告路由
+│   │   ├── categoryRoutes.js    # 栏目路由
 │   │   ├── adminRoutes.js       # 管理路由
 │   │   ├── reportRoutes.js      # 举报路由
 │   │   ├── statsRoutes.js       # 统计路由
@@ -252,8 +259,8 @@ school-forum/
 
 | 方法 | 路径 | 描述 |
 |-----|------|------|
-| GET | `/posts` | 获取帖子列表（支持分页和搜索） |
-| POST | `/posts` | 发布新帖子 |
+| GET | `/posts` | 获取帖子列表（支持分页、搜索、栏目筛选、推荐排序） |
+| POST | `/posts` | 发布新帖子（含栏目选择） |
 | GET | `/posts/:id` | 获取帖子详情 |
 | PUT | `/posts/:id` | 编辑帖子 |
 | DELETE | `/posts/:id` | 删除帖子 |
@@ -269,6 +276,17 @@ school-forum/
 | POST | `/posts/:id/comments/:commentId/replies` | 回复评论 |
 | DELETE | `/posts/:id/comments/:commentId` | 删除评论 |
 | POST | `/posts/:id/comments/:commentId/like` | 点赞评论 |
+
+---
+
+### 栏目模块
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| GET | `/categories` | 获取所有已启用栏目 |
+| GET | `/categories/:id` | 获取单个栏目详情 |
+| GET | `/categories/:id/posts` | 获取某栏目的帖子 |
+| POST | `/category-applications` | 申请新建栏目 🔑 |
 
 ---
 
@@ -485,6 +503,19 @@ school-forum/
 | PATCH | `/admin/announcements/:id/toggle-status` | 切换公告启用状态 |
 | PATCH | `/admin/announcements/:id/toggle-pinned` | 切换公告置顶状态 |
 | PATCH | `/admin/announcements/batch-status` | 批量更新公告状态 |
+
+#### 栏目管理
+
+| 方法 | 路径 | 描述 |
+|-----|------|------|
+| GET | `/admin/categories` | 获取所有栏目（含禁用的） |
+| POST | `/admin/categories` | 创建栏目 |
+| PUT | `/admin/categories/:id` | 更新栏目 |
+| DELETE | `/admin/categories/:id` | 删除栏目 |
+| PATCH | `/admin/categories/:id/toggle-status` | 切换栏目启用状态 |
+| GET | `/admin/category-applications` | 获取所有栏目申请 |
+| POST | `/admin/category-applications/:id/approve` | 批准栏目申请 |
+| POST | `/admin/category-applications/:id/reject` | 拒绝栏目申请 |
 
 #### 运行模式管理
 

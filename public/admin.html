@@ -93,6 +93,9 @@
             <button onclick="showSection('dashboard')" class="active">
                 <i class="fas fa-tachometer-alt"></i> 仪表盘
             </button>
+            <button onclick="showSection('categories')">
+                <i class="fas fa-folder-open"></i> 栏目管理
+            </button>
             <button onclick="showSection('announcements')">
                 <i class="fas fa-bullhorn"></i> 公告管理
             </button>
@@ -157,6 +160,65 @@
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- 栏目管理 -->
+        <div id="categories" class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-folder-open"></i> 栏目管理</h2>
+                <div class="section-actions">
+                    <button onclick="adminManager.showAddCategoryModal()" class="action-btn btn-success">
+                        <i class="fas fa-plus"></i> 添加栏目
+                    </button>
+                    <button onclick="adminManager.loadCategories()" class="action-btn btn-info">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 栏目统计卡片 -->
+            <div class="announcements-stats">
+                <div class="announcement-stat-card total">
+                    <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="categories-total">0</span>
+                        <span class="stat-label">总栏目数</span>
+                    </div>
+                </div>
+                <div class="announcement-stat-card active">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="categories-active">0</span>
+                        <span class="stat-label">已启用</span>
+                    </div>
+                </div>
+                <div class="announcement-stat-card total">
+                    <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="categories-posts">0</span>
+                        <span class="stat-label">总帖子数</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 栏目申请提醒 -->
+            <div id="category-applications-alert" class="alert alert-warning" style="display: none; margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="category-applications-count">0</span> 条栏目申请待处理
+                <button onclick="adminManager.showCategoryApplications()" class="action-btn btn-warning" style="margin-left: 15px; padding: 5px 15px;">
+                    查看申请
+                </button>
+            </div>
+            
+            <!-- 栏目列表 -->
+            <div class="categories-list-container" id="categories-list">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                </div>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination" id="categories-pagination"></div>
         </div>
         
         <!-- 公告管理 -->
@@ -1331,6 +1393,143 @@
                 <button class="btn-danger" onclick="adminManager.confirmDeleteAnnouncement()">确认删除</button>
             </div>
             <input type="hidden" id="delete-announcement-id">
+        </div>
+    </div>
+    
+    <!-- 添加/编辑栏目模态框 -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="categoryModalTitle"><i class="fas fa-folder-plus"></i> 添加栏目</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('categoryModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-tag"></i> 栏目名称 <span class="required">*</span></label>
+                <input type="text" id="category-name" class="config-input" 
+                       placeholder="请输入栏目名称" maxlength="30">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-info-circle"></i> 栏目描述</label>
+                <textarea id="category-description" class="config-input" rows="3"
+                          placeholder="请输入栏目描述（可选）" maxlength="200"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group half">
+                    <label><i class="fas fa-icon"></i> 图标</label>
+                    <select id="category-icon" class="config-input">
+                        <option value="fa-folder">📁 文件夹</option>
+                        <option value="fa-book">📚 书籍</option>
+                        <option value="fa-palette">🎨 艺术</option>
+                        <option value="fa-music">🎵 音乐</option>
+                        <option value="fa-sports">⚽ 体育</option>
+                        <option value="fa-gamepad">🎮 游戏</option>
+                        <option value="fa-code">💻 技术</option>
+                        <option value="fa-flask">🔬 科学</option>
+                        <option value="fa-landmark">🏛️ 历史</option>
+                        <option value="fa-globe">🌍 地理</option>
+                        <option value="fa-calculator">🧮 数学</option>
+                        <option value="fa-language">🌐 语言</option>
+                    </select>
+                </div>
+                <div class="form-group half">
+                    <label><i class="fas fa-palette"></i> 颜色</label>
+                    <input type="color" id="category-color" class="config-input" value="#4361ee" style="height: 40px; padding: 5px;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-sort-numeric-up"></i> 排序权重</label>
+                <input type="number" id="category-order" class="config-input" 
+                       placeholder="数字越小排序越靠前" min="0" value="0">
+            </div>
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="category-is-active" checked>
+                    <span class="checkbox-custom"></span>
+                    <span>启用栏目</span>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('categoryModal')">取消</button>
+                <button class="btn-success" id="category-save-btn" onclick="adminManager.saveCategory()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+            <input type="hidden" id="category-edit-id">
+        </div>
+    </div>
+    
+    <!-- 删除栏目确认模态框 -->
+    <div id="deleteCategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash-alt"></i> 删除栏目</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('deleteCategoryModal')">&times;</button>
+            </div>
+            <p>确定要删除栏目 "<strong id="delete-category-name"></strong>" 吗？</p>
+            <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> 删除后，该栏目下的帖子将变为无栏目状态，但不会删除帖子内容。</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('deleteCategoryModal')">取消</button>
+                <button class="btn-danger" id="confirm-delete-category-btn" onclick="adminManager.confirmDeleteCategory()">确认删除</button>
+            </div>
+            <input type="hidden" id="delete-category-id">
+        </div>
+    </div>
+    
+    <!-- 栏目申请审核模态框 -->
+    <div id="categoryApplicationModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-check"></i> 栏目申请审核</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('categoryApplicationModal')">&times;</button>
+            </div>
+            <div id="category-application-detail" class="category-application-detail">
+                <!-- 动态填充 -->
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-sticky-note"></i> 审核备注</label>
+                <textarea id="application-review-note" rows="3" placeholder="输入审核备注（可选）..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('categoryApplicationModal')">取消</button>
+                <button class="btn-danger" onclick="adminManager.rejectCategoryApplication()">
+                    <i class="fas fa-times"></i> 拒绝
+                </button>
+                <button class="btn-success" id="approve-category-app-btn" onclick="adminManager.approveCategoryApplication()">
+                    <i class="fas fa-check"></i> 批准并创建栏目
+                </button>
+            </div>
+            <input type="hidden" id="current-application-id">
+        </div>
+    </div>
+    
+    <!-- 栏目申请列表模态框 -->
+    <div id="categoryApplicationsListModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-list"></i> 栏目申请列表</h3>
+                <button class="close-modal" onclick="adminManager.closeModal('categoryApplicationsListModal')">&times;</button>
+            </div>
+            <div class="category-applications-filter">
+                <button class="filter-tab active" data-status="pending" onclick="adminManager.filterCategoryApplications('pending')">
+                    <i class="fas fa-hourglass-half"></i> 待处理
+                    <span class="filter-badge" id="app-pending-badge">0</span>
+                </button>
+                <button class="filter-tab" data-status="approved" onclick="adminManager.filterCategoryApplications('approved')">
+                    <i class="fas fa-check"></i> 已批准
+                </button>
+                <button class="filter-tab" data-status="rejected" onclick="adminManager.filterCategoryApplications('rejected')">
+                    <i class="fas fa-times"></i> 已拒绝
+                </button>
+                <button class="filter-tab" data-status="all" onclick="adminManager.filterCategoryApplications('all')">
+                    <i class="fas fa-list"></i> 全部
+                </button>
+            </div>
+            <div id="category-applications-list" class="category-applications-list">
+                <!-- 动态填充 -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="adminManager.closeModal('categoryApplicationsListModal')">关闭</button>
+            </div>
         </div>
     </div>
 

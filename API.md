@@ -33,6 +33,7 @@
 - [基础接口](#基础接口)
 - [用户模块](#用户模块)
 - [帖子模块](#帖子模块)
+- [栏目模块](#栏目模块)
 - [关注模块](#关注模块)
 - [收藏模块](#收藏模块)
 - [通知模块](#通知模块)
@@ -526,16 +527,24 @@ GET /posts
 | limit | number | 否 | 100 | 每页数量 |
 | search | string | 否 | - | 搜索关键词 |
 | sortBy | string | 否 | latest | 排序方式 |
+| categoryId | string | 否 | - | 按栏目筛选 |
+| viewerId | string | 否 | - | 当前查看者ID（用于个性化推荐） |
 
 **sortBy 可选值**：
 | 值 | 说明 |
 |---|------|
 | latest | 最新发布（默认） |
+| recommended | 推荐排序（防信息茧房混合算法） |
 | relevance | 综合热度 |
 | likes | 点赞数排序 |
 | favorites | 收藏数排序 |
 | views | 浏览量排序 |
 | comments | 评论数排序 |
+
+> **推荐算法说明**：推荐排序采用混合策略，平衡热度、新鲜度、关注动态和随机探索，避免信息茧房。
+> - 40% 热门内容 + 25% 关注动态 + 20% 新鲜内容 + 15% 随机探索
+> - 关注用户的帖子权重提升 1.5 倍
+> - 48 小时内的新帖子有额外新鲜度加分
 
 **响应示例**：
 ```json
@@ -560,7 +569,23 @@ GET /posts
         "likes": 10,
         "dislikes": 0,
         "viewCount": 100,
+        "category": {
+          "id": "category-uuid",
+          "name": "学习交流",
+          "icon": "fa-book",
+          "color": "#4361ee"
+        },
         "comments": [ ... ]
+      }
+    ],
+    "categories": [
+      {
+        "id": "category-uuid",
+        "name": "学习交流",
+        "description": "学习相关的讨论区",
+        "icon": "fa-book",
+        "color": "#4361ee",
+        "postCount": 25
       }
     ],
     "pagination": {
@@ -595,6 +620,7 @@ POST /posts
 | content | string | 否* | 帖子内容（无图片时必填） |
 | anonymous | string | 否 | 是否匿名（"true"） |
 | images | file[] | 否* | 图片文件（最多20张） |
+| categoryId | string | 否 | 所属栏目ID（可选） |
 
 > *内容和图片至少提供一项
 
@@ -813,6 +839,103 @@ DELETE /posts/:id/comments/:commentId
 | userId | string | 是 | 用户ID |
 | replyId | string | 否 | 回复ID（删除回复时） |
 | nestedReplyId | string | 否 | 嵌套回复ID |
+
+---
+
+## 栏目模块
+
+### 获取所有已启用栏目
+
+```
+GET /categories
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "id": "uuid-string",
+        "name": "学习交流",
+        "description": "学习相关的讨论区",
+        "icon": "fa-book",
+        "color": "#4361ee",
+        "order": 0,
+        "postCount": 25,
+        "isActive": true
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 获取单个栏目
+
+```
+GET /categories/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+---
+
+### 获取栏目帖子
+
+```
+GET /categories/:id/posts
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 20 | 每页数量 |
+| sortBy | string | 否 | latest | 排序方式 |
+
+---
+
+### 申请新建栏目
+
+```
+POST /category-applications
+```
+
+> 🔑 需要认证
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| categoryName | string | 是 | 栏目名称（最多30字符） |
+| description | string | 否 | 申请理由（最多500字符） |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "申请已提交，请等待管理员审核",
+  "data": {
+    "application": {
+      "id": "uuid-string",
+      "categoryName": "游戏讨论",
+      "description": "希望开设游戏讨论区",
+      "status": "pending",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
 
 ---
 
@@ -2434,6 +2557,177 @@ POST /admin/run-mode
 
 ---
 
+### 栏目管理
+
+#### 获取所有栏目（含禁用的）
+
+```
+GET /admin/categories
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 50 | 每页数量 |
+| isActive | boolean | 否 | - | 按启用状态筛选 |
+
+---
+
+#### 创建栏目
+
+```
+POST /admin/categories
+```
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| name | string | 是 | 栏目名称 |
+| description | string | 否 | 栏目描述 |
+| icon | string | 否 | 图标（FontAwesome类名，默认 fa-folder） |
+| color | string | 否 | 颜色（十六进制，默认 #4361ee） |
+| order | number | 否 | 排序权重（默认0） |
+
+---
+
+#### 更新栏目
+
+```
+PUT /admin/categories/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| name | string | 否 | 栏目名称 |
+| description | string | 否 | 栏目描述 |
+| icon | string | 否 | 图标 |
+| color | string | 否 | 颜色 |
+| order | number | 否 | 排序权重 |
+| isActive | boolean | 否 | 是否启用 |
+
+---
+
+#### 删除栏目
+
+```
+DELETE /admin/categories/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+> **注意**：删除栏目后，该栏目的帖子将移至"无栏目"状态，不会被删除。
+
+---
+
+#### 切换栏目启用状态
+
+```
+PATCH /admin/categories/:id/toggle-status
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "栏目已启用",
+  "data": {
+    "category": {
+      "id": "uuid-string",
+      "name": "学习交流",
+      "isActive": true
+    }
+  }
+}
+```
+
+---
+
+### 栏目申请管理
+
+#### 获取所有申请
+
+```
+GET /admin/category-applications
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 20 | 每页数量 |
+| status | string | 否 | - | 状态：pending/approved/rejected |
+
+---
+
+#### 批准栏目申请
+
+```
+POST /admin/category-applications/:id/approve
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 申请ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| reviewNote | string | 否 | 审核备注 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "栏目「游戏讨论」创建成功",
+  "data": {
+    "category": {
+      "id": "uuid-string",
+      "name": "游戏讨论"
+    },
+    "application": {
+      "id": "uuid-string",
+      "status": "approved"
+    }
+  }
+}
+```
+
+---
+
+#### 拒绝栏目申请
+
+```
+POST /admin/category-applications/:id/reject
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 申请ID |
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| reviewNote | string | 否 | 拒绝原因 |
+
+---
+
 ### 自毁模式 - 三级
 
 ```
@@ -2701,6 +2995,42 @@ POST /admin/self-destruct/level1
  * @property {boolean} active - 是否启用
  * @property {string} createdAt - 创建时间
  * @property {string} updatedAt - 更新时间
+ */
+```
+
+### 栏目 (Category)
+
+```javascript
+/**
+ * @typedef {Object} Category
+ * @property {string} id - UUID
+ * @property {string} name - 栏目名称
+ * @property {string} description - 栏目描述
+ * @property {string} icon - 图标（FontAwesome 类名）
+ * @property {string} color - 颜色（十六进制）
+ * @property {number} order - 排序权重
+ * @property {boolean} isActive - 是否启用
+ * @property {number} postCount - 帖子数量
+ * @property {string} createdBy - 创建者ID
+ * @property {string} createdAt - 创建时间
+ */
+```
+
+### 栏目申请 (CategoryApplication)
+
+```javascript
+/**
+ * @typedef {Object} CategoryApplication
+ * @property {string} id - UUID
+ * @property {string} categoryName - 申请栏目名称
+ * @property {string} description - 申请理由
+ * @property {string} applicantId - 申请人ID
+ * @property {string} applicantUsername - 申请人用户名
+ * @property {'pending'|'approved'|'rejected'} status - 申请状态
+ * @property {string} reviewedBy - 审核者ID
+ * @property {string} reviewedAt - 审核时间
+ * @property {string} reviewNote - 审核备注
+ * @property {string} createdAt - 创建时间
  */
 ```
 

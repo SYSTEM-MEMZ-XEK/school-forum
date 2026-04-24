@@ -36,8 +36,9 @@ const postController = {
   async getPosts(req, res) {
     try {
       const paginationConfig = getPaginationConfig();
-      const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', viewerId } = req.query;
+      const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', viewerId, categoryId } = req.query;
       const Follow = require('../models/Follow');
+      const Category = require('../models/Category');
 
       // 记录访问日志
       logger.logInfo('获取帖子列表', {
@@ -52,8 +53,10 @@ const postController = {
 
       const posts = await getPosts();
       const users = await getUsers();
-      
+
       let filteredPosts = posts.filter(post => !post.isDeleted);
+      // 推荐算法用：关注者ID列表（提升可见性）
+      let followingIds = [];
       
       // 黑名单过滤：如果用户开启了隐藏黑名单用户帖子的设置
       if (viewerId) {
@@ -74,9 +77,9 @@ const postController = {
       
       // 帖子可见性过滤
       if (viewerId) {
-        // 获取用户关注的人
+        // 获取用户关注的人（提升推荐权重）
         const followingDocs = await Follow.find({ follower: viewerId });
-        const followingIds = followingDocs.map(doc => doc.following);
+        followingIds = followingDocs.map(doc => doc.following);
         
         filteredPosts = filteredPosts.filter(post => {
           const visibility = post.visibility || 'public';
@@ -105,7 +108,12 @@ const postController = {
           return visibility === 'public';
         });
       }
-      
+
+      // 栏目筛选
+      if (categoryId) {
+        filteredPosts = filteredPosts.filter(post => post.categoryId === categoryId);
+      }
+
       // 搜索功能
       if (search) {
         filteredPosts = filteredPosts.filter(post => 
@@ -167,9 +175,34 @@ const postController = {
             const aComments = a.comments ? a.comments.length : 0;
             const bComments = b.comments ? b.comments.length : 0;
             return bComments - aComments;
+          },
+          // 推荐：防信息茧房混合算法
+          // 40% 热门 + 25% 关注动态 + 20% 新鲜内容 + 15% 随机探索
+          recommended: (a, b) => {
+            // 热度分
+            const scoreA = calculateHotScore(a);
+            const scoreB = calculateHotScore(b);
+
+            // 新鲜分（48小时内加分）
+            const now = new Date();
+            const ageA = (now - new Date(a.timestamp)) / (1000 * 60 * 60);
+            const ageB = (now - new Date(b.timestamp)) / (1000 * 60 * 60);
+            const freshScoreA = ageA <= 48 ? (48 - ageA) / 48 : 0;
+            const freshScoreB = ageB <= 48 ? (48 - ageB) / 48 : 0;
+
+            // 对于未登录用户或无法获取关注关系时，退化为纯热度+新鲜混合
+            // 对于登录用户，关注帖子加权
+            const followWeightA = followingIds.includes(a.userId) ? 1.5 : 1.0;
+            const followWeightB = followingIds.includes(b.userId) ? 1.5 : 1.0;
+
+            // 综合推荐分 = 热度 * 0.5 + 新鲜 * 0.3 + 关注 * 0.2
+            const finalA = scoreA * 0.5 * followWeightA + freshScoreA * 100 * 0.3;
+            const finalB = scoreB * 0.5 * followWeightB + freshScoreB * 100 * 0.3;
+
+            return finalB - finalA;
           }
         };
-        
+
         const sortFunction = sortFunctions[sortBy] || sortFunctions.latest;
         filteredPosts.sort(sortFunction);
         
@@ -190,12 +223,20 @@ const postController = {
         filteredPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       }
       
-      // 为每个帖子添加用户头像信息
+      // 为每个帖子添加用户头像信息和栏目信息
+      const allCategories = await Category.getActiveCategories();
+      const categoryMap = {};
+      allCategories.forEach(c => { categoryMap[c.id] = c; });
+
       const postsWithAvatar = filteredPosts.map(post => {
         const user = users.find(u => u.id === post.userId);
+        const categoryInfo = post.categoryId && categoryMap[post.categoryId]
+          ? { id: categoryMap[post.categoryId].id, name: categoryMap[post.categoryId].name, icon: categoryMap[post.categoryId].icon, color: categoryMap[post.categoryId].color }
+          : null;
         return {
           ...post,
-          userAvatar: user && user.avatar ? user.avatar : null
+          userAvatar: user && user.avatar ? user.avatar : null,
+          category: categoryInfo
         };
       });
       
@@ -203,9 +244,17 @@ const postController = {
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + parseInt(limit);
       const paginatedPosts = postsWithAvatar.slice(startIndex, endIndex);
-      
+
       res.json(generateSuccessResponse({
         posts: paginatedPosts,
+        categories: allCategories.map(c => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          icon: c.icon,
+          color: c.color,
+          postCount: c.postCount
+        })),
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(filteredPosts.length / limit),
@@ -385,7 +434,7 @@ const postController = {
     try {
       // userId 必须来自已认证的 JWT，防止客户端伪造
       const userId = req.user.id;
-      const { username, school, grade, className, content, anonymous, visibility, deviceInfo } = req.body;
+      const { username, school, grade, className, content, anonymous, visibility, deviceInfo, categoryId } = req.body;
       
       if (!username || !school || !grade || !className) {
         return res.status(400).json(generateErrorResponse('请填写所有必填字段'));
@@ -433,10 +482,23 @@ const postController = {
       // 验证可见性设置
       const validVisibility = ['public', 'followers', 'self'];
       const postVisibility = validVisibility.includes(visibility) ? visibility : 'public';
-      
+
+      // 验证栏目（如果指定了栏目ID，必须是已启用的栏目）
+      let postCategoryId = null;
+      if (categoryId) {
+        const Category = require('../models/Category');
+        const category = await Category.findOne({ id: categoryId, isActive: true });
+        if (category) {
+          postCategoryId = categoryId;
+          // 增加栏目帖子数
+          category.postCount = (category.postCount || 0) + 1;
+          await category.save();
+        }
+      }
+
       // 创建新帖子
       const isAnonymous = anonymous === 'true';
-      
+
       const newPost = {
         id: uuidv4(),
         userId,
@@ -454,9 +516,10 @@ const postController = {
         viewCount: 0,
         isDeleted: false,
         visibility: postVisibility,
-        deviceInfo: deviceInfo || ''
+        deviceInfo: deviceInfo || '',
+        categoryId: postCategoryId
       };
-      
+
       await createPost(newPost);
 
       // 更新用户发帖数
@@ -853,6 +916,16 @@ const postController = {
       await postCache.delete(postId);
       await postCounters.clearPostCounters(postId);
       await hotPostsCache.clear();
+
+      // 更新栏目帖子数
+      if (post.categoryId) {
+        const Category = require('../models/Category');
+        const category = await Category.findOne({ id: post.categoryId });
+        if (category && category.postCount > 0) {
+          category.postCount = Math.max(0, category.postCount - 1);
+          await category.save();
+        }
+      }
 
       // 更新用户发帖数
       const user = await getUserById(userId);

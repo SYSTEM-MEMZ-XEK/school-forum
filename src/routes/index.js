@@ -16,6 +16,7 @@ const messageRoutes = require('./messageRoutes');
 const blacklistRoutes = require('./blacklistRoutes');
 const runModeRoutes = require('./runModeRoutes');
 const announcementRoutes = require('./announcementRoutes');
+const categoryRoutes = require('./categoryRoutes');
 
 // 使用路由
 router.use(userRoutes);
@@ -31,6 +32,7 @@ router.use(messageRoutes);
 router.use(blacklistRoutes);
 router.use(runModeRoutes);
 router.use(announcementRoutes);
+router.use(categoryRoutes);
 
 // 健康检查路由
 router.get('/health', (req, res) => {
