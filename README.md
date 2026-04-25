@@ -46,6 +46,12 @@ school-forum/
 ├── package-lock.json            # 依赖锁定文件
 ├── README.md                    # 项目说明文档
 ├── API.md                       # API 接口文档
+├── deploy.bat                    # Windows 一键部署脚本（完整安装）
+├── deploy.sh                     # Linux 一键部署脚本（完整安装）
+├── setup.bat                     # Windows 配置向导（仅修改配置）
+├── setup.sh                      # Linux 配置向导（仅修改配置）
+├── start.bat                     # Windows 启动脚本
+├── start.sh                      # Linux 启动脚本
 ├── DeploymentGuide.md           # 详细部署指南
 ├── .env                         # 环境变量配置
 │
@@ -70,8 +76,6 @@ school-forum/
 │   ├── categories.html          # 栏目总览页
 │   │
 │   ├── css/                     # 样式文件
-│   │   ├── style.css            # 主样式
-│   │   ├── admin.css            # 管理后台样式
 │   │   ├── style.css            # 主样式
 │   │   ├── admin.css            # 管理后台样式
 │   │   ├── login.css            # 登录页样式
@@ -714,7 +718,35 @@ npm start
 
 ## 部署说明
 
-详细的服务器部署步骤请参考 [校园论坛部署指南](./DeploymentGuide.md)，包含：
+### 一键部署脚本
+
+| 脚本 | 用途 | 适用场景 |
+|-----|------|---------|
+| `deploy.bat` | Windows 完整部署 | 首次部署，安装所有依赖 |
+| `deploy.sh` | Linux 完整部署 | 首次部署，安装所有依赖 |
+| `setup.bat` | Windows 配置向导 | 已有环境，仅修改配置 |
+| `setup.sh` | Linux 配置向导 | 已有环境，仅修改配置 |
+
+### 配置向导（setup）功能
+
+- ✅ 检测现有配置，保留已有值不覆盖
+- ✅ 支持 5 种操作模式：交互式配置、快速配置、查看配置、智能更新 IP、退出
+- ✅ 快速模式：仅添加管理员 QQ 号，一步完成
+- ✅ 智能 IP 检测：自动识别 192.168.x.x 或 10.x.x.x 内网地址
+- ✅ 配置变更自动备份（`.env.bak`）
+
+```bash
+# Linux 配置向导
+chmod +x setup.sh
+./setup.sh
+
+# Windows 配置向导
+setup.bat
+```
+
+### 详细部署指南
+
+完整的服务器部署步骤请参考 [校园论坛部署指南](./DeploymentGuide.md)，包含：
 
 - Ubuntu 服务器配置
 - Node.js / MongoDB / Redis 安装（使用清华镜像加速）
