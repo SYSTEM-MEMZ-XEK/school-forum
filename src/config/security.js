@@ -34,11 +34,40 @@ if (!ADMIN_JWT_CONFIG.secret) {
 }
 
 // CORS 配置
+// 自动检测允许的域名列表
+const getAllowedOrigins = () => {
+  const origins = [];
+  
+  // 从环境变量添加配置的域名
+  if (process.env.CORS_ORIGIN) {
+    origins.push(...process.env.CORS_ORIGIN.split(',').map(o => o.trim()));
+  }
+  
+  // 添加 localhost 默认值（如果没配置其他）
+  if (origins.length === 0) {
+    origins.push('http://localhost:2080', 'http://127.0.0.1:2080');
+  }
+  
+  // 自动添加服务器 IP（从环境变量或请求头检测）
+  if (process.env.SERVER_IP) {
+    origins.push(`http://${process.env.SERVER_IP}:3000`);
+    origins.push(`http://${process.env.SERVER_IP}:2080`);
+  }
+  
+  // 开发模式下添加所有本地 IP 段
+  if (process.env.NODE_ENV === 'development') {
+    origins.push(/^http:\/\/192\.168\.\d+\.\d+:\d+$/);
+    origins.push(/^http:\/\/10\.\d+\.\d+\.\d+:\d+$/);
+    origins.push(/^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+:\d+$/);
+    origins.push(/^http:\/\/localhost:\d+$/);
+  }
+  
+  return origins;
+};
+
 const CORS_CONFIG = {
   // 允许的域名列表
-  origins: process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-    : ['http://localhost:2080', 'http://127.0.0.1:2080'],
+  origins: getAllowedOrigins(),
   // 开发模式下是否允许所有来源
   allowAllInDev: process.env.NODE_ENV === 'development',
   // CORS 选项
@@ -51,9 +80,21 @@ const CORS_CONFIG = {
       if (CORS_CONFIG.allowAllInDev) return callback(null, true);
       
       // 检查是否在白名单中
-      if (CORS_CONFIG.origins.indexOf(origin) !== -1) {
+      const isAllowed = CORS_CONFIG.origins.some(allowed => {
+        if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return allowed === origin;
+      });
+      
+      if (isAllowed) {
         callback(null, true);
       } else {
+        // 非生产环境放行警告
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`[CORS] Origin ${origin} not in whitelist, allowing anyway in non-production`);
+          return callback(null, true);
+        }
         callback(new Error('CORS policy: Origin not allowed'));
       }
     },
@@ -66,6 +107,10 @@ const CORS_CONFIG = {
 };
 
 // Helmet 安全头配置
+// 检测是否使用 HTTPS（生产环境应使用 HTTPS）
+const isHTTPS = process.env.HTTPS_ENABLED === 'true' || 
+                (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.includes('https://'));
+
 const HELMET_CONFIG = {
 contentSecurityPolicy: {
     directives: {
@@ -75,26 +120,27 @@ contentSecurityPolicy: {
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       fontSrc: ["'self'", "data:", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https:"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: []
+      upgradeInsecureRequests: isHTTPS ? [] : [] // 非 HTTPS 环境不升级
     }
   },
-  crossOriginEmbedderPolicy: false, // 兼容性考虑
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false, // 禁用，避免 HTTP 环境下警告
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   dnsPrefetchControl: { allow: false },
   frameguard: { action: 'deny' },
   hidePoweredBy: true,
-  hsts: {
-    maxAge: 31536000, // 1年
+  // HSTS 只在 HTTPS 环境下启用
+  hsts: isHTTPS ? {
+    maxAge: 31536000,
     includeSubDomains: true,
     preload: true
-  },
+  } : false,
   ieNoOpen: true,
   noSniff: true,
-  originAgentCluster: true,
+  originAgentCluster: false, // 禁用，避免 HTTP 环境下警告
   permittedCrossDomainPolicies: { permittedPolicies: 'none' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   xssFilter: true
