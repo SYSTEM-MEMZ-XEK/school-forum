@@ -1323,6 +1323,328 @@ const userController = {
       logger.logError('更新隐私设置失败', { error: error.message });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
+  },
+
+  // 导出用户个人数据
+  async exportData(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const user = await getUserById(userId);
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 获取请求中指定的导出范围（默认导出全部）
+      const { include = 'all' } = req.query;
+      const includeAll = include === 'all';
+      const includes = include.split(',').map(s => s.trim());
+      const want = (key) => includeAll || includes.includes(key);
+
+      const exportResult = {
+        exportedAt: new Date().toISOString(),
+        exportVersion: '1.0',
+        userId: user.id
+      };
+
+      // 基本资料
+      if (want('profile')) {
+        exportResult.profile = {
+          username: user.username,
+          email: user.email,
+          qq: user.qq,
+          gender: user.gender,
+          birthday: user.birthday,
+          school: user.school,
+          enrollmentYear: user.enrollmentYear,
+          className: user.className,
+          grade: user.grade,
+          avatar: user.avatar,
+          createdAt: user.createdAt,
+          lastLogin: user.lastLogin,
+          signature: user.settings?.signature || ''
+        };
+      }
+
+      // 帖子
+      if (want('posts')) {
+        const Post = require('../models/Post');
+        const posts = await Post.find({ userId: user.id }).sort({ timestamp: -1 }).lean();
+        exportResult.posts = posts.map(p => ({
+          id: p.id,
+          title: p.title,
+          content: p.content,
+          category: p.categoryId || null,
+          timestamp: p.timestamp,
+          likes: p.likes?.length || 0,
+          views: p.views || 0,
+          visibility: p.visibility || 'public',
+          tags: p.tags || [],
+          images: (p.images || []).map(img => img.url)
+        }));
+      }
+
+      // 收藏
+      if (want('favorites')) {
+        const Favorite = require('../models/Favorite');
+        const favorites = await Favorite.find({ userId: user.id }).sort({ createdAt: -1 }).lean();
+        exportResult.favorites = favorites.map(f => ({
+          postId: f.postId,
+          tagId: f.tagId || null,
+          createdAt: f.createdAt
+        }));
+      }
+
+      // 关注 / 粉丝
+      if (want('follows')) {
+        const Follow = require('../models/Follow');
+        const following = await Follow.find({ followerId: user.id }).lean();
+        const followers = await Follow.find({ followingId: user.id }).lean();
+        exportResult.follows = {
+          followingCount: following.length,
+          followingIds: following.map(f => f.followingId),
+          followerCount: followers.length,
+          followerIds: followers.map(f => f.followerId)
+        };
+      }
+
+      // 私信会话列表
+      if (want('messages')) {
+        const Conversation = require('../models/Conversation');
+        const conversations = await Conversation.find({
+          participants: user.id
+        }).sort({ lastMessageAt: -1 }).lean();
+        exportResult.conversations = conversations.map(c => ({
+          id: c.id,
+          participants: c.participants,
+          lastMessageAt: c.lastMessageAt,
+          messageCount: c.messageCount || 0
+        }));
+      }
+
+      // 通知记录
+      if (want('notifications')) {
+        const Notification = require('../models/Notification');
+        const notifications = await Notification.find({ recipientId: user.id })
+          .sort({ createdAt: -1 })
+          .limit(200)
+          .lean();
+        exportResult.notifications = notifications.map(n => ({
+          type: n.type,
+          senderId: n.senderId,
+          content: n.content,
+          isRead: n.isRead,
+          createdAt: n.createdAt
+        }));
+      }
+
+      // 设置
+      if (want('settings')) {
+        const { password: _p, _id, __v, ...safeUser } = user.toObject ? user.toObject() : { ...user };
+        exportResult.settings = safeUser.settings || {};
+      }
+
+      logger.logUserAction('用户导出个人数据', userId, user.username, {
+        include,
+        ip: req.ip
+      });
+
+      // 以 attachment JSON 文件流形式返回
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="my-data-${user.id}-${Date.now()}.json"`
+      );
+      return res.json(exportResult);
+    } catch (error) {
+      logger.logError('导出用户数据失败', { error: error.message, userId: req.user?.id });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 导入用户数据（从 JSON 文件）
+  async importData(req, res) {
+    try {
+      const userId = req.user.id;
+      const user = await getUserById(userId);
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      let data;
+      try {
+        data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      } catch (_) {
+        return res.status(400).json(generateErrorResponse('无效的 JSON 格式'));
+      }
+
+      // 校验格式版本
+      if (!data.exportVersion || !data.userId) {
+        return res.status(400).json(
+          generateErrorResponse('文件格式无效：这不是有效的校园论坛数据导出文件')
+        );
+      }
+
+      const { include = 'all' } = req.query;
+      const includeAll = include === 'all';
+      const includes = include.split(',').map(s => s.trim());
+      const want = (key) => includeAll || includes.includes(key);
+
+      const result = {
+        postsImported: 0,
+        postsSkipped: 0,
+        favoritesImported: 0,
+        favoritesSkipped: 0,
+        followsImported: 0,
+        followsSkipped: 0,
+        settingsApplied: false,
+        skippedTypes: []
+      };
+
+      // 帖子导入：建立 oldPostId → newPostId 映射
+      const postIdMap = {}; // oldPostId → newPostId
+      if (want('posts') && Array.isArray(data.posts) && data.posts.length > 0) {
+        const Post = require('../models/Post');
+        for (const p of data.posts) {
+          try {
+            const newId = require('uuid').v4();
+            const now = Date.now();
+            const newPost = new Post({
+              id: newId,
+              userId: userId,
+              title: p.title || '无标题',
+              content: p.content || '',
+              categoryId: p.category || null,
+              timestamp: p.timestamp || now,
+              updatedAt: now,
+              likes: [],
+              views: 0,
+              visibility: p.visibility || 'public',
+              tags: Array.isArray(p.tags) ? p.tags : [],
+              images: Array.isArray(p.images)
+                ? p.images.map(url => ({ url, type: 'image' }))
+                : [],
+              isEdited: false
+            });
+            await newPost.save();
+            postIdMap[p.id] = newId;
+            result.postsImported++;
+          } catch (err) {
+            logger.logError('导入帖子失败', { error: err.message, oldPostId: p.id });
+            result.postsSkipped++;
+          }
+        }
+      } else if (!want('posts')) {
+        result.skippedTypes.push('posts');
+      }
+
+      // 收藏导入
+      if (want('favorites') && Array.isArray(data.favorites) && data.favorites.length > 0) {
+        const Favorite = require('../models/Favorite');
+        for (const f of data.favorites) {
+          // 如果该帖子也导入了，用新 ID；否则跳过
+          const mappedPostId = postIdMap[f.postId];
+          if (!mappedPostId) {
+            result.favoritesSkipped++;
+            continue;
+          }
+          try {
+            const existing = await Favorite.findOne({ userId, postId: mappedPostId });
+            if (existing) {
+              result.favoritesSkipped++;
+              continue;
+            }
+            const fav = new Favorite({
+              userId,
+              postId: mappedPostId,
+              tagId: f.tagId || null,
+              createdAt: f.createdAt || new Date()
+            });
+            await fav.save();
+            result.favoritesImported++;
+          } catch (err) {
+            if (err.code !== 11000) {
+              logger.logError('导入收藏失败', { error: err.message });
+            }
+            result.favoritesSkipped++;
+          }
+        }
+      } else if (!want('favorites')) {
+        result.skippedTypes.push('favorites');
+      }
+
+      // 关注/粉丝导入：重建关注关系（followingId 为目标用户，只要目标用户存在即可）
+      if (want('follows') && data.follows) {
+        const Follow = require('../models/Follow');
+        // 重建"我关注的用户"列表
+        const followingIds = Array.isArray(data.follows.followingIds)
+          ? data.follows.followingIds
+          : [];
+        for (const targetUserId of followingIds) {
+          if (targetUserId === userId) continue; // 不能关注自己
+          try {
+            const existing = await Follow.findOne({ followerId: userId, followingId: targetUserId });
+            if (existing) continue;
+            const targetUser = await getUserById(targetUserId);
+            if (!targetUser) {
+              result.followsSkipped++;
+              continue;
+            }
+            const follow = new Follow({
+              followerId: userId,
+              followingId: targetUserId,
+              createdAt: new Date()
+            });
+            await follow.save();
+            result.followsImported++;
+          } catch (err) {
+            if (err.code !== 11000) {
+              logger.logError('导入关注关系失败', { error: err.message });
+            }
+            result.followsSkipped++;
+          }
+        }
+        // 粉丝（其他用户关注我）：不需要导入，粉丝是被动的
+      } else if (!want('follows')) {
+        result.skippedTypes.push('follows');
+      }
+
+      // 账号设置导入（除密码外）
+      if (want('settings') && data.settings) {
+        try {
+          const allowedSettings = ['theme', 'notifications', 'privacy', 'signature'];
+          const currentSettings = user.settings || {};
+          for (const key of allowedSettings) {
+            if (data.settings[key] !== undefined) {
+              currentSettings[key] = data.settings[key];
+            }
+          }
+          await updateUser(userId, { settings: currentSettings });
+          result.settingsApplied = true;
+        } catch (err) {
+          logger.logError('导入设置失败', { error: err.message });
+        }
+      } else if (!want('settings')) {
+        result.skippedTypes.push('settings');
+      }
+
+      // profile / messages / notifications 不可导入，跳过
+      const nonImportable = ['profile', 'messages', 'notifications'];
+      for (const t of nonImportable) {
+        if (!result.skippedTypes.includes(t)) result.skippedTypes.push(t);
+      }
+
+      logger.logUserAction('用户导入个人数据', userId, user.username, {
+        includedTypes: include,
+        result,
+        ip: req.ip
+      });
+
+      res.json(generateSuccessResponse({ data: result }, '数据导入完成'));
+    } catch (error) {
+      logger.logError('导入用户数据失败', { error: error.message, userId: req.user?.id });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
   }
 };
 

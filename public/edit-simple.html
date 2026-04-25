@@ -11,25 +11,7 @@
   <!-- Markdown-it 渲染支持（本地版本） -->
   <script defer src="/libs/markdown-it/markdown-it.min.js"></script>
   <!-- MathJax LaTeX 公式渲染支持（本地版本） -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        processEscapes: true,
-        processEnvironments: true
-      },
-      options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      startup: {
-        typeset: false
-      },
-      svg: {
-        scale: 1.5
-      }
-    };
-  </script>
+  <script src="/js/mathjax-config.js"></script>
   <script id="MathJax-script" src="/libs/mathjax/tex-svg-full.js"></script>
 </head>
 <body>
@@ -254,14 +236,6 @@
   <script defer src="js/user.js"></script>
   <script defer src="js/posts.js"></script>
   <script defer src="js/edit-simple.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // 初始化用户管理
-      if (typeof userManager !== 'undefined') {
-        userManager.init();
-        userManager.setupEventListeners();
-      }
-    });
-  </script>
+  <script defer src="js/init-basic.js"></script>
 </body>
 </html>

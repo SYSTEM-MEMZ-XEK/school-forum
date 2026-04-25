@@ -87,5 +87,105 @@ const categoryManager = {
         ${cat.postCount !== undefined ? `<span class="category-count">${cat.postCount}</span>` : ''}
       </a>
     `).join('');
+  },
+
+  // 渲染首页侧边栏栏目列表
+  renderSidebarCategoryList: function() {
+    const container = document.getElementById('sidebar-categories');
+    if (!container) return;
+
+    const categories = this.state.categories;
+    if (!categories || categories.length === 0) {
+      container.innerHTML = '<div class="category-sidebar-empty">暂无栏目</div>';
+      return;
+    }
+
+    container.innerHTML = categories.map(cat => `
+      <a href="category.html?id=${cat.id}" class="category-sidebar-item">
+        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+        <span>${utils.escapeHtml(cat.name)}</span>
+        ${cat.postCount !== undefined ? `<span class="category-sidebar-count">${cat.postCount}</span>` : ''}
+      </a>
+    `).join('');
   }
 };
+
+// ======== 申请栏目模态框函数 ========
+
+// 打开申请栏目模态框
+function openApplyCategoryModal() {
+  if (!userManager.state.currentUser) {
+    if (typeof utils !== 'undefined') utils.showNotification('请先登录', 'warning');
+    return;
+  }
+  const modal = document.getElementById('applyCategoryModal');
+  if (!modal) return;
+  document.getElementById('apply-category-name').value = '';
+  document.getElementById('apply-category-desc').value = '';
+  const statusEl = document.getElementById('apply-category-status');
+  if (statusEl) { statusEl.style.display = 'none'; statusEl.textContent = ''; }
+  modal.style.display = 'flex';
+}
+
+// 关闭申请栏目模态框
+function closeApplyCategoryModal() {
+  const modal = document.getElementById('applyCategoryModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// 提交栏目申请
+async function submitApplyCategory() {
+  const nameInput = document.getElementById('apply-category-name');
+  const descInput = document.getElementById('apply-category-desc');
+  const name = nameInput.value.trim();
+  const description = descInput.value.trim();
+  const statusEl = document.getElementById('apply-category-status');
+  const submitBtn = document.getElementById('apply-category-submit-btn');
+
+  if (!name) {
+    nameInput.focus();
+    if (statusEl) {
+      statusEl.textContent = '请输入栏目名称';
+      statusEl.className = 'save-status error';
+      statusEl.style.display = 'block';
+    }
+    return;
+  }
+
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...'; }
+  if (statusEl) { statusEl.style.display = 'none'; }
+
+  try {
+    const result = await categoryManager.applyForCategory(name, description);
+    if (result.success) {
+      if (statusEl) {
+        statusEl.textContent = '申请已提交，等待管理员审核';
+        statusEl.className = 'save-status success';
+        statusEl.style.display = 'block';
+      }
+      setTimeout(closeApplyCategoryModal, 1800);
+    } else {
+      if (statusEl) {
+        statusEl.textContent = result.message || '提交失败';
+        statusEl.className = 'save-status error';
+        statusEl.style.display = 'block';
+      }
+    }
+  } catch (error) {
+    if (statusEl) {
+      statusEl.textContent = '提交失败，请稍后重试';
+      statusEl.className = 'save-status error';
+      statusEl.style.display = 'block';
+    }
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 提交申请'; }
+  }
+}
+
+// 点击模态框背景关闭
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('applyCategoryModal');
+  if (modal && e.target === modal) {
+    closeApplyCategoryModal();
+  }
+});

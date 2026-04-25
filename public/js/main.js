@@ -26,7 +26,16 @@ const app = {
     if (typeof statsManager !== 'undefined') {
       statsManager.init();
     }
-    
+
+    // 初始化栏目管理器
+    if (typeof categoryManager !== 'undefined') {
+      console.log('app.init: 初始化栏目管理器');
+      categoryManager.init().then(() => {
+        // 加载完成后渲染首页侧边栏栏目列表
+        categoryManager.renderSidebarCategoryList();
+      });
+    }
+
     // 初始化公告
     this.initAnnouncements();
     

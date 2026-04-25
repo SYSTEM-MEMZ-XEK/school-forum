@@ -823,6 +823,132 @@ const settingsManager = {
         this.showDeletionDialog();
       });
     }
+
+    // 数据导出按钮
+    const btnExportData = document.getElementById('btn-export-data');
+    if (btnExportData) {
+      btnExportData.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!userManager.state.currentUser) {
+          utils.showNotification('请先登录', 'error');
+          return;
+        }
+        this.exportData();
+      });
+    }
+
+    // 数据预览按钮
+    const btnExportPreview = document.getElementById('btn-export-preview');
+    if (btnExportPreview) {
+      btnExportPreview.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!userManager.state.currentUser) {
+          utils.showNotification('请先登录', 'error');
+          return;
+        }
+        this.previewExportData();
+      });
+    }
+
+    // 全选 / 取消全选
+    const btnSelectAll = document.getElementById('export-select-all');
+    if (btnSelectAll) {
+      btnSelectAll.addEventListener('click', () => {
+        document.querySelectorAll('.export-option-item input[type="checkbox"]').forEach(cb => {
+          cb.checked = true;
+        });
+      });
+    }
+
+    const btnDeselectAll = document.getElementById('export-deselect-all');
+    if (btnDeselectAll) {
+      btnDeselectAll.addEventListener('click', () => {
+        document.querySelectorAll('.export-option-item input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+        });
+      });
+    }
+
+    // 关闭预览面板
+    const btnPreviewClose = document.getElementById('export-preview-close');
+    if (btnPreviewClose) {
+      btnPreviewClose.addEventListener('click', () => {
+        const panel = document.getElementById('export-preview-panel');
+        if (panel) panel.style.display = 'none';
+      });
+    }
+
+    // 数据导入按钮
+    const btnImportData = document.getElementById('btn-import-data');
+    if (btnImportData) {
+      btnImportData.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!userManager.state.currentUser) {
+          utils.showNotification('请先登录', 'error');
+          return;
+        }
+        settingsManager.importData();
+      });
+    }
+
+    const btnImportPreview = document.getElementById('btn-import-preview');
+    if (btnImportPreview) {
+      btnImportPreview.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!userManager.state.currentUser) {
+          utils.showNotification('请先登录', 'error');
+          return;
+        }
+        settingsManager.previewImportData();
+      });
+    }
+
+    // 导入文件选择
+    const importFileInput = document.getElementById('import-file-input');
+    if (importFileInput) {
+      importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        settingsManager.handleImportFileSelect(file);
+      });
+    }
+
+    // 导入文件区域点击
+    const importFileLabel = document.querySelector('.import-file-label');
+    if (importFileLabel) {
+      importFileLabel.addEventListener('click', () => {
+        document.getElementById('import-file-input').click();
+      });
+    }
+
+    // 导入全选/取消全选
+    const btnImportSelectAll = document.getElementById('import-select-all');
+    if (btnImportSelectAll) {
+      btnImportSelectAll.addEventListener('click', () => {
+        ['import-posts', 'import-favorites', 'import-follows', 'import-settings'].forEach(id => {
+          const cb = document.getElementById(id);
+          if (cb) cb.checked = true;
+        });
+      });
+    }
+
+    const btnImportDeselectAll = document.getElementById('import-deselect-all');
+    if (btnImportDeselectAll) {
+      btnImportDeselectAll.addEventListener('click', () => {
+        ['import-posts', 'import-favorites', 'import-follows', 'import-settings'].forEach(id => {
+          const cb = document.getElementById(id);
+          if (cb) cb.checked = false;
+        });
+      });
+    }
+
+    // 关闭导入结果面板
+    const btnImportResultClose = document.getElementById('import-result-close');
+    if (btnImportResultClose) {
+      btnImportResultClose.addEventListener('click', () => {
+        const panel = document.getElementById('import-result-panel');
+        if (panel) panel.style.display = 'none';
+      });
+    }
   },
 
   // 设置密码修改多步骤事件监听器
@@ -2462,6 +2588,481 @@ const settingsManager = {
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-trash-alt"></i> 确认注销';
+    }
+  },
+
+  // ======== 数据导出 ========
+
+  // 获取当前勾选的导出范围
+  _getExportIncludes: function() {
+    const map = {
+      'export-profile':       'profile',
+      'export-posts':         'posts',
+      'export-favorites':     'favorites',
+      'export-follows':       'follows',
+      'export-messages':      'messages',
+      'export-notifications': 'notifications',
+      'export-settings':      'settings'
+    };
+    const selected = [];
+    Object.entries(map).forEach(([id, key]) => {
+      const cb = document.getElementById(id);
+      if (cb && cb.checked) selected.push(key);
+    });
+    return selected;
+  },
+
+  // 设置进度条状态
+  _setExportProgress: function(visible, text, percent) {
+    const wrap = document.getElementById('export-progress');
+    const textEl = document.getElementById('export-progress-text');
+    const fill = document.getElementById('export-progress-fill');
+    if (!wrap) return;
+    wrap.style.display = visible ? 'block' : 'none';
+    if (textEl && text !== undefined) textEl.textContent = text;
+    if (fill && percent !== undefined) fill.style.width = percent + '%';
+  },
+
+  // 显示导出状态
+  _setExportStatus: function(msg, type) {
+    const el = document.getElementById('export-save-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'save-status ' + (type || 'success');
+    el.style.display = msg ? 'block' : 'none';
+    if (msg) {
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 6000);
+    }
+  },
+
+  // 执行数据导出
+  exportData: async function() {
+    const includes = this._getExportIncludes();
+    if (includes.length === 0) {
+      utils.showNotification('请至少选择一项导出内容', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-export-data');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在导出...';
+    }
+
+    this._setExportProgress(true, '正在连接服务器...', 20);
+    this._setExportStatus('');
+
+    try {
+      const include = includes.join(',');
+      this._setExportProgress(true, '正在收集您的数据，请稍候...', 50);
+
+      const res = await fetch(`/user/export-data?include=${encodeURIComponent(include)}&format=json`, {
+        method: 'GET',
+        headers: userManager.getAuthHeaders()
+      });
+
+      this._setExportProgress(true, '数据已接收，正在生成文件...', 85);
+
+      if (!res.ok) {
+        let errMsg = '导出失败';
+        try {
+          const err = await res.json();
+          errMsg = err.message || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      const data = await res.json();
+      this._setExportProgress(true, '正在生成下载文件...', 95);
+
+      // 生成 JSON 文件并触发下载
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `my-forum-data-${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      this._setExportProgress(false);
+      this._setExportStatus(`数据导出成功！文件已开始下载（共 ${includes.length} 类数据）`, 'success');
+      utils.showNotification('数据导出成功，文件已开始下载', 'success');
+    } catch (error) {
+      this._setExportProgress(false);
+      this._setExportStatus('导出失败：' + error.message, 'error');
+      utils.showNotification('数据导出失败：' + error.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-download"></i> 导出数据';
+      }
+    }
+  },
+
+  // 预览数据量（不下载）
+  previewExportData: async function() {
+    const btn = document.getElementById('btn-export-preview');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 查询中...';
+    }
+    this._setExportStatus('');
+
+    try {
+      // 查询全部数据以获取数量统计
+      const res = await fetch('/user/export-data?include=all&format=json', {
+        method: 'GET',
+        headers: userManager.getAuthHeaders()
+      });
+
+      if (!res.ok) {
+        let errMsg = '预览失败';
+        try {
+          const err = await res.json();
+          errMsg = err.message || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      const data = await res.json();
+
+      // 渲染预览面板
+      const panel = document.getElementById('export-preview-panel');
+      const content = document.getElementById('export-preview-content');
+      if (!panel || !content) return;
+
+      const items = [
+        { key: 'profile',       label: '个人资料',   icon: 'fa-user-circle',   count: data.profile ? '已包含' : '-' },
+        { key: 'posts',         label: '发布的帖子', icon: 'fa-file-alt',      count: (data.posts || []).length + ' 条' },
+        { key: 'favorites',     label: '收藏记录',   icon: 'fa-star',          count: (data.favorites || []).length + ' 条' },
+        { key: 'follows',       label: '关注 / 粉丝',icon: 'fa-users',         count: `关注 ${data.follows?.followingCount || 0} 人 / 粉丝 ${data.follows?.followerCount || 0} 人` },
+        { key: 'conversations', label: '私信会话',   icon: 'fa-envelope',      count: (data.conversations || []).length + ' 个' },
+        { key: 'notifications', label: '通知记录',   icon: 'fa-bell',          count: (data.notifications || []).length + ' 条（最近200条）' },
+        { key: 'settings',      label: '账号设置',   icon: 'fa-cog',           count: data.settings ? '已包含' : '-' }
+      ];
+
+      const totalSize = Math.ceil(JSON.stringify(data).length / 1024);
+
+      content.innerHTML = `
+        <div class="export-preview-table">
+          ${items.map(item => `
+            <div class="export-preview-row">
+              <span class="export-preview-label"><i class="fas ${item.icon}"></i> ${item.label}</span>
+              <span class="export-preview-value">${item.count}</span>
+            </div>
+          `).join('')}
+          <div class="export-preview-row export-preview-total">
+            <span class="export-preview-label"><i class="fas fa-file-code"></i> 预估文件大小</span>
+            <span class="export-preview-value">约 ${totalSize} KB</span>
+          </div>
+        </div>
+        <p class="export-preview-hint"><i class="fas fa-info-circle"></i> 实际导出内容取决于您的勾选项</p>
+      `;
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) {
+      this._setExportStatus('预览失败：' + error.message, 'error');
+      utils.showNotification('数据预览失败：' + error.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-eye"></i> 预览数据量';
+      }
+    }
+  },
+
+  // ======== 数据导入 ========
+
+  // 保存当前选中的导入文件内容
+  _importFileData: null,
+
+  // 文件选择处理器
+  handleImportFileSelect: function(file) {
+    if (!file) return;
+    if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+      utils.showNotification('请选择 JSON 格式的备份文件', 'warning');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      utils.showNotification('文件大小不能超过 10MB', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.exportVersion || !data.userId) {
+          utils.showNotification('无效的备份文件格式', 'error');
+          this._importFileData = null;
+          return;
+        }
+        this._importFileData = data;
+
+        // 显示文件信息
+        const sizeKB = (file.size / 1024).toFixed(1);
+        const preview = document.getElementById('import-file-preview');
+        const fileName = document.getElementById('import-file-name');
+        if (preview) {
+          preview.style.display = 'flex';
+          preview.innerHTML = `
+            <i class="fas fa-file-code" style="color: var(--primary-color); font-size: 18px;"></i>
+            <div>
+              <strong>${this._escapeHtml(file.name)}</strong>
+              <small>${sizeKB} KB · 导出时间：${data.exportedAt ? data.exportedAt.slice(0, 10) : '未知'}</small>
+            </div>
+            <button type="button" class="import-file-remove" id="import-file-remove-btn">
+              <i class="fas fa-times"></i>
+            </button>
+          `;
+          const removeBtn = document.getElementById('import-file-remove-btn');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+              this._importFileData = null;
+              document.getElementById('import-file-input').value = '';
+              if (preview) preview.style.display = 'none';
+              this._setImportButtonsEnabled(false);
+            });
+          }
+        }
+        if (fileName) fileName.textContent = `已选择：${this._escapeHtml(file.name)}（${sizeKB} KB）`;
+
+        this._setImportButtonsEnabled(true);
+        this._hideImportResult();
+      } catch (err) {
+        utils.showNotification('JSON 解析失败：' + err.message, 'error');
+        this._importFileData = null;
+        this._setImportButtonsEnabled(false);
+      }
+    };
+    reader.readAsText(file);
+  },
+
+  // 启用/禁用导入按钮
+  _setImportButtonsEnabled: function(enabled) {
+    const btnImport = document.getElementById('btn-import-data');
+    const btnPreview = document.getElementById('btn-import-preview');
+    if (btnImport) btnImport.disabled = !enabled;
+    if (btnPreview) btnPreview.disabled = !enabled;
+  },
+
+  // 获取当前勾选的导入范围
+  _getImportIncludes: function() {
+    const map = {
+      'import-posts':     'posts',
+      'import-favorites': 'favorites',
+      'import-follows':   'follows',
+      'import-settings':  'settings'
+    };
+    const selected = [];
+    Object.entries(map).forEach(([id, key]) => {
+      const cb = document.getElementById(id);
+      if (cb && cb.checked) selected.push(key);
+    });
+    return selected;
+  },
+
+  // 设置导入进度
+  _setImportProgress: function(visible, text, percent) {
+    const wrap = document.getElementById('import-progress');
+    const textEl = document.getElementById('import-progress-text');
+    const fill = document.getElementById('import-progress-fill');
+    if (!wrap) return;
+    wrap.style.display = visible ? 'block' : 'none';
+    if (textEl && text !== undefined) textEl.textContent = text;
+    if (fill && percent !== undefined) fill.style.width = percent + '%';
+  },
+
+  // 显示/隐藏导入结果面板
+  _showImportResult: function(html) {
+    const panel = document.getElementById('import-result-panel');
+    const content = document.getElementById('import-result-content');
+    if (!panel || !content) return;
+    content.innerHTML = html;
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+
+  _hideImportResult: function() {
+    const panel = document.getElementById('import-result-panel');
+    if (panel) panel.style.display = 'none';
+  },
+
+  // 设置导入状态
+  _setImportStatus: function(msg, type) {
+    const el = document.getElementById('import-save-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'save-status ' + (type || 'success');
+    el.style.display = msg ? 'block' : 'none';
+    if (msg) {
+      setTimeout(() => { el.style.display = 'none'; }, 8000);
+    }
+  },
+
+  // HTML 转义
+  _escapeHtml: function(str) {
+    if (str == null) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  // 预览导入
+  previewImportData: async function() {
+    if (!this._importFileData) {
+      utils.showNotification('请先选择备份文件', 'warning');
+      return;
+    }
+    const includes = this._getImportIncludes();
+    if (includes.length === 0) {
+      utils.showNotification('请至少选择一项导入内容', 'warning');
+      return;
+    }
+    const btn = document.getElementById('btn-import-preview');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 解析中...'; }
+    this._setImportStatus('');
+
+    try {
+      const data = this._importFileData;
+      const typeLabels = { posts: '帖子', favorites: '收藏', follows: '关注', settings: '设置' };
+      const rows = includes.map(key => {
+        let count = '-';
+        if (key === 'posts')     count = (data.posts || []).length + ' 条';
+        if (key === 'favorites') count = (data.favorites || []).length + ' 条';
+        if (key === 'follows')   count = (data.follows?.followingIds || []).length + ' 人';
+        if (key === 'settings')  count = data.settings ? '待合并' : '无';
+        return `<div class="export-preview-row">
+          <span class="export-preview-label"><i class="fas fa-arrow-right" style="color: #16a34a;"></i> 导入：${typeLabels[key] || key}</span>
+          <span class="export-preview-value">${count}</span>
+        </div>`;
+      }).join('');
+
+      const summary = `
+        <div class="export-preview-table">
+          ${rows}
+          <div class="export-preview-row export-preview-total">
+            <span class="export-preview-label"><i class="fas fa-info-circle"></i> 说明</span>
+            <span class="export-preview-value">帖子将使用新 ID；收藏需目标帖子同时存在；关注关系需对方账号仍存在</span>
+          </div>
+        </div>
+        <p class="export-preview-hint"><i class="fas fa-lightbulb" style="color: var(--primary-color);"></i> 确认无误后点击「开始导入」</p>
+      `;
+      this._showImportResult(summary);
+    } catch (error) {
+      this._setImportStatus('预览失败：' + error.message, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-eye"></i> 预览导入'; }
+    }
+  },
+
+  // 执行数据导入
+  importData: async function() {
+    if (!this._importFileData) {
+      utils.showNotification('请先选择备份文件', 'warning');
+      return;
+    }
+    const includes = this._getImportIncludes();
+    if (includes.length === 0) {
+      utils.showNotification('请至少选择一项导入内容', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-import-data');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在导入...'; }
+
+    this._hideImportResult();
+    this._setImportProgress(true, '正在解析备份文件...', 20);
+    this._setImportStatus('');
+
+    try {
+      const jsonStr = JSON.stringify(this._importFileData);
+      this._setImportProgress(true, '正在上传数据，请稍候...', 40);
+
+      const res = await fetch(`/user/import-data?include=${encodeURIComponent(includes.join(','))}`, {
+        method: 'POST',
+        headers: {
+          ...userManager.getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: jsonStr
+      });
+
+      this._setImportProgress(true, '正在处理数据...', 75);
+
+      if (!res.ok) {
+        let errMsg = '导入失败';
+        try {
+          const err = await res.json();
+          errMsg = err.message || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      const result = await res.json();
+      const rd = result.data?.data || result.data || {};
+
+      this._setImportProgress(true, '导入完成！', 100);
+
+      // 渲染导入结果
+      const resultItems = [
+        { label: '帖子', icon: 'fa-file-alt', imported: rd.postsImported, skipped: rd.postsSkipped },
+        { label: '收藏', icon: 'fa-star', imported: rd.favoritesImported, skipped: rd.favoritesSkipped },
+        { label: '关注', icon: 'fa-users', imported: rd.followsImported, skipped: rd.followsSkipped }
+      ];
+
+      const rowsHtml = resultItems.map(item => `
+        <div class="import-result-row">
+          <div class="import-result-row-header">
+            <i class="fas ${item.icon}"></i> ${item.label}
+          </div>
+          <div class="import-result-row-stats">
+            <span class="import-stat-success"><i class="fas fa-check"></i> 成功 ${item.imported || 0}</span>
+            <span class="import-stat-skip"><i class="fas fa-minus"></i> 跳过 ${item.skipped || 0}</span>
+          </div>
+        </div>
+      `).join('');
+
+      const settingsNote = rd.settingsApplied
+        ? '<div class="import-result-row"><div class="import-result-row-header"><i class="fas fa-cog"></i> 账号设置</div><div class="import-result-row-stats"><span class="import-stat-success"><i class="fas fa-check"></i> 已合并</span></div></div>'
+        : '';
+
+      const summaryHtml = `
+        <div class="import-result-summary">
+          <i class="fas fa-check-circle import-result-icon"></i>
+          <div>
+            <strong>数据导入完成！</strong>
+            <p>以下数据已成功同步到您的当前账号</p>
+          </div>
+        </div>
+        <div class="import-result-rows">${rowsHtml}${settingsNote}</div>
+        <p class="export-preview-hint">
+          <i class="fas fa-info-circle"></i> 导入过程中跳过的项目不影响账号安全，个人资料未被覆盖。
+        </p>
+      `;
+      this._showImportResult(summaryHtml);
+      this._setImportStatus('数据导入成功！', 'success');
+      utils.showNotification('数据导入成功！', 'success');
+
+      // 清空文件选择
+      setTimeout(() => {
+        document.getElementById('import-file-input').value = '';
+        const preview = document.getElementById('import-file-preview');
+        if (preview) preview.style.display = 'none';
+        this._importFileData = null;
+        this._setImportButtonsEnabled(false);
+      }, 3000);
+    } catch (error) {
+      this._setImportProgress(false);
+      this._setImportStatus('导入失败：' + error.message, 'error');
+      utils.showNotification('数据导入失败：' + error.message, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> 开始导入'; }
     }
   }
 };

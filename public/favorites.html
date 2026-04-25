@@ -278,13 +278,7 @@
   <script src="js/user.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/favorites.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      userManager.init();
-      userManager.setupEventListeners();
-      statsManager.init();
-      favoritesManager.init();
-    });
-  </script>
+  <script>window.pageManagers = ['favoritesManager'];</script>
+  <script defer src="js/init-with-stats.js"></script>
 </body>
 </html>

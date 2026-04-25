@@ -43,6 +43,11 @@ router.get('/health', (req, res) => {
   });
 });
 
+// 根路径 - 返回 index.html
+router.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/index.html'));
+});
+
 // 错误页面路由
 router.get('/404', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/errors/404.html'));

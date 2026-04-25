@@ -388,7 +388,7 @@ const userManager = {
               adminOption.href = 'admin.html';
               adminOption.className = 'header-menu-item admin-panel';
               adminOption.innerHTML = '<i class="fas fa-shield-alt"></i> 管理员控制面板';
-              
+
               // 在第一个选项之前插入
               const firstOption = headerMenu.querySelector('.header-menu-item');
               if (firstOption) {
@@ -403,6 +403,31 @@ const userManager = {
           const adminOption = headerAvatar.querySelector('.header-menu-item.admin-panel');
           if (adminOption) {
             adminOption.remove();
+          }
+        }
+
+        // 添加「申请栏目」链接（所有登录用户可见）
+        const headerMenuEl = headerAvatar.querySelector('.header-user-menu');
+        if (headerMenuEl) {
+          let applyCatLink = headerMenuEl.querySelector('.header-menu-item.apply-category');
+          if (!applyCatLink) {
+            applyCatLink = document.createElement('a');
+            applyCatLink.href = '#';
+            applyCatLink.className = 'header-menu-item apply-category';
+            applyCatLink.innerHTML = '<i class="fas fa-folder-plus"></i> 申请栏目';
+            applyCatLink.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (typeof openApplyCategoryModal === 'function') {
+                openApplyCategoryModal();
+              }
+            });
+            // 插入到设置之前
+            const settingsLink = headerMenuEl.querySelector('a[href="settings.html"]');
+            if (settingsLink) {
+              headerMenuEl.insertBefore(applyCatLink, settingsLink);
+            } else {
+              headerMenuEl.insertBefore(applyCatLink, headerMenuEl.firstChild);
+            }
           }
         }
         

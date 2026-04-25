@@ -300,34 +300,7 @@
   <script src="js/user.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/profile.js"></script>
-  <script>
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
-      // 初始化用户管理
-      userManager.init();
-      
-      // 初始化统计
-      statsManager.init();
-      
-      // 初始化个人主页
-      profileManager.init();
-      
-      // 设置登录/注册按钮事件
-      userManager.setupEventListeners();
-      
-      // 调试：检查主题是否已应用
-      setTimeout(function() {
-        console.log('当前主题:', userManager.state.settings.theme);
-        console.log('下拉菜单背景色:', getComputedStyle(document.documentElement).getPropertyValue('--background-card'));
-        console.log('下拉菜单文字颜色:', getComputedStyle(document.documentElement).getPropertyValue('--text-color'));
-        
-        // 如果用户已登录且有主题设置，确保主题已应用
-        if (userManager.state.currentUser && userManager.state.settings.theme) {
-          console.log('重新应用主题:', userManager.state.settings.theme);
-          userManager.applyTheme(userManager.state.settings.theme);
-        }
-      }, 100);
-    });
-  </script>
+  <script>window.pageManagers = ['profileManager'];</script>
+  <script defer src="js/init-with-stats.js"></script>
 </body>
 </html>

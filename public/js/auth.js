@@ -496,7 +496,7 @@ async function sendAdminVerificationCode() {
   }
   
   try {
-    const response = await fetch('/send-admin-verification-code', {
+    const response = await fetch('/send-login-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -738,21 +738,22 @@ async function loginUser() {
       
       state.currentUser = userData;
       localStorage.setItem('forumUser', JSON.stringify(userData));
-      // 保存 JWT Token（登录接口返回 token/refreshToken）
+      // 保存 JWT Token（登录接口返回 token/refreshToken，管理员额外返回 adminToken）
       const tok = data.token || data.accessToken;
       if (tok) localStorage.setItem('accessToken', tok);
       if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      if (data.adminToken) localStorage.setItem('adminToken', data.adminToken);
       
       // 检查是否是管理员
       if (userData.isAdmin) {
-        showNotification(`管理员 ${userData.username} 登录成功！正在跳转...`, 'success');
+        showNotification(`管理员 ${userData.username} 登录成功！正在跳转到管理后台...`, 'success');
       } else {
         showNotification(`欢迎回来，${userData.username}！正在跳转...`, 'success');
       }
       
-      // 延迟跳转，让用户看到提示
+      // 延迟跳转，管理员跳到后台，普通用户跳到首页
       setTimeout(() => {
-        window.location.href = 'index.html';
+        window.location.href = userData.isAdmin ? 'admin.html' : 'index.html';
       }, 1500);
     }
   } catch (error) {

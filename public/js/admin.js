@@ -35,6 +35,8 @@ const adminManager = {
         this.displayAdminInfo();
         this.loadDashboard();
         this.setupEventListeners();
+        // 立即检查待处理的栏目申请
+        this.checkPendingApplications();
         resolve(true);
       } else {
         reject(new Error('管理员权限验证失败'));
@@ -248,7 +250,12 @@ fetchWithTimeout: function(url, options = {}) {
       options.headers = {};
     }
     const adminToken = localStorage.getItem('adminToken');
-    if (adminToken && !options.headers['Authorization']) {
+    if (!adminToken) {
+      console.error('adminToken 不存在，请重新登录管理员账号');
+      // 返回一个立即 reject 的 Promise，触发权限失效提示
+      return Promise.reject(new Error('管理员会话已失效，请重新登录'));
+    }
+    if (!options.headers['Authorization']) {
       options.headers['Authorization'] = `Bearer ${adminToken}`;
     }
 
@@ -305,7 +312,11 @@ fetchWithTimeout: function(url, options = {}) {
         if (response.status === 401 || response.status === 403) {
           response.json().then(data => {
             console.error('权限错误详情:', data);
-            reject(new Error(data.message || '管理员权限不足或已失效，请重新登录'));
+            // 替换为更友好的提示，避免暴露内部错误消息
+            const friendlyMsg = data.message?.includes('请提供')
+              ? '管理员会话已失效，请重新登录'
+              : data.message || '管理员权限不足或已失效，请重新登录';
+            reject(new Error(friendlyMsg));
           }).catch(() => {
             reject(new Error('管理员权限不足或已失效，请重新登录'));
           });
@@ -4097,9 +4108,13 @@ confirmDeletePost: async function() {
                     ` : ''}
                     ${app.status === 'pending' ? `
                     <div class="announcement-actions">
-                        <button onclick="adminManager.showReviewApplicationModal('${app.id}')" 
-                                class="action-btn btn-primary" title="审核">
-                            <i class="fas fa-clipboard-check"></i> 审核
+                        <button onclick="adminManager.quickApproveApplication('${app.id}')" 
+                                class="action-btn btn-success" title="批准">
+                            <i class="fas fa-check"></i> 批准
+                        </button>
+                        <button onclick="adminManager.quickRejectApplication('${app.id}')" 
+                                class="action-btn btn-danger" title="拒绝">
+                            <i class="fas fa-times"></i> 拒绝
                         </button>
                     </div>
                     ` : ''}
@@ -4219,6 +4234,64 @@ confirmDeletePost: async function() {
             console.error('拒绝申请失败:', error);
             this.showNotification('操作失败: ' + error.message, 'error');
         }
+    },
+    
+    // 快速批准申请
+    quickApproveApplication: async function(applicationId) {
+        if (!confirm('确定要批准此申请并创建栏目吗？')) return;
+        
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/category-applications/${applicationId}/approve`,
+                {
+                    method: 'POST',
+                    headers: this.getAdminHeaders(),
+                    body: JSON.stringify({})
+                }
+            );
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification('栏目申请已批准', 'success');
+                this.filterCategoryApplications('pending');
+                this.checkPendingApplications();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('批准申请失败:', error);
+            this.showNotification('操作失败: ' + error.message, 'error');
+        }
+    },
+    
+    // 快速拒绝申请
+    quickRejectApplication: async function(applicationId) {
+        const reason = prompt('请输入拒绝原因（可选）：');
+        if (reason === null) return; // 用户取消
+        
+        try {
+            const response = await this.fetchWithTimeout(
+                `/admin/category-applications/${applicationId}/reject`,
+                {
+                    method: 'POST',
+                    headers: this.getAdminHeaders(),
+                    body: JSON.stringify({ reviewNote: reason })
+                }
+            );
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showNotification('栏目申请已拒绝', 'success');
+                this.filterCategoryApplications('pending');
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('拒绝申请失败:', error);
+            this.showNotification('操作失败: ' + error.message, 'error');
+        }
     }
 };
 
@@ -4309,7 +4382,15 @@ function loadCategories(page) {
 document.addEventListener('DOMContentLoaded', () => {
   adminManager.init().catch(error => {
     console.error('管理员系统初始化失败:', error);
-    // 初始化失败时跳转到首页
-    window.location.href = 'index.html';
+    // 在页面上显示具体错误原因，延迟跳转
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:sans-serif;background:#1a1a2e;color:#eee;text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:20px;">🔒</div>
+        <h2 style="margin-bottom:10px;">管理员初始化失败</h2>
+        <p style="color:#ff6b6b;margin-bottom:20px;">${error.message}</p>
+        <p style="color:#888;font-size:14px;">3秒后自动跳转到登录页...</p>
+      </div>
+    `;
+    setTimeout(() => { window.location.href = 'login.html'; }, 3000);
   });
 });

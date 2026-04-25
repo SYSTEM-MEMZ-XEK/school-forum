@@ -80,7 +80,28 @@ const postsManager = {
     
     // 加载帖子（异步，测量内部时间）
     this.loadPosts();
-    
+
+    // 渲染栏目导航（categoryManager.init 已在 app.init 中调用）
+    if (typeof categoryManager !== 'undefined') {
+      categoryManager.renderCategoryNav('category-nav-bar');
+      // 渲染侧边栏目列表
+      const sidebarContainer = document.getElementById('sidebar-categories');
+      if (sidebarContainer) {
+        const cats = categoryManager.state.categories;
+        if (!cats || cats.length === 0) {
+          sidebarContainer.innerHTML = '<div class="category-sidebar-empty">暂无栏目</div>';
+        } else {
+          sidebarContainer.innerHTML = cats.slice(0, 8).map(cat => `
+            <a href="category.html?id=${cat.id}" class="category-sidebar-item">
+              <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+              <span>${utils.escapeHtml(cat.name)}</span>
+              ${cat.postCount !== undefined ? `<span class="category-sidebar-count">${cat.postCount}</span>` : ''}
+            </a>
+          `).join('');
+        }
+      }
+    }
+
     this.setupEventListeners();
     
     // 标记为已初始化
@@ -326,11 +347,11 @@ const postsManager = {
       .filter(cat => cat.isActive)
       .sort((a, b) => a.order - b.order)
       .map(cat => `
-        <a href="javascript:void(0)" 
+        <a href="category.html?id=${cat.id}" 
            class="category-nav-item ${this.state.currentCategoryId === cat.id ? 'active' : ''}" 
            data-category-id="${cat.id}"
            title="${this.escapeHtml(cat.description || cat.name)}">
-          <i class="${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+          <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
           ${this.escapeHtml(cat.name)}
         </a>
       `).join('');

@@ -1,5 +1,13 @@
 // 工具函数模块
 const utils = {
+  // HTML 转义函数
+  escapeHtml: function(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  },
+
   // 检测并转换危险 HTML 内容为 Markdown 代码块
   // 只检测可能导致 XSS 或破坏页面布局的危险标签
   // 允许安全的内联 HTML 标签（如 u, b, i, strong, em, span, a, img 等）
