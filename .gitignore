@@ -37,8 +37,7 @@ public/images
 # Config with sensitive data
 data/config.json
 
-# Android client files
+# others
+./start.bat
 android/
-
-# workbuddy files
 .workbuddy/

@@ -46,11 +46,8 @@ school-forum/
 ├── package-lock.json            # 依赖锁定文件
 ├── README.md                    # 项目说明文档
 ├── API.md                       # API 接口文档
-├── deploy.bat                    # Windows 一键部署脚本（完整安装）
 ├── deploy.sh                     # Linux 一键部署脚本（完整安装）
-├── setup.bat                     # Windows 配置向导（仅修改配置）
 ├── setup.sh                      # Linux 配置向导（仅修改配置）
-├── start.bat                     # Windows 启动脚本
 ├── start.sh                      # Linux 启动脚本
 ├── DeploymentGuide.md           # 详细部署指南
 ├── .env                         # 环境变量配置
@@ -722,9 +719,7 @@ npm start
 
 | 脚本 | 用途 | 适用场景 |
 |-----|------|---------|
-| `deploy.bat` | Windows 完整部署 | 首次部署，安装所有依赖 |
 | `deploy.sh` | Linux 完整部署 | 首次部署，安装所有依赖 |
-| `setup.bat` | Windows 配置向导 | 已有环境，仅修改配置 |
 | `setup.sh` | Linux 配置向导 | 已有环境，仅修改配置 |
 
 ### 配置向导（setup）功能
@@ -739,9 +734,6 @@ npm start
 # Linux 配置向导
 chmod +x setup.sh
 ./setup.sh
-
-# Windows 配置向导
-setup.bat
 ```
 
 ### 详细部署指南
