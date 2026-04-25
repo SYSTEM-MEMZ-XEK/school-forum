@@ -1543,3 +1543,635 @@
 [data-theme="dark"] .deletion-warning .warning-content ul {
   color: #fcd34d;
 }
+
+/* ==============================
+   数据导出区域样式
+   ============================== */
+
+/* 说明横幅 */
+.export-info-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.export-info-banner > i {
+  font-size: 18px;
+  color: #2563eb;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.export-info-banner strong {
+  display: block;
+  color: #1d4ed8;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.export-info-banner p {
+  margin: 0;
+  color: #1e40af;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 深色模式 */
+[data-theme="dark"] .export-info-banner {
+  background: #1e3a5f;
+  border-color: #2563eb;
+}
+
+[data-theme="dark"] .export-info-banner strong {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .export-info-banner p {
+  color: #bfdbfe;
+}
+
+/* 导出选项标题 */
+.export-options-section {
+  margin-bottom: 24px;
+}
+
+.export-options-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px 0;
+}
+
+/* 选项网格 */
+.export-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* 单个选项 */
+.export-option-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--background-light);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.export-option-item:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.export-option-item input[type="checkbox"] {
+  display: none; /* 隐藏原始 checkbox，用自定义样式 */
+}
+
+.export-option-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 5px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  background: var(--background-card);
+}
+
+.export-option-item input[type="checkbox"]:checked ~ .export-option-checkbox {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.export-option-item input[type="checkbox"]:checked ~ .export-option-checkbox::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: 2px solid white;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+  display: block;
+}
+
+.export-option-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.export-option-icon {
+  font-size: 20px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.export-option-info strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-color);
+  margin-bottom: 2px;
+}
+
+.export-option-info small {
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+/* 全选 / 取消全选 */
+.export-select-all-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.export-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.2s;
+}
+
+.export-link-btn:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+.export-divider {
+  color: var(--border-color);
+  font-size: 14px;
+  user-select: none;
+}
+
+/* 操作区域 */
+.export-action-section {
+  margin-top: 24px;
+}
+
+/* 进度条 */
+.export-progress {
+  background: var(--background-light);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.export-progress-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary-color);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.export-progress-bar {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.export-progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+
+/* 导出状态 */
+.save-status.success {
+  color: #16a34a;
+}
+
+.save-status.error {
+  color: #dc2626;
+}
+
+/* 数据预览面板 */
+.export-preview-panel {
+  margin-top: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.export-preview-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--background-light);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.export-preview-title i {
+  margin-right: 8px;
+  color: var(--primary-color);
+}
+
+.export-preview-close {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+}
+
+.export-preview-close:hover {
+  background: var(--background-card);
+  color: var(--text-color);
+}
+
+.export-preview-content {
+  padding: 16px 18px;
+}
+
+.export-preview-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--background-light);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.export-preview-row.export-preview-total {
+  background: var(--primary-light);
+  font-weight: 600;
+  border: 1px solid var(--primary-color);
+  margin-top: 8px;
+}
+
+.export-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-color);
+}
+
+.export-preview-label i {
+  color: var(--primary-color);
+  width: 16px;
+  text-align: center;
+}
+
+.export-preview-value {
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.export-preview-total .export-preview-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.export-preview-hint {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .export-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==============================
+   数据导入区域样式
+   ============================== */
+
+/* 分割线 */
+.export-import-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 24px 0;
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.export-import-divider::before,
+.export-import-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.export-import-divider span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--text-light);
+}
+
+/* 导入说明横幅 */
+.import-info-banner {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.import-info-banner > i {
+  font-size: 18px;
+  color: #16a34a;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.import-info-banner strong {
+  display: block;
+  color: #15803d;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.import-info-banner p {
+  margin: 0;
+  color: #166534;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 深色模式 */
+[data-theme="dark"] .import-info-banner {
+  background: #14532d;
+  border-color: #16a34a;
+}
+
+[data-theme="dark"] .import-info-banner strong {
+  color: #86efac;
+}
+
+[data-theme="dark"] .import-info-banner p {
+  color: #bbf7d0;
+}
+
+/* 导入选项 */
+.import-options-section {
+  margin-bottom: 24px;
+}
+
+/* 文件选择区域 */
+.import-file-section {
+  margin-bottom: 24px;
+}
+
+.import-file-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 18px;
+  background: var(--background-light);
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+
+.import-file-label:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.import-file-label > i {
+  font-size: 28px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.import-file-label strong {
+  display: block;
+  font-size: 15px;
+  color: var(--text-color);
+  margin-bottom: 2px;
+}
+
+.import-file-label small {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* 已选文件预览 */
+.import-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary-color);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.import-file-preview strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-color);
+  word-break: break-all;
+}
+
+.import-file-preview small {
+  font-size: 12px;
+  color: var(--text-light);
+  display: block;
+}
+
+.import-file-remove {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.import-file-remove:hover {
+  background: var(--background-card);
+  color: #dc2626;
+}
+
+/* 导入结果面板 */
+.import-result-panel {
+  margin-top: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.import-result-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--background-light);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.import-result-title > i:first-child {
+  color: #16a34a;
+  margin-right: 8px;
+}
+
+.import-result-summary {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  background: #f0fdf4;
+  border-bottom: 1px solid #86efac;
+}
+
+[data-theme="dark"] .import-result-summary {
+  background: #14532d;
+  border-color: #16a34a;
+}
+
+.import-result-icon {
+  font-size: 28px;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.import-result-summary strong {
+  display: block;
+  color: #15803d;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+[data-theme="dark"] .import-result-summary strong {
+  color: #86efac;
+}
+
+.import-result-summary p {
+  margin: 0;
+  color: #166534;
+  font-size: 13px;
+}
+
+[data-theme="dark"] .import-result-summary p {
+  color: #bbf7d0;
+}
+
+.import-result-rows {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.import-result-row {
+  background: var(--background-light);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.import-result-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  background: var(--background-light);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.import-result-row-header i {
+  color: var(--primary-color);
+}
+
+.import-result-row-stats {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+}
+
+.import-stat-success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #16a34a;
+}
+
+.import-stat-skip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.import-stat-success i,
+.import-stat-skip i {
+  font-size: 11px;
+}

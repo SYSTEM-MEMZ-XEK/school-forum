@@ -582,21 +582,21 @@
                 </div>
                 <span class="coming-soon">即将推出</span>
               </div>
-              
+
+              <div class="placeholder-item clickable" onclick="openApplyCategoryModal()">
+                <i class="fas fa-folder-plus"></i>
+                <div>
+                  <h3>申请新栏目</h3>
+                  <p>向管理员申请添加新的论坛栏目</p>
+                </div>
+                <i class="fas fa-chevron-right" style="color: var(--text-light); font-size: 12px;"></i>
+              </div>
+
               <div class="placeholder-item">
                 <i class="fas fa-eye"></i>
                 <div>
                   <h3>隐私设置</h3>
                   <p>控制个人资料的可见性</p>
-                </div>
-                <span class="coming-soon">即将推出</span>
-              </div>
-              
-              <div class="placeholder-item">
-                <i class="fas fa-download"></i>
-                <div>
-                  <h3>数据导出</h3>
-                  <p>导出您的个人数据和帖子</p>
                 </div>
                 <span class="coming-soon">即将推出</span>
               </div>
@@ -606,6 +606,301 @@
             <div class="expansion-note">
               <i class="fas fa-lightbulb"></i>
               <p>更多个性化功能正在开发中，如果您有功能建议，欢迎在论坛中提出！</p>
+            </div>
+          </div>
+          
+          <!-- 数据导出 -->
+          <div class="settings-card" id="data">
+            <h2 class="settings-card-title">
+              <i class="fas fa-download"></i> 数据导出
+            </h2>
+            <p class="settings-card-description">导出您在校园论坛的个人数据，包括帖子、收藏、关注等信息</p>
+            
+            <!-- 导出说明 -->
+            <div class="export-info-banner">
+              <i class="fas fa-info-circle"></i>
+              <div>
+                <strong>关于数据导出</strong>
+                <p>导出的数据将以 JSON 格式下载到您的设备，包含您选择的所有数据类型。请注意，敏感信息（如密码）不会被包含在导出文件中。</p>
+              </div>
+            </div>
+            
+            <!-- 导出范围选择 -->
+            <div class="export-options-section">
+              <h3 class="export-options-title">
+                <i class="fas fa-check-square"></i> 选择导出内容
+              </h3>
+              
+              <div class="export-options-grid">
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-profile" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-user-circle export-option-icon"></i>
+                    <div>
+                      <strong>个人资料</strong>
+                      <small>昵称、邮箱、QQ号、性别、生日、学校班级等</small>
+                    </div>
+                  </div>
+                </label>
+                
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-posts" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-file-alt export-option-icon"></i>
+                    <div>
+                      <strong>发布的帖子</strong>
+                      <small>所有发布的帖子标题、内容、时间和统计数据</small>
+                    </div>
+                  </div>
+                </label>
+                
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-favorites" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-star export-option-icon"></i>
+                    <div>
+                      <strong>收藏记录</strong>
+                      <small>收藏的帖子 ID 及收藏时间</small>
+                    </div>
+                  </div>
+                </label>
+                
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-follows" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-users export-option-icon"></i>
+                    <div>
+                      <strong>关注 / 粉丝</strong>
+                      <small>关注的用户列表及粉丝用户列表</small>
+                    </div>
+                  </div>
+                </label>
+                
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-messages" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-envelope export-option-icon"></i>
+                    <div>
+                      <strong>私信会话</strong>
+                      <small>私信会话列表（不含具体消息内容）</small>
+                    </div>
+                  </div>
+                </label>
+                
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-notifications" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-bell export-option-icon"></i>
+                    <div>
+                      <strong>通知记录</strong>
+                      <small>最近 200 条通知，包含类型和已读状态</small>
+                    </div>
+                  </div>
+                </label>
+                
+                <label class="export-option-item">
+                  <input type="checkbox" id="export-settings" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-cog export-option-icon"></i>
+                    <div>
+                      <strong>账号设置</strong>
+                      <small>主题、通知偏好、隐私设置等配置</small>
+                    </div>
+                  </div>
+                </label>
+              </div>
+              
+              <!-- 全选/取消全选 -->
+              <div class="export-select-all-bar">
+                <button type="button" class="export-link-btn" id="export-select-all">
+                  <i class="fas fa-check-double"></i> 全选
+                </button>
+                <span class="export-divider">|</span>
+                <button type="button" class="export-link-btn" id="export-deselect-all">
+                  <i class="fas fa-times"></i> 取消全选
+                </button>
+              </div>
+            </div>
+            
+            <!-- 导出操作 -->
+            <div class="export-action-section">
+              <!-- 进度提示（初始隐藏） -->
+              <div id="export-progress" class="export-progress" style="display: none;">
+                <div class="export-progress-inner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span id="export-progress-text">正在收集数据，请稍候...</span>
+                </div>
+                <div class="export-progress-bar">
+                  <div id="export-progress-fill" class="export-progress-fill"></div>
+                </div>
+              </div>
+              
+              <div class="form-actions">
+                <button type="button" class="settings-button primary" id="btn-export-data">
+                  <i class="fas fa-download"></i> 导出数据
+                </button>
+                <button type="button" class="settings-button secondary" id="btn-export-preview">
+                  <i class="fas fa-eye"></i> 预览数据量
+                </button>
+              </div>
+              
+              <!-- 导出结果状态 -->
+              <div id="export-save-status" class="save-status"></div>
+            </div>
+            
+            <!-- 数据量预览面板（初始隐藏） -->
+            <div id="export-preview-panel" class="export-preview-panel" style="display: none;">
+              <h3 class="export-preview-title">
+                <i class="fas fa-chart-bar"></i> 数据预览
+                <button type="button" class="export-preview-close" id="export-preview-close">
+                  <i class="fas fa-times"></i>
+                </button>
+              </h3>
+              <div id="export-preview-content" class="export-preview-content">
+                <!-- 由 JS 填充 -->
+              </div>
+            </div>
+
+            <!-- 分割线 -->
+            <div class="export-import-divider">
+              <span><i class="fas fa-exchange-alt"></i> 从备份文件导入数据</span>
+            </div>
+
+            <!-- 数据导入说明 -->
+            <div class="import-info-banner">
+              <i class="fas fa-upload"></i>
+              <div>
+                <strong>从备份文件导入</strong>
+                <p>导入您之前导出的 JSON 备份文件，将帖子、收藏、关注等信息同步到当前账号。个人资料（昵称/邮箱/密码）不会被覆盖。</p>
+              </div>
+            </div>
+
+            <!-- 导入选项 -->
+            <div class="import-options-section">
+              <h3 class="export-options-title">
+                <i class="fas fa-check-square"></i> 选择导入内容
+              </h3>
+              <div class="export-options-grid">
+                <label class="export-option-item">
+                  <input type="checkbox" id="import-posts" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-file-alt export-option-icon"></i>
+                    <div>
+                      <strong>发布的帖子</strong>
+                      <small>从备份文件导入帖子（在新账号中重建）</small>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="export-option-item">
+                  <input type="checkbox" id="import-favorites" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-star export-option-icon"></i>
+                    <div>
+                      <strong>收藏记录</strong>
+                      <small>仅导入同时存在于备份和新账号的帖子收藏</small>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="export-option-item">
+                  <input type="checkbox" id="import-follows" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-users export-option-icon"></i>
+                    <div>
+                      <strong>关注列表</strong>
+                      <small>重新关注备份中已关注的用户（需对方账号仍存在）</small>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="export-option-item">
+                  <input type="checkbox" id="import-settings" checked>
+                  <span class="export-option-checkbox"></span>
+                  <div class="export-option-info">
+                    <i class="fas fa-cog export-option-icon"></i>
+                    <div>
+                      <strong>账号设置</strong>
+                      <small>合并导入主题、通知、隐私等偏好设置</small>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- 全选/取消全选 -->
+              <div class="export-select-all-bar">
+                <button type="button" class="export-link-btn" id="import-select-all">
+                  <i class="fas fa-check-double"></i> 全选
+                </button>
+                <span class="export-divider">|</span>
+                <button type="button" class="export-link-btn" id="import-deselect-all">
+                  <i class="fas fa-times"></i> 取消全选
+                </button>
+              </div>
+            </div>
+
+            <!-- 文件选择区域 -->
+            <div class="import-file-section">
+              <label class="import-file-label" for="import-file-input">
+                <i class="fas fa-file-import"></i>
+                <div>
+                  <strong>选择备份文件</strong>
+                  <small id="import-file-name">支持 .json 格式的论坛数据备份文件</small>
+                </div>
+              </label>
+              <input type="file" id="import-file-input" accept=".json,application/json" style="display: none;">
+              <div id="import-file-preview" class="import-file-preview" style="display: none;">
+                <!-- 由 JS 填充：显示选中文件名 + 文件大小 -->
+              </div>
+            </div>
+
+            <!-- 导入操作 -->
+            <div class="export-action-section">
+              <!-- 导入进度提示（初始隐藏） -->
+              <div id="import-progress" class="export-progress" style="display: none;">
+                <div class="export-progress-inner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span id="import-progress-text">正在解析文件...</span>
+                </div>
+                <div class="export-progress-bar">
+                  <div id="import-progress-fill" class="export-progress-fill"></div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="settings-button primary" id="btn-import-data" disabled>
+                  <i class="fas fa-upload"></i> 开始导入
+                </button>
+                <button type="button" class="settings-button secondary" id="btn-import-preview" disabled>
+                  <i class="fas fa-eye"></i> 预览导入
+                </button>
+              </div>
+
+              <!-- 导入结果状态 -->
+              <div id="import-save-status" class="save-status"></div>
+
+              <!-- 导入结果面板（初始隐藏） -->
+              <div id="import-result-panel" class="import-result-panel" style="display: none;">
+                <h3 class="import-result-title">
+                  <i class="fas fa-check-circle"></i> 导入结果
+                  <button type="button" class="export-preview-close" id="import-result-close">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </h3>
+                <div id="import-result-content" class="export-preview-content">
+                  <!-- 由 JS 填充 -->
+                </div>
+              </div>
             </div>
           </div>
           
@@ -958,32 +1253,9 @@
   
   <script src="js/utils.js"></script>
   <script src="js/user.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/category.js"></script>
   <script src="js/settings.js" onerror="console.error('settings.js 加载失败！')"></script>
-  <script>
-    console.log('scripts 加载完成');
-    console.log('typeof settingsManager:', typeof settingsManager);
-  </script>
-  <script>
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', async function() {
-      console.log('DOMContentLoaded 事件触发');
-      
-      // 初始化用户管理并等待完成
-      await userManager.initAsync();
-      
-      console.log('开始初始化设置页面');
-      console.log('typeof settingsManager:', typeof settingsManager);
-      
-      // 初始化设置页面
-      if (typeof settingsManager === 'object' && settingsManager !== null) {
-        settingsManager.init();
-      } else {
-        console.error('settingsManager 未定义！');
-      }
-      
-      // 设置登录/注册按钮事件
-      userManager.setupEventListeners();
-    });
-  </script>
+  <script src="js/settings-init.js"></script>
 </body>
 </html>

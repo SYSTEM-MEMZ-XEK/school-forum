@@ -181,7 +181,7 @@ exports.getAllCategories = async (req, res) => {
 exports.createCategory = async (req, res) => {
   try {
     const { name, description, icon, color, order } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.admin.id;
 
     if (!name || name.trim().length === 0) {
       return res.status(400).json(generateErrorResponse('请输入栏目名称'));
@@ -232,7 +232,7 @@ exports.updateCategory = async (req, res) => {
 
     await category.save();
 
-    logger.logInfo('管理员更新栏目', { categoryId: id, updatedBy: req.user.id });
+    logger.logInfo('管理员更新栏目', { categoryId: id, updatedBy: req.admin.id });
 
     res.json(generateSuccessResponse({ category }, '栏目更新成功'));
   } catch (error) {
@@ -253,7 +253,7 @@ exports.deleteCategory = async (req, res) => {
     // 将该栏目的帖子移至无栏目状态（不删除帖子）
     await Post.updateMany({ categoryId: id }, { $unset: { categoryId: 1 } });
 
-    logger.logInfo('管理员删除栏目', { categoryId: id, deletedBy: req.user.id });
+    logger.logInfo('管理员删除栏目', { categoryId: id, deletedBy: req.admin.id });
 
     res.json(generateSuccessResponse({}, '栏目已删除'));
   } catch (error) {
@@ -277,7 +277,7 @@ exports.toggleCategoryStatus = async (req, res) => {
     logger.logInfo('管理员切换栏目状态', {
       categoryId: id,
       newStatus: category.isActive ? '启用' : '禁用',
-      adminId: req.user.id
+      adminId: req.admin.id
     });
 
     res.json(generateSuccessResponse({
@@ -330,7 +330,7 @@ exports.approveApplication = async (req, res) => {
   try {
     const { id } = req.params;
     const { reviewNote } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.admin.id;
 
     const application = await CategoryApplication.findOne({ id });
     if (!application) {
@@ -389,7 +389,7 @@ exports.rejectApplication = async (req, res) => {
   try {
     const { id } = req.params;
     const { reviewNote } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.admin.id;
 
     const application = await CategoryApplication.findOne({ id });
     if (!application) {

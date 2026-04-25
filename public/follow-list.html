@@ -233,21 +233,7 @@
   <script src="js/user.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/follow-list.js"></script>
-  <script>
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
-      // 初始化用户管理
-      userManager.init();
-      
-      // 初始化统计
-      statsManager.init();
-      
-      // 初始化关注列表页面
-      followListManager.init();
-      
-      // 设置登录/注册按钮事件
-      userManager.setupEventListeners();
-    });
-  </script>
+  <script>window.pageManagers = ['followListManager'];</script>
+  <script defer src="js/init-with-stats.js"></script>
 </body>
 </html>

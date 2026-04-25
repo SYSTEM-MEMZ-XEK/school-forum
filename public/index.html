@@ -12,57 +12,14 @@
   <link rel="stylesheet" href="/libs/highlight.js/styles/github-dark.min.css">
   <script src="/libs/highlight.js/highlight.min.js"></script>
   <!-- MathJax LaTeX 公式渲染支持（本地版本） -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        processEscapes: true,
-        processEnvironments: true
-      },
-      options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      startup: {
-        typeset: false,
-        pageReady: () => {
-          return MathJax.startup.defaultPageReady().then(() => {
-            console.log('MathJax initial typesetting complete');
-            // 手动触发初始渲染
-            if (typeof MathJax.typesetPromise === 'function') {
-              MathJax.typesetPromise().catch((err) => console.error('MathJax initial typeset failed:', err));
-            }
-          });
-        }
-      },
-      svg: {
-        scale: 1.5
-      }
-    };
-  </script>
+  <script src="/js/mathjax-full.js"></script>
   <script id="MathJax-script" src="/libs/mathjax/tex-svg-full.js"></script>
-  <script>
-    // 等待 highlight.js 加载完成
-    if (window.hljs) {
-      hljs.highlightAll();
-    } else {
-      // 如果未立即加载，等待一小段时间
-      setTimeout(function() {
-        if (window.hljs) {
-          hljs.highlightAll();
-        } else {
-          console.warn('highlight.js 未加载，跳过代码高亮初始化');
-        }
-      }, 100);
-    }
-  </script>
 </head>
 <body>
   <header>
     <div class="header-content">
       <div class="logo">
-        <i class="fas fa-comments"></i>
-        <h1>校园论坛</h1>
+        <a href="/"><i class="fas fa-comments"></i><h1>校园论坛</h1></a>
       </div>
       <div class="header-search">
         <div class="search-box-wrapper">
@@ -144,7 +101,39 @@
       </div>
     </div>
   </header>
-  
+
+  <!-- 申请栏目模态框 -->
+  <div id="applyCategoryModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3><i class="fas fa-folder-plus"></i> 申请新栏目</h3>
+        <button class="close-modal" onclick="closeApplyCategoryModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-light); font-size: 13px; margin-bottom: 16px;">
+          <i class="fas fa-info-circle"></i> 申请提交后，将由管理员审核。审核结果可在「消息通知」中查看。
+        </p>
+        <div class="form-group">
+          <label><i class="fas fa-tag"></i> 栏目名称 <span style="color: #dc2626;">*</span></label>
+          <input type="text" id="apply-category-name" class="config-input"
+                 placeholder="请输入栏目名称，如「二手交易」「考研交流」" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-info-circle"></i> 栏目描述</label>
+          <textarea id="apply-category-desc" class="config-input" rows="3"
+                    placeholder="简要描述栏目的定位和主要内容（可选）" maxlength="200"></textarea>
+        </div>
+        <div id="apply-category-status" class="save-status" style="display: none; margin-top: 8px;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeApplyCategoryModal()">取消</button>
+        <button class="btn-success" id="apply-category-submit-btn" onclick="submitApplyCategory()">
+          <i class="fas fa-paper-plane"></i> 提交申请
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 公告横幅 -->
   <div id="announcement-banner" class="announcement-banner" style="display: none;">
     <div class="announcement-banner-content">
@@ -252,7 +241,26 @@
             <span id="total-comments" class="stat-value">0</span>
           </div>
         </div>
-        
+
+        <!-- 栏目列表 -->
+        <div class="category-sidebar-card" id="sidebar-category-list">
+          <div class="category-sidebar-header">
+            <h2 class="section-title"><i class="fas fa-th-large"></i> 栏目列表</h2>
+            <button type="button" class="category-sidebar-apply-btn" onclick="openApplyCategoryModal()">
+              <i class="fas fa-plus"></i> 申请
+            </button>
+          </div>
+          <div class="category-sidebar-list" id="sidebar-categories">
+            <!-- 由 JS 动态填充 -->
+            <div class="category-sidebar-loading">加载中...</div>
+          </div>
+          <div class="category-sidebar-footer">
+            <a href="categories.html" class="category-sidebar-all-link">
+              <i class="fas fa-folder-open"></i> 查看全部栏目
+            </a>
+          </div>
+        </div>
+
         <!-- 论坛指南 -->
         <div class="guidelines-card">
           <h2 class="section-title">校园论坛指南</h2>
@@ -295,38 +303,6 @@
   <script defer src="js/comments.js"></script>
   <script defer src="js/category.js"></script>
   <script defer src="js/main.js"></script>
-  <script>
-    // 页面初始化 - userManager 和 postsManager 已在 main.js 中初始化
-    document.addEventListener('DOMContentLoaded', function() {
-      // 新帖子按钮事件
-      const newPostBtn = document.getElementById('new-post-btn');
-      const newPostPlaceholder = document.getElementById('new-post-placeholder');
-      
-      if (newPostBtn) {
-        newPostBtn.addEventListener('click', function() {
-          // 检查是否已登录
-          const savedUser = localStorage.getItem('forumUser');
-          if (savedUser) {
-            window.location.href = 'edit-simple.html';
-          } else {
-            utils.showNotification('请先登录后再发布帖子', 'error');
-            window.location.href = 'login.html';
-          }
-        });
-      }
-      
-      if (newPostPlaceholder) {
-        newPostPlaceholder.addEventListener('click', function() {
-          const savedUser = localStorage.getItem('forumUser');
-          if (savedUser) {
-            window.location.href = 'edit-simple.html';
-          } else {
-            utils.showNotification('请先登录后再发布帖子', 'error');
-            window.location.href = 'login.html';
-          }
-        });
-      }
-    });
-  </script>
+  <script defer src="js/index-custom.js"></script>
 </body>
 </html>

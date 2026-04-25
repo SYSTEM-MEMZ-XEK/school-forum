@@ -7,7 +7,8 @@ const LOG_LEVELS = {
   INFO: 'INFO',
   WARN: 'WARN',
   ERROR: 'ERROR',
-  SUCCESS: 'SUCCESS'
+  SUCCESS: 'SUCCESS',
+  DEBUG: 'DEBUG'
 };
 
 // 日志颜色（用于控制台输出）
@@ -16,6 +17,7 @@ const LOG_COLORS = {
   WARN: '\x1b[33m',    // 黄色
   ERROR: '\x1b[31m',   // 红色
   SUCCESS: '\x1b[32m', // 绿色
+  DEBUG: '\x1b[90m',   // 灰色
   RESET: '\x1b[0m'     // 重置
 };
 
@@ -106,6 +108,17 @@ function logError(message, data = null) {
 function logSuccess(message, data = null) {
   const formattedMessage = formatLogMessage(LOG_LEVELS.SUCCESS, message, data);
   logToConsole(LOG_LEVELS.SUCCESS, formattedMessage);
+  writeLogToFile(formattedMessage);
+}
+
+/**
+ * 记录调试日志
+ * @param {string} message - 日志消息
+ * @param {object} data - 附加数据
+ */
+function logDebug(message, data = null) {
+  const formattedMessage = formatLogMessage(LOG_LEVELS.DEBUG, message, data);
+  logToConsole(LOG_LEVELS.DEBUG, formattedMessage);
   writeLogToFile(formattedMessage);
 }
 
@@ -276,6 +289,7 @@ module.exports = {
   logWarn,
   logError,
   logSuccess,
+  logDebug,
   logUserAction,
   logSystemEvent,
   logSecurityEvent,

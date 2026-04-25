@@ -105,7 +105,9 @@ const messageManager = {
     }
     
     try {
-      const response = await fetch(`/notifications?userId=${currentUser.id}`);
+      const response = await fetch(`/notifications?userId=${currentUser.id}`, {
+        headers: userManager.getAuthHeaders()
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || '加载通知失败');
@@ -438,9 +440,7 @@ const messageManager = {
     try {
       const response = await fetch(`/notifications/${notificationId}/read`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id
         })
@@ -502,9 +502,7 @@ const messageManager = {
     try {
       const response = await fetch('/notifications/read-all', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: currentUser.id
         })

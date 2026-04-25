@@ -196,70 +196,7 @@
   <script defer src="js/utils.js"></script>
   <script defer src="js/user.js"></script>
   <script defer src="js/chat.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      if (typeof userManager === 'undefined') {
-        console.error('userManager 未定义');
-        setTimeout(() => window.location.href = 'login.html', 100);
-        return;
-      }
-      
-      userManager.init();
-      userManager.setupEventListeners();
-      
-      function checkLoginStatus() {
-        const savedUser = localStorage.getItem('forumUser');
-        
-        if (!savedUser) {
-          utils.showNotification('请先登录后查看私信', 'error');
-          setTimeout(() => window.location.href = 'login.html', 100);
-          return false;
-        }
-        
-        let user = null;
-        try {
-          user = JSON.parse(savedUser);
-          if (!user || !user.id || !user.username) {
-            throw new Error('用户数据格式无效');
-          }
-        } catch (error) {
-          console.error('解析用户数据失败:', error);
-          utils.showNotification('登录信息已失效，请重新登录', 'error');
-          setTimeout(() => window.location.href = 'login.html', 100);
-          return false;
-        }
-        
-        if (!userManager.state.currentUser) {
-          userManager.state.currentUser = user;
-        }
-        
-        return true;
-      }
-      
-      if (userManager.state.currentUser) {
-        initChatManager();
-        return;
-      }
-      
-      if (typeof userManager.checkAutoLogin === 'function') {
-        userManager.checkAutoLogin();
-      }
-      
-      setTimeout(() => {
-        if (!checkLoginStatus()) {
-          return;
-        }
-        initChatManager();
-      }, 50);
-      
-      function initChatManager() {
-        if (typeof chatManager !== 'undefined') {
-          chatManager.init();
-        } else {
-          console.error('chatManager 未定义');
-        }
-      }
-    });
-  </script>
+  <script>window.pageManagerName = 'chatManager';</script>
+  <script defer src="js/init-requires-login.js"></script>
 </body>
 </html>

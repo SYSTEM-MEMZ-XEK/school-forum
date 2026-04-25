@@ -1477,12 +1477,12 @@
     
     <!-- 栏目申请审核模态框 -->
     <div id="categoryApplicationModal" class="modal">
-        <div class="modal-content modal-large">
+        <div class="modal-content" style="max-width: 550px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3><i class="fas fa-clipboard-check"></i> 栏目申请审核</h3>
                 <button class="close-modal" onclick="adminManager.closeModal('categoryApplicationModal')">&times;</button>
             </div>
-            <div id="category-application-detail" class="category-application-detail">
+            <div id="category-application-detail" style="padding: 0 5px;">
                 <!-- 动态填充 -->
             </div>
             <div class="form-group">
@@ -1504,7 +1504,7 @@
     
     <!-- 栏目申请列表模态框 -->
     <div id="categoryApplicationsListModal" class="modal">
-        <div class="modal-content modal-large">
+        <div class="modal-content" style="max-width: 700px; max-height: 85vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3><i class="fas fa-clipboard-list"></i> 栏目申请列表</h3>
                 <button class="close-modal" onclick="adminManager.closeModal('categoryApplicationsListModal')">&times;</button>
@@ -1533,20 +1533,9 @@
         </div>
     </div>
 
-    <script src="js/utils.js"></script>
-    <script src="js/user.js"></script>
-    <script src="js/admin.js"></script>
-    <script>
-      // 页面加载完成后初始化
-      document.addEventListener('DOMContentLoaded', function() {
-        // 初始化用户管理
-        userManager.init();
-        
-        // 设置登录/注册按钮事件监听器
-        userManager.setupEventListeners();
-        
-        // 管理员后台初始化已在admin.js中处理
-      });
-    </script>
+  <script src="js/utils.js"></script>
+  <script src="js/user.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/init-basic.js"></script>
 </body>
 </html>

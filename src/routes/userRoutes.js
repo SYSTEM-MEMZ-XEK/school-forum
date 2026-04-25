@@ -120,4 +120,10 @@ router.post('/send-deletion-code', authenticateUser, userController.sendDeletion
 // 注销用户账户
 router.post('/delete-account', authenticateUser, userController.deleteAccount);
 
+// 导出用户个人数据
+router.get('/user/export-data', authenticateUser, userController.exportData);
+
+// 导入用户数据
+router.post('/user/import-data', authenticateUser, userController.importData);
+
 module.exports = router;

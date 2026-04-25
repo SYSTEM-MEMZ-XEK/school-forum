@@ -1,0 +1,80 @@
+/* 全部栏目页面样式 */
+.categories-page-header {
+  margin-bottom: 24px;
+}
+.categories-page-header h1 {
+  font-size: 24px;
+  margin: 16px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.categories-page-desc {
+  color: var(--text-light);
+  font-size: 14px;
+}
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.category-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--background-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+.category-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+.category-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.category-card-icon i {
+  font-size: 24px;
+}
+.category-card-content h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.category-card-content p {
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.5;
+  flex: 1;
+}
+.category-card-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+.category-card-count {
+  font-size: 12px;
+  color: var(--text-light);
+}
+.categories-loading,
+.categories-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-light);
+}
+.categories-loading i,
+.categories-empty i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: block;
+}

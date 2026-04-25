@@ -13,33 +13,7 @@
   <link rel="stylesheet" href="/libs/highlight.js/styles/github-dark.min.css">
   <script src="/libs/highlight.js/highlight.min.js"></script>
   <!-- MathJax LaTeX 公式渲染支持（本地版本） -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        processEscapes: true,
-        processEnvironments: true
-      },
-      options: {
-        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-      },
-      startup: {
-        typeset: false,
-        pageReady: () => {
-          return MathJax.startup.defaultPageReady().then(() => {
-            console.log('MathJax initial typesetting complete');
-            if (typeof MathJax.typesetPromise === 'function') {
-              MathJax.typesetPromise().catch((err) => console.error('MathJax initial typeset failed:', err));
-            }
-          });
-        }
-      },
-      svg: {
-        scale: 1.5
-      }
-    };
-  </script>
+  <script src="/js/mathjax-full.js"></script>
   <script id="MathJax-script" src="/libs/mathjax/tex-svg-full.js"></script>
 </head>
 <body>
