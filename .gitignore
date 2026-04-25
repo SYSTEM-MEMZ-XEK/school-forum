@@ -38,6 +38,6 @@ public/images
 data/config.json
 
 # others
-./start.bat
+start.bat
 android/
 .workbuddy/
