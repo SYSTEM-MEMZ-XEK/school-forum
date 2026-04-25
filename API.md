@@ -33,7 +33,8 @@
 - [基础接口](#基础接口)
 - [用户模块](#用户模块)
 - [帖子模块](#帖子模块)
-- [栏目模块](#栏目模块)
+- [栏目模块](#栏目模块)  ← 刚刚补充了详细内容
+- [关注模块](#关注模块)
 - [关注模块](#关注模块)
 - [收藏模块](#收藏模块)
 - [通知模块](#通知模块)
@@ -906,13 +907,123 @@ GET /categories/:id/posts
 
 ---
 
+## 栏目模块
+
+### 获取所有已启用栏目
+
+```
+GET /categories
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 20 | 每页数量 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "categories": [
+      {
+        "id": "uuid-string",
+        "name": "学习交流",
+        "description": "学习方法和经验分享",
+        "icon": "book",
+        "color": "#4CAF50",
+        "order": 1,
+        "isActive": true,
+        "postCount": 156
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 5
+    }
+  }
+}
+```
+
+---
+
+### 获取单个栏目详情
+
+```
+GET /categories/:id
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid-string",
+    "name": "学习交流",
+    "description": "学习方法和经验分享",
+    "icon": "book",
+    "color": "#4CAF50",
+    "order": 1,
+    "isActive": true,
+    "postCount": 156
+  }
+}
+```
+
+---
+
+### 获取栏目帖子
+
+```
+GET /categories/:id/posts
+```
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 栏目ID |
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|-----|------|-----|-------|------|
+| page | number | 否 | 1 | 页码 |
+| limit | number | 否 | 20 | 每页数量 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "posts": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 156
+    },
+    "category": {
+      "id": "uuid-string",
+      "name": "学习交流"
+    }
+  }
+}
+```
+
+---
+
 ### 申请新建栏目
 
 ```
 POST /category-applications
 ```
 
-> 🔑 需要认证
+> 需要认证
 
 **请求参数**：
 | 参数 | 类型 | 必填 | 说明 |
@@ -924,16 +1035,199 @@ POST /category-applications
 ```json
 {
   "success": true,
-  "message": "申请已提交，请等待管理员审核",
+  "message": "申请已提交，请等待管理员审核"
+}
+```
+
+---
+
+### 管理员：获取所有栏目
+
+```
+GET /admin/categories
+```
+
+> 需要管理员权限
+
+**响应示例**：
+```json
+{
+  "success": true,
   "data": {
-    "application": {
-      "id": "uuid-string",
-      "categoryName": "游戏讨论",
-      "description": "希望开设游戏讨论区",
-      "status": "pending",
-      "createdAt": "2024-01-01T00:00:00.000Z"
-    }
+    "categories": [
+      {
+        "id": "uuid-string",
+        "name": "学习交流",
+        "description": "学习方法和经验分享",
+        "icon": "book",
+        "color": "#4CAF50",
+        "order": 1,
+        "isActive": true,
+        "postCount": 156,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ]
   }
+}
+```
+
+---
+
+### 管理员：创建栏目
+
+```
+POST /admin/categories
+```
+
+> 需要管理员权限
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| name | string | 是 | 栏目名称 |
+| description | string | 否 | 栏目描述 |
+| icon | string | 否 | 图标名称（FontAwesome） |
+| color | string | 否 | 主题颜色（十六进制） |
+| order | number | 否 | 排序序号 |
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "栏目创建成功",
+  "data": {
+    "id": "uuid-string",
+    "name": "新栏目",
+    "description": "栏目描述",
+    "icon": "folder",
+    "color": "#2196F3",
+    "order": 10,
+    "isActive": true,
+    "postCount": 0
+  }
+}
+```
+
+---
+
+### 管理员：更新栏目
+
+```
+PUT /admin/categories/:id
+```
+
+> 需要管理员权限
+
+**请求参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|-----|------|-----|------|
+| name | string | 否 | 栏目名称 |
+| description | string | 否 | 栏目描述 |
+| icon | string | 否 | 图标名称 |
+| color | string | 否 | 主题颜色 |
+| order | number | 否 | 排序序号 |
+
+---
+
+### 管理员：删除栏目
+
+```
+DELETE /admin/categories/:id
+```
+
+> 需要管理员权限
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "栏目已删除"
+}
+```
+
+---
+
+### 管理员：切换栏目启用状态
+
+```
+PATCH /admin/categories/:id/toggle-status
+```
+
+> 需要管理员权限
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "栏目已禁用",
+  "data": {
+    "isActive": false
+  }
+}
+```
+
+---
+
+### 管理员：获取所有栏目申请
+
+```
+GET /admin/category-applications
+```
+
+> 需要管理员权限
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "applications": [
+      {
+        "id": "uuid-string",
+        "userId": "user-uuid",
+        "categoryName": "游戏讨论",
+        "description": "希望开设游戏讨论区",
+        "status": "pending",
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 管理员：批准栏目申请
+
+```
+POST /admin/category-applications/:id/approve
+```
+
+> 需要管理员权限
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "申请已批准，栏目已创建"
+}
+```
+
+---
+
+### 管理员：拒绝栏目申请
+
+```
+POST /admin/category-applications/:id/reject
+```
+
+> 需要管理员权限
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "申请已拒绝"
 }
 ```
 

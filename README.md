@@ -67,8 +67,11 @@ school-forum/
 │   ├── blacklist.html           # 黑名单管理页
 │   ├── settings.html            # 设置页
 │   ├── category.html            # 栏目浏览页
+│   ├── categories.html          # 栏目总览页
 │   │
 │   ├── css/                     # 样式文件
+│   │   ├── style.css            # 主样式
+│   │   ├── admin.css            # 管理后台样式
 │   │   ├── style.css            # 主样式
 │   │   ├── admin.css            # 管理后台样式
 │   │   ├── login.css            # 登录页样式
@@ -80,6 +83,7 @@ school-forum/
 │   │   ├── following.css        # 关注动态样式
 │   │   ├── message.css          # 消息页样式
 │   │   ├── settings.css         # 设置页样式
+│   │   ├── categories.css       # 栏目页样式
 │   │   ├── error-styles.css     # 错误页样式
 │   │   └── console-logs-enhanced.css
 │   │
@@ -100,7 +104,18 @@ school-forum/
 │   │   ├── admin.js             # 管理后台
 │   │   ├── stats.js             # 统计数据
 │   │   ├── category.js          # 栏目模块
-│   │   └── utils.js             # 工具函数
+│   │   ├── utils.js             # 工具函数
+│   │   ├── categories.js        # 栏目总览页面逻辑
+│   │   ├── category-page.js     # 栏目页逻辑
+│   │   ├── blacklist-page.js    # 黑名单页逻辑
+│   │   ├── index-custom.js      # 首页自定义脚本
+│   │   ├── settings-init.js     # 设置页初始化
+│   │   ├── init-basic.js        # 基础初始化模板
+│   │   ├── init-with-stats.js   # 带统计的初始化模板
+│   │   ├── init-requires-login.js # 需要登录的页面初始化
+│   │   ├── mathjax-config.js    # MathJax 基础配置
+│   │   ├── mathjax-full.js      # MathJax 完整配置
+│   │   └── highlight-init.js    # 代码高亮初始化
 │   │
 │   ├── images/                  # 图片资源
 │   │   ├── logo.svg             # 网站Logo
