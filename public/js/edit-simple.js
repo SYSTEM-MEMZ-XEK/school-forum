@@ -3,7 +3,6 @@ const simpleEditManager = {
   // 状态
   state: {
     selectedImages: [],
-    currentUser: null,
     md: null, // markdown-it 实例
     isEditMode: false,
     editPostId: null,
@@ -36,7 +35,7 @@ const simpleEditManager = {
     await this.loadConfig();
     await this.loadCategories();
     this.initializeMarkdownRenderer();
-    this.checkLoginStatus();
+    await this.checkLoginStatus();
     this.checkEditMode();
     this.setupEventListeners();
     this.setupEditor();
@@ -137,7 +136,7 @@ const simpleEditManager = {
       const post = data.post;
       
       // 检查是否是帖子作者
-      if (this.state.currentUser && post.userId !== this.state.currentUser.id) {
+      if (userManager.state.currentUser && post.userId !== userManager.state.currentUser.id) {
         utils.showNotification('您没有权限编辑此帖子', 'error');
         setTimeout(() => {
           window.location.href = 'index.html';
@@ -251,98 +250,25 @@ const simpleEditManager = {
     return div.innerHTML;
   },
 
-  // 检查登录状态
+  // 检查登录状态（委托给 userManager）
   checkLoginStatus: async function() {
-    const savedUser = localStorage.getItem('forumUser');
-    if (savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
-        
-        // 向服务器验证用户状态
-        const isValid = await this.verifyUserWithServer(user);
-        
-        if (isValid) {
-          this.state.currentUser = user;
-          this.enableUploadAreas();
-          this.enableSubmitButton();
-        } else {
-          this.state.currentUser = null;
-          this.disableUploadAreas();
-          this.disableSubmitButton();
-          utils.showNotification('请先登录后再发布帖子', 'error');
-          setTimeout(() => {
-            window.location.href = 'login.html';
-          }, 1500);
-        }
-      } catch (error) {
-        console.error('解析用户数据失败:', error);
-        localStorage.removeItem('forumUser');
-        this.disableUploadAreas();
-        this.disableSubmitButton();
-      }
+    // 通过 userManager 初始化并等待完成
+    if (userManager && typeof userManager.initAsync === 'function') {
+      await userManager.initAsync();
+    }
+    
+    const currentUser = userManager?.state?.currentUser;
+    
+    if (currentUser) {
+      this.enableUploadAreas();
+      this.enableSubmitButton();
     } else {
       this.disableUploadAreas();
       this.disableSubmitButton();
-    }
-  },
-  
-  // 向服务器验证用户状态
-  verifyUserWithServer: async function(user) {
-    try {
-      const response = await fetch('/auth/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId: user.id })
-      });
-      
-      if (!response.ok) {
-        localStorage.removeItem('forumUser');
-        utils.showNotification('登录状态已失效，请重新登录', 'error');
-        return false;
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.valid) {
-        const serverUser = data.user;
-        
-        // 检查关键字段是否一致
-        const fieldsToCheck = ['username', 'qq', 'school', 'enrollmentYear', 'className'];
-        for (const field of fieldsToCheck) {
-          if (user[field] !== serverUser[field]) {
-            localStorage.removeItem('forumUser');
-            utils.showNotification('账户信息已变更，请重新登录', 'error');
-            return false;
-          }
-        }
-        
-        // 检查管理员状态
-        const localIsAdmin = user.isAdmin || false;
-        const serverIsAdmin = data.isAdmin || false;
-        if (localIsAdmin !== serverIsAdmin) {
-          localStorage.removeItem('forumUser');
-          utils.showNotification('账户权限已变更，请重新登录', 'error');
-          return false;
-        }
-        
-        // 检查用户是否被禁用
-        if (serverUser.isActive === false) {
-          localStorage.removeItem('forumUser');
-          utils.showNotification('您的账号已被禁用', 'error');
-          return false;
-        }
-        
-        return true;
-      }
-      
-      localStorage.removeItem('forumUser');
-      return false;
-    } catch (error) {
-      console.error('验证用户状态失败:', error);
-      // 网络错误时保持登录状态
-      return true;
+      utils.showNotification('请先登录后再发布帖子', 'error');
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1500);
     }
   },
   
@@ -772,7 +698,7 @@ const simpleEditManager = {
     
     try {
       // 验证输入
-      if (!this.state.currentUser) {
+      if (!userManager.state.currentUser) {
         throw new Error('请先登录');
       }
       
@@ -798,7 +724,7 @@ const simpleEditManager = {
       
       // 创建FormData对象
       const formData = new FormData();
-      formData.append('userId', this.state.currentUser.id);
+      formData.append('userId', userManager.state.currentUser.id);
       formData.append('content', processedContent);
       formData.append('deletedImages', JSON.stringify(this.state.deletedImages));
       formData.append('visibility', visibility);
@@ -814,9 +740,12 @@ const simpleEditManager = {
         formData.append('images', image.file);
       });
       
-      // 发送请求
+      // 发送请求（FormData 不需要 Content-Type，让浏览器自动设置）
+      const token = localStorage.getItem('accessToken');
+      const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch(`/posts/${this.state.editPostId}`, {
         method: 'PUT',
+        headers: authHeaders,
         body: formData
       });
       
@@ -874,7 +803,7 @@ const simpleEditManager = {
     
     try {
       // 验证输入
-      if (!this.state.currentUser) {
+      if (!userManager.state.currentUser) {
         throw new Error('请先登录后再发帖');
       }
       
@@ -916,14 +845,14 @@ const simpleEditManager = {
         : content;
       
       // 准备数据
-      const school = this.state.currentUser.school;
-      const grade = this.state.currentUser.grade;
-      const className = this.state.currentUser.className;
-      const username = this.state.currentUser.username;
+      const school = userManager.state.currentUser.school;
+      const grade = userManager.state.currentUser.grade;
+      const className = userManager.state.currentUser.className;
+      const username = userManager.state.currentUser.username;
       
       // 创建FormData对象
       const formData = new FormData();
-      formData.append('userId', this.state.currentUser.id);
+      formData.append('userId', userManager.state.currentUser.id);
       formData.append('username', username);
       formData.append('school', school);
       formData.append('grade', grade);
@@ -945,9 +874,12 @@ const simpleEditManager = {
         formData.append('images', image.file);
       });
       
-      // 发布请求
+      // 发布请求（FormData 不需要 Content-Type，让浏览器自动设置 multipart/form-data）
+      const token = localStorage.getItem('accessToken');
+      const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch('/posts', {
         method: 'POST',
+        headers: authHeaders,
         body: formData
       });
       

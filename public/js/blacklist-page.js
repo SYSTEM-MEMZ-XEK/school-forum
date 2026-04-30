@@ -10,7 +10,7 @@
     },
 
     async init() {
-      const currentUser = window.userManager ? window.userManager.getCurrentUser() : null;
+      const currentUser = window.userManager ? window.userManager.state.currentUser : null;
       if (!currentUser) {
         window.location.href = 'login.html';
         return;
@@ -21,7 +21,7 @@
     },
 
     async loadBlockedList(page = 1) {
-      const currentUser = window.userManager ? window.userManager.getCurrentUser() : null;
+      const currentUser = window.userManager ? window.userManager.state.currentUser : null;
       if (!currentUser) return;
       
       const listContainer = document.getElementById('blocked-list');
@@ -133,7 +133,7 @@
     },
 
     async unblockUser(blockedId, username) {
-      const currentUser = window.userManager ? window.userManager.getCurrentUser() : null;
+      const currentUser = window.userManager ? window.userManager.state.currentUser : null;
       if (!currentUser) return;
       
       if (!confirm(`确定要解除对 ${username} 的拉黑吗？`)) {

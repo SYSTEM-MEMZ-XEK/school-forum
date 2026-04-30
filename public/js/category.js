@@ -100,7 +100,7 @@ const categoryManager = {
       return;
     }
 
-    container.innerHTML = categories.map(cat => `
+      container.innerHTML = categories.map(cat => `
       <a href="category.html?id=${cat.id}" class="category-sidebar-item">
         <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
         <span>${utils.escapeHtml(cat.name)}</span>
@@ -109,6 +109,9 @@ const categoryManager = {
     `).join('');
   }
 };
+
+// 将 categoryManager 挂载到 window（const 声明不会自动挂到 window）
+window.categoryManager = categoryManager;
 
 // ======== 申请栏目模态框函数 ========
 

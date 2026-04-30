@@ -1,10 +1,9 @@
 // 关注/粉丝列表页面管理模块
 const followListManager = {
-  // 全局状态
+  // 全局状态（currentUser 统一使用 userManager.state.currentUser）
   state: {
     userId: null,
     type: 'following', // 'following' 或 'followers'
-    currentUser: null,
     userData: null,
     followingCount: 0,
     followerCount: 0,
@@ -78,16 +77,9 @@ const followListManager = {
     this.dom.listCount = document.getElementById('list-count');
   },
 
-  // 加载当前登录用户
+  // 加载当前登录用户（userManager.initAsync 已完成，直接使用）
   loadCurrentUser: function() {
-    const savedUser = localStorage.getItem('forumUser');
-    if (savedUser) {
-      try {
-        this.state.currentUser = JSON.parse(savedUser);
-      } catch (e) {
-        console.error('解析用户数据失败:', e);
-      }
-    }
+    // userManager.state.currentUser 已在 init-with-stats.js 中通过 initAsync 同步
   },
 
   // 加载用户数据
@@ -181,8 +173,8 @@ const followListManager = {
         : `/followers/${this.state.userId}?page=${page}&limit=${this.state.limit}`;
       
       // 如果有当前登录用户，添加参数
-      if (this.state.currentUser) {
-        endpoint += `&currentUserId=${this.state.currentUser.id}`;
+      if (userManager.state.currentUser) {
+        endpoint += `&currentUserId=${userManager.state.currentUser.id}`;
       }
 
       const response = await fetch(endpoint);
@@ -245,7 +237,7 @@ const followListManager = {
       card.dataset.userId = user.id;
 
       // 检查是否是自己的主页
-      const isOwnProfile = this.state.currentUser && user.id === this.state.currentUser.id;
+      const isOwnProfile = userManager.state.currentUser && user.id === userManager.state.currentUser.id;
 
       // 检查关注状态
       const isFollowing = user.isFollowing !== undefined ? user.isFollowing : false;
@@ -302,7 +294,7 @@ const followListManager = {
 
   // 处理关注/取消关注
   handleFollowAction: async function(btn) {
-    if (!this.state.currentUser) {
+    if (!userManager.state.currentUser) {
       utils.showNotification('请先登录', 'error');
       window.location.href = 'login.html';
       return;
@@ -323,7 +315,7 @@ const followListManager = {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          followerId: this.state.currentUser.id,
+          followerId: userManager.state.currentUser.id,
           followingId: targetUserId
         })
       });
@@ -422,3 +414,6 @@ const followListManager = {
     return div.innerHTML;
   }
 };
+
+// 将 followListManager 挂载到 window（const 声明不会自动挂到 window）
+window.followListManager = followListManager;

@@ -1376,7 +1376,7 @@ const userController = {
           content: p.content,
           category: p.categoryId || null,
           timestamp: p.timestamp,
-          likes: p.likes?.length || 0,
+          likes: p.likes || 0,
           views: p.views || 0,
           visibility: p.visibility || 'public',
           tags: p.tags || [],

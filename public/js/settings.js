@@ -3072,27 +3072,30 @@ function setupAutoThemeDetection() {
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   
   // 检查当前主题是否为auto
-  if (userManager.state.settings.theme === 'auto') {
+  if (window.userManager.state.settings.theme === 'auto') {
     const systemTheme = mediaQuery.matches ? 'dark' : 'light';
-    userManager.applyTheme(systemTheme);
+    window.userManager.applyTheme(systemTheme);
   }
   
   // 监听系统主题变化
   mediaQuery.addEventListener('change', (e) => {
-    if (userManager.state.settings.theme === 'auto') {
+    if (window.userManager.state.settings.theme === 'auto') {
       const newTheme = e.matches ? 'dark' : 'light';
       console.log('系统主题变化，应用新主题:', newTheme);
-      userManager.applyTheme(newTheme);
+      window.userManager.applyTheme(newTheme);
     }
   });
 }
 
 // 页面加载完成后初始化自动主题检测
 document.addEventListener('DOMContentLoaded', () => {
-  if (userManager.state.currentUser) {
+  if (window.userManager && window.userManager.state.currentUser) {
     setupAutoThemeDetection();
   }
 });
+
+// 将 settingsManager 挂载到 window（const 声明不会自动挂到 window）
+window.settingsManager = settingsManager;
 
 console.log('settings.js 文件执行完成');
 console.log('window.settingsManager:', window.settingsManager);

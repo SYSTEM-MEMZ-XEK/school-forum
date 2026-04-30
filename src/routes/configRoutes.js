@@ -7,7 +7,7 @@ const { requireAdmin } = require('../middleware/adminAuth');
 router.get('/schools', configController.getSchools);
 
 // 公开配置 - 获取前端需要的非敏感配置
-router.get('/public', configController.getPublicConfig);
+router.get('/config/public', configController.getPublicConfig);
 
 // 配置管理 - 获取配置
 router.get('/admin/config', requireAdmin, configController.getConfig);

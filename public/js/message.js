@@ -595,3 +595,6 @@ const messageManager = {
     }
   }
 };
+
+// 将 messageManager 挂载到 window（const 声明不会自动挂到 window）
+window.messageManager = messageManager;

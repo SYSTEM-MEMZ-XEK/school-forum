@@ -12,10 +12,13 @@
     if (categoriesPageState.initialized) return;
     categoriesPageState.initialized = true;
 
-    // 初始化用户管理器
+    // 初始化用户管理器（必须等待完成）
     if (typeof userManager !== 'undefined') {
       userManager.init();
       userManager.setupEventListeners();
+      if (userManager.initAsync) {
+        await userManager.initAsync();
+      }
     }
 
     // 加载栏目

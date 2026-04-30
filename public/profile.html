@@ -46,6 +46,7 @@
         <!-- 用户头像（登录后显示） -->
         <div id="header-user-avatar" class="header-user-avatar" style="display: none;">
           <i class="fas fa-user-circle"></i>
+          <span class="btn-label">我的</span>
           <div class="header-user-dropdown">
             <div class="header-user-info">
               <div class="header-user-name" id="header-username">用户名</div>
@@ -85,6 +86,7 @@
         <div id="header-updates-btn" class="header-icon-btn" style="display: none;" title="更新动态">
           <a href="following.html">
             <i class="fas fa-rss"></i>
+            <span class="btn-label">动态</span>
             <span id="updates-badge" class="updates-badge">0</span>
           </a>
         </div>
@@ -93,6 +95,7 @@
         <div id="header-chat-btn" class="header-icon-btn" style="display: none;" title="私信">
           <a href="chat.html">
             <i class="fas fa-envelope"></i>
+            <span class="btn-label">私信</span>
             <span id="chat-badge" class="message-badge" style="display: none;">0</span>
           </a>
         </div>
@@ -296,10 +299,10 @@
     <div class="image-modal-close">&times;</div>
   </div>
   
-  <script src="js/utils.js"></script>
-  <script src="js/user.js"></script>
-  <script src="js/stats.js"></script>
-  <script src="js/profile.js"></script>
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/user.js"></script>
+  <script defer src="js/stats.js"></script>
+  <script defer src="js/profile.js"></script>
   <script>window.pageManagers = ['profileManager'];</script>
   <script defer src="js/init-with-stats.js"></script>
 </body>

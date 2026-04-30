@@ -31,7 +31,10 @@ const statsManager = {
       }
     } catch (error) {
       console.error('加载统计数据失败:', error);
-      utils.showNotification('加载统计数据失败', 'error');
+      if (window.utils) utils.showNotification('加载统计数据失败', 'error');
     }
   }
 };
+
+// 将 statsManager 挂载到 window（const 声明不会自动挂到 window）
+window.statsManager = statsManager;

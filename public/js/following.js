@@ -1,8 +1,7 @@
 // 我的关注页面管理模块
 const followingManager = {
-  // 全局状态
+  // 全局状态（currentUser 统一使用 userManager.state.currentUser）
   state: {
-    currentUser: null,
     followingList: [],
     posts: [],
     currentTab: 'posts',
@@ -56,34 +55,26 @@ const followingManager = {
     }
   },
 
-  // 检查登录状态
+  // 检查登录状态（userManager.initAsync 已完成，state 已同步）
   checkLogin: function() {
-    const savedUser = localStorage.getItem('forumUser');
-    if (!savedUser) {
+    if (!userManager.state.currentUser) {
       this.showLoginRequired();
       return;
     }
-
-    try {
-      this.state.currentUser = JSON.parse(savedUser);
-      this.loadFollowingPosts();
-      this.loadFollowingList();
-      this.markFollowingViewed();
-    } catch (e) {
-      console.error('解析用户数据失败:', e);
-      this.showLoginRequired();
-    }
+    this.loadFollowingPosts();
+    this.loadFollowingList();
+    this.markFollowingViewed();
   },
 
   // 标记查看动态
   markFollowingViewed: async function() {
-    if (!this.state.currentUser) return;
+    if (!userManager.state.currentUser) return;
     
     try {
       await fetch('/follow/mark-viewed', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: this.state.currentUser.id })
+        body: JSON.stringify({ userId: userManager.state.currentUser.id })
       });
       
       // 更新顶栏徽章为0
@@ -117,7 +108,7 @@ const followingManager = {
 
   // 加载关注的用户的帖子
   loadFollowingPosts: async function(page = 1) {
-    if (!this.state.currentUser) return;
+    if (!userManager.state.currentUser) return;
 
     const container = this.dom.followingPostsContainer;
     
@@ -126,7 +117,7 @@ const followingManager = {
     }
 
     try {
-      const response = await fetch(`/following/posts/${this.state.currentUser.id}?page=${page}&limit=10`);
+      const response = await fetch(`/following/posts/${userManager.state.currentUser.id}?page=${page}&limit=10`);
       
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
@@ -166,13 +157,13 @@ const followingManager = {
 
   // 加载关注列表
   loadFollowingList: async function() {
-    if (!this.state.currentUser) return;
+    if (!userManager.state.currentUser) return;
 
     const container = this.dom.followingListContainer;
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
 
     try {
-      const response = await fetch(`/following/${this.state.currentUser.id}?limit=50`);
+      const response = await fetch(`/following/${userManager.state.currentUser.id}?limit=50`);
       
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
@@ -204,12 +195,12 @@ const followingManager = {
 
   // 加载用户收藏列表
   loadUserFavorites: async function() {
-    if (!this.state.currentUser) {
+    if (!userManager.state.currentUser) {
       return new Set();
     }
     
     try {
-      const response = await fetch(`/favorites/user/${this.state.currentUser.id}?limit=100`);
+      const response = await fetch(`/favorites/user/${userManager.state.currentUser.id}?limit=100`);
       const data = await response.json();
       
       if (data.success && data.posts) {
@@ -381,7 +372,7 @@ const followingManager = {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          followerId: this.state.currentUser.id,
+          followerId: userManager.state.currentUser.id,
           followingId: followingId
         })
       });
@@ -484,7 +475,7 @@ const followingManager = {
   
   // 处理点赞
   handleLike: async function(likeBtn) {
-    if (!this.state.currentUser) {
+    if (!userManager.state.currentUser) {
       utils.showNotification('请先登录', 'error');
       window.location.href = 'login.html';
       return;
@@ -501,7 +492,7 @@ const followingManager = {
       const response = await fetch(`/posts/${postId}/like`, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: this.state.currentUser.id })
+        body: JSON.stringify({ userId: userManager.state.currentUser.id })
       });
       
       const data = await response.json();
@@ -532,7 +523,7 @@ const followingManager = {
   
   // 处理收藏
   handleFavorite: async function(favoriteBtn) {
-    if (!this.state.currentUser) {
+    if (!userManager.state.currentUser) {
       utils.showNotification('请先登录', 'error');
       window.location.href = 'login.html';
       return;
@@ -552,7 +543,7 @@ const followingManager = {
       const response = await fetch(`/favorites/${postId}`, {
         method: method,
         headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: this.state.currentUser.id })
+        body: JSON.stringify({ userId: userManager.state.currentUser.id })
       });
       
       const data = await response.json();
@@ -688,3 +679,6 @@ const followingManager = {
     return div.innerHTML;
   }
 };
+
+// 将 followingManager 挂载到 window（const 声明不会自动挂到 window）
+window.followingManager = followingManager;

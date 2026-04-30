@@ -25,9 +25,13 @@
       return;
     }
 
-    // 初始化用户管理器
+    // 初始化用户管理器（必须等待完成）
     if (typeof userManager !== 'undefined') {
       userManager.init();
+      userManager.setupEventListeners();
+      if (userManager.initAsync) {
+        await userManager.initAsync();
+      }
     }
 
     // 初始化栏目管理器
@@ -192,7 +196,7 @@
       </div>
       ${imagesHtml}
       <div class="post-actions">
-        <button class="post-action like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">
+        <button class="post-action like-btn ${isLiked ? 'liked' : ''}" data-id="${post.id}">
           <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
           <span>${likesCount}</span>
         </button>

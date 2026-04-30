@@ -1070,3 +1070,6 @@ const favoritesManager = {
     });
   }
 };
+
+// 将 favoritesManager 挂载到 window（const 声明不会自动挂到 window）
+window.favoritesManager = favoritesManager;

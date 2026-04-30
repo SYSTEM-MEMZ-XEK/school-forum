@@ -720,3 +720,6 @@ const chatManager = {
     return div.innerHTML;
   }
 };
+
+// 将 chatManager 挂载到 window（const 声明不会自动挂到 window）
+window.chatManager = chatManager;

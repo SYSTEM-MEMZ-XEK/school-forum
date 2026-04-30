@@ -36,7 +36,9 @@ const postController = {
   async getPosts(req, res) {
     try {
       const paginationConfig = getPaginationConfig();
-      const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', viewerId, categoryId } = req.query;
+      const { page: _page = paginationConfig.defaultPage, limit: _limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', viewerId, categoryId } = req.query;
+      const page = parseInt(_page, 10) || paginationConfig.defaultPage;
+      const limit = parseInt(_limit, 10) || paginationConfig.defaultLimit;
       const Follow = require('../models/Follow');
       const Category = require('../models/Category');
 
@@ -78,8 +80,8 @@ const postController = {
       // 帖子可见性过滤
       if (viewerId) {
         // 获取用户关注的人（提升推荐权重）
-        const followingDocs = await Follow.find({ follower: viewerId });
-        followingIds = followingDocs.map(doc => doc.following);
+        const followingDocs = await Follow.find({ followerId: viewerId });
+        followingIds = followingDocs.map(doc => doc.followingId);
         
         filteredPosts = filteredPosts.filter(post => {
           const visibility = post.visibility || 'public';
@@ -256,7 +258,7 @@ const postController = {
           postCount: c.postCount
         })),
         pagination: {
-          currentPage: parseInt(page),
+          currentPage: page,
           totalPages: Math.ceil(filteredPosts.length / limit),
           totalPosts: filteredPosts.length,
           hasNext: endIndex < filteredPosts.length,

@@ -1,24 +1,37 @@
 // 需要登录的页面初始化模板
 (function() {
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', async function() {
     if (typeof window.userManager === 'undefined') {
       console.error('userManager 未定义，请检查 user.js 文件是否已加载');
       setTimeout(function() { window.location.href = 'login.html'; }, 100);
       return;
     }
-    
-    window.userManager.init();
+
+    // 等待 userManager 完成异步初始化（含服务端验证）
+    try {
+      await window.userManager.initAsync();
+    } catch (err) {
+      console.error('userManager.initAsync 失败:', err);
+    }
+
     window.userManager.setupEventListeners();
-    
+
+    // 校验登录状态（此时 checkAutoLogin 已完成）
+    if (!checkLoginStatus()) {
+      return;
+    }
+
+    initPageManager();
+
     function checkLoginStatus() {
       var savedUser = localStorage.getItem('forumUser');
-      
+
       if (!savedUser) {
         window.utils.showNotification('请先登录', 'error');
         setTimeout(function() { window.location.href = 'login.html'; }, 100);
         return false;
       }
-      
+
       var user = null;
       try {
         user = JSON.parse(savedUser);
@@ -31,30 +44,14 @@
         setTimeout(function() { window.location.href = 'login.html'; }, 100);
         return false;
       }
-      
+
       if (!window.userManager.state.currentUser) {
         window.userManager.state.currentUser = user;
       }
-      
+
       return true;
     }
-    
-    if (window.userManager.state.currentUser) {
-      initPageManager();
-      return;
-    }
-    
-    if (typeof window.userManager.checkAutoLogin === 'function') {
-      window.userManager.checkAutoLogin();
-    }
-    
-    setTimeout(function() {
-      if (!checkLoginStatus()) {
-        return;
-      }
-      initPageManager();
-    }, 50);
-    
+
     function initPageManager() {
       if (window.pageManagers && Array.isArray(window.pageManagers)) {
         window.pageManagers.forEach(function(name) {

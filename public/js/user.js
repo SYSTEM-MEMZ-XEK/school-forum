@@ -10,13 +10,22 @@ const userManager = {
     messageRefreshTimer: null // 消息数量刷新定时器
   },
 
-  // DOM元素
-  dom: {
-    username: document.getElementById('username'),
-    userClass: document.getElementById('user-class'),
-    notificationArea: document.getElementById('notificationArea'),
-    loginBtn: document.getElementById('login-btn'),
-    registerBtn: document.getElementById('register-btn')
+  // 初始化 Promise（共享，避免 init/initAsync 竞态）
+  _initPromise: null,
+
+  // DOM元素（懒加载，避免脚本解析时 DOM 尚未就绪）
+  _dom: null,
+  get dom() {
+    if (!this._dom) {
+      this._dom = {
+        username: document.getElementById('username'),
+        userClass: document.getElementById('user-class'),
+        notificationArea: document.getElementById('notificationArea'),
+        loginBtn: document.getElementById('login-btn'),
+        registerBtn: document.getElementById('register-btn')
+      };
+    }
+    return this._dom;
   },
 
   // 获取携带 JWT Token 的请求头（所有需要认证的 fetch 调用必须使用此函数）
@@ -27,7 +36,7 @@ const userManager = {
     return Object.assign(headers, extra);
   },
 
-  // 初始化
+  // 初始化（同步版本，用于快速设置事件监听器等）
   init: function() {
     // 防止重复初始化
     if (this.state.initialized) {
@@ -35,18 +44,26 @@ const userManager = {
       return;
     }
     this.state.initialized = true;
-    this.checkAutoLogin();
+    // 启动异步初始化但不阻塞
+    this._initPromise = this.checkAutoLogin();
   },
 
-  // 异步初始化（返回 Promise，允许调用者等待初始化完成）
+  // 异步初始化（返回 Promise，等待初始化完成后再继续）
   initAsync: function() {
-    // 防止重复初始化
+    // 如果已有初始化 Promise，返回它
+    if (this._initPromise) {
+      console.log('userManager: 等待已有初始化完成');
+      return this._initPromise;
+    }
+    // 如果已初始化但没有 Promise（同步 init 已完成），创建空 Promise
     if (this.state.initialized) {
-      console.log('userManager: 已经初始化，跳过重复初始化');
+      console.log('userManager: 同步初始化已完成，返回 resolved Promise');
       return Promise.resolve();
     }
+    // 首次初始化
     this.state.initialized = true;
-    return this.checkAutoLogin();
+    this._initPromise = this.checkAutoLogin();
+    return this._initPromise;
   },
 
   // 检查自动登录
@@ -127,7 +144,7 @@ const userManager = {
         
         // 用户不存在
         if (response.status === 404) {
-          utils.showNotification(errorData.message || '���户不存在，请重新登录', 'error');
+          utils.showNotification(errorData.message || '用户不存在，请重新登录', 'error');
         }
         return false;
       }
@@ -1309,3 +1326,7 @@ const userManager = {
     }
   }
 };
+
+// 将 userManager 挂载到 window，使所有页面脚本都能通过 window.userManager 访问
+// （const 声明不会自动挂到 window，需要显式挂载）
+window.userManager = userManager;

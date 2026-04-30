@@ -819,7 +819,7 @@ const profileManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/block/status?blockerId=${currentUser.id}&blockedId=${this.state.userId}`);
+      const response = await fetch(`/api/block/status?blockerId=${currentUser.id}&blockedId=${this.state.userId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -884,8 +884,8 @@ const profileManager = {
     this.dom.blockBtn.classList.add('processing');
     
     try {
-      // 拉黑使用 POST /block，取消拉黑使用 POST /unblock
-      const url = this.state.isBlocked ? '/unblock' : '/block';
+      // 拉黑使用 POST /api/block，取消拉黑使用 POST /api/unblock
+      const url = this.state.isBlocked ? '/api/unblock' : '/api/block';
       const response = await fetch(url, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
@@ -927,3 +927,6 @@ const profileManager = {
     }
   }
 };
+
+// 将 profileManager 挂载到 window（const 声明不会自动挂到 window）
+window.profileManager = profileManager;
