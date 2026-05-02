@@ -3027,8 +3027,9 @@ confirmDeletePost: async function() {
 
             const data = await response.json();
             if (data.success) {
-                this.updateRunModeUI(data.data);
-                return data.data;
+                // generateSuccessResponse 将数据展开到根级别，直接传 data
+                this.updateRunModeUI(data);
+                return data;
             } else {
                 throw new Error(data.message || '获取运行模式失败');
             }

@@ -11,7 +11,8 @@ const followListManager = {
     currentPage: 1,
     totalPages: 1,
     total: 0,
-    limit: 20
+    limit: 20,
+    isFollowingAction: false // 防止关注/取消关注重复触发
   },
 
   // DOM元素
@@ -285,9 +286,19 @@ const followListManager = {
 
     // 关注/取消关注按钮
     this.dom.listContainer.querySelectorAll('.follow-action-btn').forEach(btn => {
-      btn.addEventListener('click', async function(e) {
+      // 防止重复绑定：先克隆再替换，移除旧监听器
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', async function(e) {
         e.stopPropagation();
-        await self.handleFollowAction(this);
+        // 防止重复点击：在 processing 状态前再加一层守卫
+        if (newBtn.classList.contains('processing') || newBtn.classList.contains('follow-processing')) return;
+        newBtn.classList.add('follow-processing');
+        try {
+          await self.handleFollowAction(newBtn);
+        } finally {
+          newBtn.classList.remove('follow-processing');
+        }
       });
     });
   },
@@ -300,7 +311,8 @@ const followListManager = {
       return;
     }
 
-    if (btn.classList.contains('processing')) return;
+    if (btn.classList.contains('processing') || this.state.isFollowingAction) return;
+    this.state.isFollowingAction = true;
 
     const targetUserId = btn.dataset.userId;
     const isFollowing = btn.dataset.following === 'true';
@@ -343,6 +355,7 @@ const followListManager = {
     } finally {
       btn.classList.remove('processing');
       btn.disabled = false;
+      this.state.isFollowingAction = false;
     }
   },
 
