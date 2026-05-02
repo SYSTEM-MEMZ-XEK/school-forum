@@ -271,6 +271,7 @@ const userManager = {
         messageBtnWrapper.innerHTML = `
           <a href="message.html">
             <i class="fas fa-bell"></i>
+            <span class="btn-label">通知</span>
             <span id="message-badge" class="message-badge">0</span>
           </a>
         `;
@@ -300,6 +301,7 @@ const userManager = {
         favoritesBtnWrapper.innerHTML = `
           <a href="favorites.html">
             <i class="fas fa-star"></i>
+            <span class="btn-label">收藏</span>
           </a>
         `;
         if (document.getElementById('user-actions')) {
@@ -316,6 +318,7 @@ const userManager = {
         settingsBtnWrapper.innerHTML = `
           <a href="settings.html">
             <i class="fas fa-cog"></i>
+            <span class="btn-label">设置</span>
           </a>
         `;
         if (document.getElementById('user-actions')) {

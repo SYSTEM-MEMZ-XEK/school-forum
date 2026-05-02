@@ -340,50 +340,6 @@ header {
   white-space: nowrap;
 }
 
-/* 顶栏用户头像 - 图标+文字布局 */
-.header-user-avatar {
-  position: relative;
-  cursor: pointer;
-  margin-right: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  min-height: 50px;
-  padding: 5px 4px 4px;
-  border-radius: 8px;
-  background: var(--background-card);
-  color: white;
-  transition: var(--transition);
-  border: 1px solid var(--border-color);
-  gap: 2px;
-}
-
-.header-user-avatar:hover {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
-
-.header-user-avatar i {
-  font-size: 24px;
-  color: white;
-  transition: transform 0.3s ease;
-}
-
-.header-user-avatar:hover i {
-  color: var(--primary-color);
-}
-
-.header-user-avatar .btn-label {
-  font-size: 10px;
-  line-height: 1.2;
-  text-align: center;
-  white-space: nowrap;
-}
 
 /* 消息徽章 */
 .message-badge {
