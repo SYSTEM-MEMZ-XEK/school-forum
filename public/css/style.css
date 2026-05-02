@@ -1366,7 +1366,38 @@ textarea {
   border-top: 1px solid var(--border-color);
 }
 
-/* 弹窗关闭按钮（用于 button 元素，区别于 .close-modal） */
+/* 通用操作按钮（用于弹窗等场景） */
+.btn-cancel {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--background-light);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.btn-cancel:hover {
+  background: var(--border-color);
+}
+
+.btn-success {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--success-color);
+  color: #fff;
+  border: none;
+}
+
+.btn-success:hover {
+  background: #388e3c;
+}
+
+/* 弹窗关闭按钮（用于 categories.html / category.html 的 <button class="modal-close">） */
 .modal-close {
   background: none;
   border: none;
@@ -1421,12 +1452,22 @@ textarea {
   }
 }
 
+/* 弹窗关闭按钮（用于 button 元素） */
 .close-modal {
   position: absolute;
   top: 15px;
   right: 15px;
   font-size: 24px;
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  color: var(--text-light);
+}
+
+.close-modal:hover {
+  color: var(--error-color);
 }
 
 .form-tabs {
