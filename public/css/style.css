@@ -1329,6 +1329,87 @@ textarea {
   animation: modalFadeIn 0.3s ease;
 }
 
+/* 弹窗内部布局 */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3,
+.modal-header h2 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* categories.html 弹窗底部操作区 */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* 弹窗关闭按钮（用于 button 元素，区别于 .close-modal） */
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--error-color);
+}
+
+/* 弹窗操作按钮 */
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+}
+
+.modal-btn.cancel {
+  background: var(--background-light);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--border-color);
+}
+
+.modal-btn.confirm {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.modal-btn.confirm:hover {
+  opacity: 0.9;
+}
+
 @keyframes modalFadeIn {
   from {
     opacity: 0;
