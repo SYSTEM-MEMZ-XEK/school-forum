@@ -35,7 +35,6 @@
 - [帖子模块](#帖子模块)
 - [栏目模块](#栏目模块)  ← 刚刚补充了详细内容
 - [关注模块](#关注模块)
-- [关注模块](#关注模块)
 - [收藏模块](#收藏模块)
 - [通知模块](#通知模块)
 - [举报模块](#举报模块)
@@ -843,67 +842,34 @@ DELETE /posts/:id/comments/:commentId
 
 ---
 
-## 栏目模块
+## 统一响应格式说明
 
-### 获取所有已启用栏目
+本系统所有 API 响应均为 JSON 格式，大多数接口采用**嵌套式响应**：
 
-```
-GET /categories
-```
-
-**响应示例**：
 ```json
 {
   "success": true,
-  "data": {
-    "categories": [
-      {
-        "id": "uuid-string",
-        "name": "学习交流",
-        "description": "学习相关的讨论区",
-        "icon": "fa-book",
-        "color": "#4361ee",
-        "order": 0,
-        "postCount": 25,
-        "isActive": true
-      }
-    ]
-  }
+  "message": "操作成功",
+  "data": { ... }
 }
 ```
 
----
+**部分接口**（如管理后台、运行模式相关）采用**展开式响应**，数据直接展开到根级别：
 
-### 获取单个栏目
-
-```
-GET /categories/:id
-```
-
-**路径参数**：
-| 参数 | 类型 | 说明 |
-|-----|------|------|
-| id | string | 栏目ID |
-
----
-
-### 获取栏目帖子
-
-```
-GET /categories/:id/posts
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "mode": "normal",
+  "maintenanceMessage": "",
+  ...其他数据字段
+}
 ```
 
-**路径参数**：
-| 参数 | 类型 | 说明 |
-|-----|------|------|
-| id | string | 栏目ID |
-
-**查询参数**：
-| 参数 | 类型 | 必填 | 默认值 | 说明 |
-|-----|------|-----|-------|------|
-| page | number | 否 | 1 | 页码 |
-| limit | number | 否 | 20 | 每页数量 |
-| sortBy | string | 否 | latest | 排序方式 |
+> ⚠️ **客户端注意**：调用接口时请根据实际路由判断响应格式：
+> - `/admin/*` 和 `/run-mode` 相关接口 → 展开式响应
+> - 其他接口 → 嵌套式响应（`data` 字段）
+> - 不确定时，可同时检查 `response.data` 和 `response.mode` 等字段
 
 ---
 
@@ -2386,14 +2352,13 @@ GET /announcements/:id
 GET /run-mode
 ```
 
-**响应示例**：
+**响应示例**（展开式响应）：
 ```json
 {
   "success": true,
-  "data": {
-    "mode": "normal",
-    "message": null
-  }
+  "message": "获取成功",
+  "mode": "normal",
+  "message": null
 }
 ```
 
@@ -3154,6 +3119,80 @@ POST /admin/self-destruct/level1
  * @property {Reply[]} [replies] - 嵌套回复
  */
 ```
+
+---
+
+## 安全说明
+
+### 认证机制
+
+#### JWT 双 Token 机制
+本系统采用 JWT 双 Token 认证：
+
+| Token 类型 | 用途 | 有效期 | 存储位置 |
+|-----------|------|--------|---------|
+| `accessToken` | API 请求认证 | 7 天 | 内存 / localStorage |
+| `refreshToken` | 刷新 accessToken | 30 天 | localStorage |
+| 管理员 Token | 管理后台认证 | 24 小时 | 内存 |
+
+#### Android 端 Token 自动刷新
+Android 客户端内置 Token 刷新拦截器（`TokenRefreshInterceptor`），在收到 401 响应时自动：
+1. 清除过期的 accessToken
+2. 使用 refreshToken 请求刷新
+3. 重试原始请求
+4. 若刷新失败，引导用户重新登录
+
+#### 前端 Token 管理
+前端通过 `userManager.checkAutoLogin()` 自动检查登录状态：
+- 有效 Token → 自动登录，初始化用户信息
+- 无效/过期 Token → 保持未登录状态
+- 401 响应 → 清除 Token，跳转登录页
+
+### 安全防护
+
+#### 请求防护
+| 防护类型 | 实现方式 |
+|---------|---------|
+| XSS 过滤 | 输入内容经过 sanitize-html 处理 |
+| MongoDB 注入防护 | SQL 关键词检测 + 参数化查询 |
+| 请求限流 | 基于 IP 的滑动窗口限流 |
+| 登录锁定 | 连续 5 次登录失败，锁定 30 分钟 |
+| 恶意 User-Agent | 检测并记录可疑请求 |
+
+#### CORS 配置
+- 开发环境：允许 `localhost` 和内网 IP（192.168.x.x / 10.x.x.x / 172.16-31.x.x）
+- 生产环境：通过 `CORS_ORIGIN` 环境变量配置，允许多个来源（逗号分隔）
+- HTTP 环境：禁用 HSTS 和高级安全响应头
+
+#### 管理员认证
+- 独立的 `ADMIN_JWT_SECRET` 密钥（与用户 JWT 分离）
+- 所有 `/admin/*` 接口必须携带管理员 Token
+- 维护模式验证使用 JWT Token，不接受伪造的请求头
+
+### 密码安全
+| 规则 | 说明 |
+|------|------|
+| 最小长度 | 8 位（可通过环境变量配置） |
+| 大小写字母 | 必须包含 |
+| 数字 | 必须包含 |
+| 特殊字符 | 可选（默认关闭） |
+| 加密方式 | bcryptjs，10 轮盐加密 |
+
+### 敏感操作二次验证
+以下操作需要通过邮件验证码确认：
+- 修改密码
+- 修改邮箱
+- 注销账户
+- 管理员操作（如自毁模式）
+
+### 文件上传安全
+| 限制 | 值 |
+|------|-----|
+| 文件类型 | image/jpeg, image/png, image/gif, image/webp |
+| 单文件大小 | 32 MB |
+| 单次最多文件 | 32 张 |
+| 存储路径 | `public/images/` |
+| 头像大小 | 最大 2 MB |
 
 ### 通知 (Notification)
 

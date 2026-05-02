@@ -748,6 +748,113 @@ chmod +x setup.sh
 
 ---
 
+## 近期修复记录
+
+### 2026-04-30 前端 JS 功能性 Bug 修复
+
+| 问题 | 根因 | 修复方案 |
+|------|------|---------|
+| 关注按钮重复触发（两次 400） | `renderList()` 重建 DOM 时 `addCardEventListeners()` 重复绑定同一按钮的 click 事件 | 克隆替换旧按钮 + `follow-processing` 类守卫 + `state.isFollowingAction` 全局守卫（三层防护） |
+| 管理后台运行模式加载报错 | `generateSuccessResponse` 将数据展开到根级别，但 `loadRunMode` 访问 `data.data.mode` | 修正 `updateRunModeUI(data)` 参数传递 |
+| auth.js 验证码倒计时未清理 | 倒计时函数未清理已有定时器导致叠加 | 添加 `clearInterval` 清理逻辑 |
+| posts.js 推荐排序当前用户为空 | `currentUser` 从 `userManager.state` 取值，页面未 defer 加载时为 null | 改用 `userManager.state.currentUser` |
+| message.js 标记全部已读无效 | 通知类型无 `userId` 字段，过滤条件错误 | 修正过滤条件 |
+| 前端 JS window 挂载缺失 | `const xxxManager = {...}` 声明不挂 window | 9 个 manager 文件末尾添加 `window.xxxManager = xxxManager` |
+| HTML script defer 顺序错误 | 核心 JS 未加 defer，`checkAutoLogin()` 未执行完毕就初始化页面 | 8 个页面补充 `defer` 属性 |
+
+### 2026-04-25 栏目/论坛分区功能
+
+- 新增 `Category` 和 `CategoryApplication` 数据模型
+- 实现栏目浏览页面（`category.html`）和栏目管理器（`categoryManager`）
+- 推荐算法采用混合策略：**40% 热门内容 + 25% 关注动态 + 20% 新鲜内容 + 15% 随机探索**
+- 防信息茧房策略：关注用户帖子权重 1.5 倍，48 小时内新鲜度加分
+
+### 2026-04-26 核心初始化 Bug 修复
+
+| 问题 | 根因 | 修复方案 |
+|------|------|---------|
+| `checkAutoLogin` 清空 Promise | 末尾移除 `this._initPromise = null` | 避免 `initAsync` 无法等待网络请求 |
+| `init-requires-login.js` 竞态条件 | 使用 50ms setTimeout 等待登录 | 改为 `await userManager.initAsync()` |
+| Follow 查询字段名错误 | `follower` → `followerId`，`following` → `followingId` | 修正字段名 |
+| `user.js` DOM 对象初始化失败 | 非 defer 加载时 `getElementById` 返回 null | 改为 getter 懒加载 |
+| `user.js` window 挂载缺失 | const 声明不挂 window | 末尾添加 `window.userManager = userManager` |
+
+---
+
+## 技术细节说明
+
+### 响应格式：嵌套式 vs 展开式
+
+本系统存在两种响应格式，客户端调用时需注意：
+
+**嵌套式响应**（大多数接口）：
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "data": { ...具体数据 }
+}
+```
+
+**展开式响应**（管理后台、运行模式）：
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "mode": "normal",
+  "maintenanceMessage": "",
+  ...其他数据字段
+}
+```
+
+> **判断方法**：大多数 `/admin/*` 接口和 `/run-mode` 相关接口使用展开式响应。
+
+### JWT 双 Token 机制
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  用户登录   │ ──▶ │ accessToken │ ──▶ │  API 请求   │
+│             │     │ (7天有效)   │     │  认证       │
+└─────────────┘     └─────────────┘     └─────────────┘
+       │                   │
+       │                   ▼
+       │            ┌─────────────┐
+       │            │ refreshToken│
+       │            │ (30天有效)  │
+       │            └─────────────┘
+       │                   │
+       ▼                   ▼
+┌─────────────────────────────────────┐
+│         Token 刷新流程               │
+│  401 → 自动用 refreshToken 刷新     │
+│  成功 → 重试原请求                   │
+│  失败 → 跳转登录页                   │
+└─────────────────────────────────────┘
+```
+
+### Android 端 Token 自动刷新
+
+Android 客户端内置 `TokenRefreshInterceptor`（OkHttp 拦截器）：
+- 拦截 401 响应
+- 同步调用刷新接口
+- 使用新 Token 重试原始请求
+- 刷新失败则清除登录状态
+
+### DOM 事件监听器管理
+
+前端采用克隆替换法防止事件监听器累积：
+
+```javascript
+// 旧按钮 → 克隆新按钮 → 替换 → 给新按钮绑定监听器
+const newBtn = btn.cloneNode(true);
+btn.parentNode.replaceChild(newBtn, btn);
+newBtn.addEventListener('click', async function(e) { ... });
+```
+
+配合 `processing` 类守卫和全局状态守卫，实现三层防重入保护。
+
+---
+
 ## 许可证
 
 MIT License
