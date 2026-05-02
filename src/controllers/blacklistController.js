@@ -59,9 +59,13 @@ const blacklistController = {
 
       logger.logUserAction('拉黑用户', blockerId, '', { blockedId });
 
-      res.json(generateSuccessResponse({
-        blocked: true
-      }, '拉黑成功'));
+      res.json({
+        success: true,
+        message: '拉黑成功',
+        data: {
+          blocked: true
+        }
+      });
     } catch (error) {
       logger.logError('拉黑用户失败', { error: error.message, body: req.body });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
@@ -88,9 +92,13 @@ const blacklistController = {
 
       logger.logUserAction('取消拉黑', blockerId, '', { blockedId });
 
-      res.json(generateSuccessResponse({
-        blocked: false
-      }, '取消拉黑成功'));
+      res.json({
+        success: true,
+        message: '取消拉黑成功',
+        data: {
+          blocked: false
+        }
+      });
     } catch (error) {
       logger.logError('取消拉黑失败', { error: error.message, body: req.body });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
@@ -109,10 +117,14 @@ const blacklistController = {
       const isBlocked = await Blacklist.isBlocked(blockerId, blockedId);
       const isBlockedBy = await Blacklist.isBlocked(blockedId, blockerId);
 
-      res.json(generateSuccessResponse({
-        isBlocked,
-        isBlockedBy
-      }));
+      res.json({
+        success: true,
+        message: '操作成功',
+        data: {
+          isBlocked,
+          isBlockedBy
+        }
+      });
     } catch (error) {
       logger.logError('检查拉黑状态失败', { error: error.message, query: req.query });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
@@ -130,9 +142,13 @@ const blacklistController = {
 
       const hasBlockRelation = await Blacklist.hasBlockRelation(userId1, userId2);
 
-      res.json(generateSuccessResponse({
-        hasBlockRelation
-      }));
+      res.json({
+        success: true,
+        message: '操作成功',
+        data: {
+          hasBlockRelation
+        }
+      });
     } catch (error) {
       logger.logError('检查拉黑关系失败', { error: error.message, query: req.query });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
@@ -182,16 +198,20 @@ const blacklistController = {
       // 获取总数
       const total = await Blacklist.getBlockedCount(userId);
 
-      res.json(generateSuccessResponse({
-        list: result,
-        pagination: {
-          currentPage: page,
-          totalPages: Math.ceil(total / limit),
-          total,
-          hasNext: skip + limit < total,
-          hasPrev: page > 1
+      res.json({
+        success: true,
+        message: '操作成功',
+        data: {
+          list: result,
+          pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            total,
+            hasNext: skip + limit < total,
+            hasPrev: page > 1
+          }
         }
-      }));
+      });
     } catch (error) {
       logger.logError('获取拉黑列表失败', { error: error.message, userId: req.params.userId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
@@ -209,9 +229,13 @@ const blacklistController = {
 
       const count = await Blacklist.getBlockedCount(userId);
 
-      res.json(generateSuccessResponse({
-        count
-      }));
+      res.json({
+        success: true,
+        message: '操作成功',
+        data: {
+          count
+        }
+      });
     } catch (error) {
       logger.logError('获取拉黑数量失败', { error: error.message, userId: req.params.userId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));

@@ -823,8 +823,8 @@ const profileManager = {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          this.state.isBlocked = data.isBlocked;
-          this.state.isBlockedBy = data.isBlockedBy;
+          this.state.isBlocked = data.data?.isBlocked;
+          this.state.isBlockedBy = data.data?.isBlockedBy;
         }
       }
     } catch (error) {
@@ -903,11 +903,12 @@ const profileManager = {
       const data = await response.json();
       
       if (data.success) {
-        this.state.isBlocked = data.blocked;
+        const isBlocked = data.data?.blocked;
+        this.state.isBlocked = isBlocked;
         this.updateBlockButton();
         
         // 如果是拉黑操作，更新关注状态
-        if (data.blocked && this.state.isFollowing) {
+        if (isBlocked && this.state.isFollowing) {
           this.state.isFollowing = false;
           this.updateFollowButton();
           // 拉黑时解除关注，减少的是"关注数"而非"粉丝数"
@@ -917,7 +918,7 @@ const profileManager = {
           }
         }
         
-        utils.showNotification(data.message || (data.blocked ? '拉黑成功' : '解除拉黑成功'), 'success');
+        utils.showNotification(data.message || (data.data?.blocked ? '拉黑成功' : '解除拉黑成功'), 'success');
       }
     } catch (error) {
       console.error('拉黑操作失败:', error);
