@@ -766,7 +766,9 @@ const userManager = {
   // 设置搜索功能（所有页面通用）
   setupSearch: function() {
     // 主页由 posts.js 处理搜索，跳过
-    if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
+    // categories.html 由 categories.js 处理本地搜索，跳过
+    if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/') ||
+        window.location.pathname.endsWith('categories.html')) {
       return;
     }
 
