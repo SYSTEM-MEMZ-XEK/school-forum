@@ -1182,19 +1182,15 @@ const postsManager = {
       
       // 分类导航栏点击事件
       document.addEventListener('click', function(e) {
-        // 点击"全部"链接
+        // 点击"全部"链接 → 在首页筛选全部帖子（不跳转）
         if (e.target.closest('#nav-all')) {
+          e.preventDefault();
           self.switchCategory(null);
           return;
         }
         
-        // 点击其他分类项
-        const categoryItem = e.target.closest('.category-nav-item[data-category-id]');
-        if (categoryItem) {
-          const categoryId = categoryItem.dataset.categoryId;
-          self.switchCategory(categoryId);
-          return;
-        }
+        // 点击其他分类项 → 交给 <a href="category.html?id=xxx"> 自然跳转
+        // 不再拦截，让 href 生效即可跳转到栏目页面
       });
   
       // 全局点击事件监听
