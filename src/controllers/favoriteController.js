@@ -42,9 +42,16 @@ const favoriteController = {
       // 增加Redis中的收藏计数
       await favoriteCache.incrPostFavoriteCount(postId);
 
+      // 获取最新收藏数
+      let favoriteCount = await favoriteCache.getPostFavoriteCount(postId);
+      if (favoriteCount === null) {
+        favoriteCount = await Favorite.getFavoriteCount(postId);
+        await favoriteCache.setPostFavoriteCount(postId, favoriteCount);
+      }
+
       logger.logUserAction('收藏帖子', userId, '', { postId, tagId });
 
-      res.json(generateSuccessResponse({ favorited: true, favorite: result.favorite }, '收藏成功'));
+      res.json(generateSuccessResponse({ favorited: true, favorite: result.favorite, favoriteCount }, '收藏成功'));
     } catch (error) {
       logger.logError('收藏帖子失败', { error: error.message, postId: req.params.postId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
@@ -67,9 +74,16 @@ const favoriteController = {
       // 减少Redis中的收藏计数
       await favoriteCache.decrPostFavoriteCount(postId);
 
+      // 获取最新收藏数
+      let favoriteCount = await favoriteCache.getPostFavoriteCount(postId);
+      if (favoriteCount === null) {
+        favoriteCount = await Favorite.getFavoriteCount(postId);
+        await favoriteCache.setPostFavoriteCount(postId, favoriteCount);
+      }
+
       logger.logUserAction('取消收藏', userId, '', { postId });
 
-      res.json(generateSuccessResponse({ favorited: false }, '取消收藏成功'));
+      res.json(generateSuccessResponse({ favorited: false, favoriteCount }, '取消收藏成功'));
     } catch (error) {
       logger.logError('取消收藏失败', { error: error.message, postId: req.params.postId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));

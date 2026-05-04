@@ -246,9 +246,7 @@ const postDetailManager = {
 
       const response = await fetch(`/favorites/${this.postId}`, {
         method: method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
           userId: userManager.state.currentUser.id
         })
@@ -262,11 +260,16 @@ const postDetailManager = {
       const data = await response.json();
       if (data.success) {
         const starIcon = favoriteBtn.querySelector('i.fa-star');
+        const countSpan = favoriteBtn.querySelector('span');
 
         if (data.favorited) {
           favoriteBtn.classList.add('active');
           if (starIcon) starIcon.classList.add('active');
           utils.showNotification('收藏成功', 'success');
+          // 更新收藏数
+          if (countSpan && data.favoriteCount !== undefined) {
+            countSpan.textContent = data.favoriteCount;
+          }
           // 收藏成功后加载标签并显示选择弹窗
           await this.loadTags();
           if (this.tags.length > 0) {
@@ -276,6 +279,10 @@ const postDetailManager = {
           favoriteBtn.classList.remove('active');
           if (starIcon) starIcon.classList.remove('active');
           utils.showNotification('取消收藏成功', 'success');
+          // 更新收藏数
+          if (countSpan && data.favoriteCount !== undefined) {
+            countSpan.textContent = data.favoriteCount;
+          }
         }
       }
     } catch (error) {
