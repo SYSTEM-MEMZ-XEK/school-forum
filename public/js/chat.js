@@ -112,7 +112,7 @@ const chatManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/conversations?userId=${currentUser.id}`, {
+      const response = await fetch(`/api/`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
@@ -230,7 +230,7 @@ const chatManager = {
   // 获取对方用户信息
   fetchOtherUserInfo: async function(userId) {
     try {
-      const response = await fetch(`/users/${userId}`);
+      const response = await fetch(`/api/`);
       const data = await response.json();
       
       if (data.success && data.user) {
@@ -249,7 +249,7 @@ const chatManager = {
   // 检查发送权限
   checkSendPermission: async function(senderId, receiverId) {
     try {
-      const response = await fetch(`/messages/check-permission?senderId=${senderId}&receiverId=${receiverId}`, {
+      const response = await fetch(`/api/`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
@@ -465,7 +465,7 @@ const chatManager = {
     this.dom.messageInput.style.height = 'auto';
     
     try {
-      const response = await fetch('/messages', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -546,7 +546,7 @@ const chatManager = {
     const currentUser = this.getCurrentUser();
     
     try {
-      const response = await fetch(`/messages/contactable-users?userId=${currentUser.id}`, {
+      const response = await fetch(`/api/`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
@@ -643,7 +643,7 @@ const chatManager = {
     if (!conversationId || !currentUser) return;
     
     try {
-      const response = await fetch(`/conversations/${conversationId}`, {
+      const response = await fetch(`/api/`, {
         method: 'DELETE',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })

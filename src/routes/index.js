@@ -18,21 +18,40 @@ const runModeRoutes = require('./runModeRoutes');
 const announcementRoutes = require('./announcementRoutes');
 const categoryRoutes = require('./categoryRoutes');
 
-// 使用路由
-router.use(userRoutes);
-router.use(adminRoutes);
-router.use(postRoutes);
-router.use(statsRoutes);
-router.use(notificationRoutes);
-router.use(configRoutes);
-router.use(reportRoutes);
-router.use(favoriteRoutes);
-router.use(followRoutes);
-router.use(messageRoutes);
-router.use(blacklistRoutes);
-router.use(runModeRoutes);
-router.use(announcementRoutes);
-router.use(categoryRoutes);
+// 向后兼容：将旧路径重定向到 /api 前缀
+router.use((req, res, next) => {
+  const pagePaths = ['/', '/404', '/502', '/403', '/maintenance', '/health', '/unauthorized'];
+  if (pagePaths.includes(req.path)) return next();
+  if (req.path.startsWith('/css/') || req.path.startsWith('/js/') || 
+      req.path.startsWith('/images/') || req.path.startsWith('/libs/') || 
+      req.path.startsWith('/errors/')) return next();
+  
+  const isApiRequest = req.method !== 'GET' || 
+                       req.xhr || 
+                       req.headers.accept?.includes('application/json');
+  
+  if (isApiRequest && !req.path.startsWith('/api/')) {
+    return res.redirect(307, `/api${req.originalUrl}`);
+  }
+  
+  next();
+});
+
+// API 路由 - 统一 /api 前缀
+router.use('/api', userRoutes);
+router.use('/api', adminRoutes);
+router.use('/api', postRoutes);
+router.use('/api', statsRoutes);
+router.use('/api', notificationRoutes);
+router.use('/api', configRoutes);
+router.use('/api', reportRoutes);
+router.use('/api', favoriteRoutes);
+router.use('/api', followRoutes);
+router.use('/api', messageRoutes);
+router.use('/api', blacklistRoutes);
+router.use('/api', runModeRoutes);
+router.use('/api', announcementRoutes);
+router.use('/api', categoryRoutes);
 
 // 健康检查路由
 router.get('/health', (req, res) => {

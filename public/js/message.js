@@ -105,7 +105,7 @@ const messageManager = {
     }
     
     try {
-      const response = await fetch(`/notifications?userId=${currentUser.id}`, {
+      const response = await fetch(`/api/`, {
         headers: userManager.getAuthHeaders()
       });
       if (!response.ok) {
@@ -438,7 +438,7 @@ const messageManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/notifications/${notificationId}/read`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -500,7 +500,7 @@ const messageManager = {
     }
     
     try {
-      const response = await fetch('/notifications/read-all', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -543,7 +543,7 @@ const messageManager = {
   // 向服务器验证用户状态
   verifyUserWithServer: async function(userId) {
     try {
-      const response = await fetch('/auth/verify', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

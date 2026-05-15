@@ -71,7 +71,7 @@ const followingManager = {
     if (!userManager.state.currentUser) return;
     
     try {
-      await fetch('/follow/mark-viewed', {
+      await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: userManager.state.currentUser.id })
@@ -117,7 +117,7 @@ const followingManager = {
     }
 
     try {
-      const response = await fetch(`/following/posts/${userManager.state.currentUser.id}?page=${page}&limit=10`);
+      const response = await fetch(`/api/`);
       
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
@@ -163,7 +163,7 @@ const followingManager = {
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
 
     try {
-      const response = await fetch(`/following/${userManager.state.currentUser.id}?limit=50`);
+      const response = await fetch(`/api/`);
       
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
@@ -200,7 +200,7 @@ const followingManager = {
     }
     
     try {
-      const response = await fetch(`/favorites/user/${userManager.state.currentUser.id}?limit=100`);
+      const response = await fetch(`/api/`);
       const data = await response.json();
       
       if (data.success && data.posts) {
@@ -368,7 +368,7 @@ const followingManager = {
     btn.disabled = true;
     
     try {
-      const response = await fetch('/unfollow', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -489,7 +489,7 @@ const followingManager = {
     likeBtn.classList.add('processing');
     
     try {
-      const response = await fetch(`/posts/${postId}/like`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: userManager.state.currentUser.id })
@@ -540,7 +540,7 @@ const followingManager = {
       const isFavorited = favoriteBtn.classList.contains('active');
       const method = isFavorited ? 'DELETE' : 'POST';
       
-      const response = await fetch(`/favorites/${postId}`, {
+      const response = await fetch(`/api/`, {
         method: method,
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: userManager.state.currentUser.id })

@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadSchoolsConfig() {
   console.log('开始加载学校配置...');
   try {
-    const response = await fetch('/schools');
+    const response = await fetch('/api/');
     console.log('学校配置响应状态:', response.status);
     console.log('学校配置响应OK:', response.ok);
     
@@ -324,7 +324,7 @@ async function sendVerificationCode() {
   }
   
   try {
-    const response = await fetch('/send-verification-code', {
+    const response = await fetch('/api/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -410,7 +410,7 @@ async function sendLoginVerificationCode() {
   }
   
   try {
-    const response = await fetch('/send-login-verification-code', {
+    const response = await fetch('/api/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -496,7 +496,7 @@ async function sendAdminVerificationCode() {
   }
   
   try {
-    const response = await fetch('/send-login-verification-code', {
+    const response = await fetch('/api/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -620,7 +620,7 @@ async function registerUser() {
   }
   
   try {
-    const response = await fetch('/register', {
+    const response = await fetch('/api/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -710,7 +710,7 @@ async function loginUser() {
   }
   
   try {
-    const response = await fetch('/login', {
+    const response = await fetch('/api/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -807,7 +807,7 @@ async function loginAdmin() {
   }
   
   try {
-    const response = await fetch('/login', {
+    const response = await fetch('/api/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

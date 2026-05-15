@@ -105,7 +105,7 @@
         params.append('search', categoryPageState.searchKeyword);
       }
 
-      const response = await fetch(`/posts?${params.toString()}`);
+      const response = await fetch(`/api/`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
 
@@ -231,7 +231,7 @@
   async function handleLike(postId, btn) {
     if (!window.userManager || !window.userManager.state.currentUser) return;
     try {
-      const response = await fetch(`/posts/${postId}/like`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: window.userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: window.userManager.state.currentUser.id })

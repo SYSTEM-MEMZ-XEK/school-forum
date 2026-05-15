@@ -430,7 +430,7 @@ const settingsManager = {
       };
       
       // 发送更新请求
-      const response = await fetch(`/users/${userManager.state.currentUser.id}/settings`, {
+      const response = await fetch(`/api/`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ settings })
@@ -509,7 +509,7 @@ const settingsManager = {
       };
       
       // 发送更新请求
-      const response = await fetch(`/users/${userManager.state.currentUser.id}/settings`, {
+      const response = await fetch(`/api/`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ settings })
@@ -1057,7 +1057,7 @@ const settingsManager = {
     this.dom.verifyCurrentPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/send-password-change-code', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -1111,7 +1111,7 @@ const settingsManager = {
     this.dom.sendPasswordCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
     
     try {
-      const response = await fetch('/send-password-change-code', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -1178,7 +1178,7 @@ const settingsManager = {
     this.dom.verifyCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/verify-password-change-code', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -1237,7 +1237,7 @@ const settingsManager = {
     this.dom.changePasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 修改中...';
     
     try {
-      const response = await fetch('/change-password', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -1669,7 +1669,7 @@ const settingsManager = {
       this.dom.saveAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
       
       // 发送更新请求
-      const response = await fetch(`/users/${userManager.state.currentUser.id}`, {
+      const response = await fetch(`/api/`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify(updateData)
@@ -1810,7 +1810,7 @@ const settingsManager = {
       
       utils.showNotification('头像上传中...', 'info');
       
-      const response = await fetch(`/users/${userManager.state.currentUser.id}/avatar`, {
+      const response = await fetch(`/api/`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` },
         body: formData
@@ -1856,7 +1856,7 @@ const settingsManager = {
     try {
       utils.showNotification('头像移除中...', 'info');
       
-      const response = await fetch(`/users/${userManager.state.currentUser.id}/avatar`, {
+      const response = await fetch(`/api/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` }
       });
@@ -1903,7 +1903,7 @@ const settingsManager = {
   loadSchoolsConfig: async function() {
     console.log('开始加载学校配置...');
     try {
-      const response = await fetch('/schools');
+      const response = await fetch('/api/');
       if (!response.ok) {
         throw new Error('加载学校配置失败');
       }
@@ -2108,7 +2108,7 @@ const settingsManager = {
     }
     
     try {
-      const response = await fetch(`/users/${currentUser.id}`, {
+      const response = await fetch(`/api/`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify(updateData)
@@ -2165,7 +2165,7 @@ const settingsManager = {
     this.dom.verifyEmailPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/send-email-change-code', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -2247,7 +2247,7 @@ const settingsManager = {
     this.dom.verifyEmailCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/verify-email-change', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -2357,7 +2357,7 @@ const settingsManager = {
     this.dom.verifyQQPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/change-qq', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -2506,7 +2506,7 @@ const settingsManager = {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
     
     try {
-      const response = await fetch('/send-deletion-code', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -2552,7 +2552,7 @@ const settingsManager = {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注销中...';
     
     try {
-      const response = await fetch('/delete-account', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -2658,7 +2658,7 @@ const settingsManager = {
       const include = includes.join(',');
       this._setExportProgress(true, '正在收集您的数据，请稍候...', 50);
 
-      const res = await fetch(`/user/export-data?include=${encodeURIComponent(include)}&format=json`, {
+      const res = await fetch(`/api/`, {
         method: 'GET',
         headers: userManager.getAuthHeaders()
       });
@@ -2716,7 +2716,7 @@ const settingsManager = {
 
     try {
       // 查询全部数据以获取数量统计
-      const res = await fetch('/user/export-data?include=all&format=json', {
+      const res = await fetch('/api/', {
         method: 'GET',
         headers: userManager.getAuthHeaders()
       });
@@ -2984,7 +2984,7 @@ const settingsManager = {
       const jsonStr = JSON.stringify(this._importFileData);
       this._setImportProgress(true, '正在上传数据，请稍候...', 40);
 
-      const res = await fetch(`/user/import-data?include=${encodeURIComponent(includes.join(','))}`, {
+      const res = await fetch(`/api/`, {
         method: 'POST',
         headers: {
           ...userManager.getAuthHeaders(),

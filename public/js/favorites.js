@@ -82,7 +82,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/favorites/tags/${currentUser.id}`);
+      const response = await fetch(`/api/`);
       const data = await response.json();
 
       if (data.success) {
@@ -134,7 +134,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch('/favorites/tags', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -167,7 +167,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/favorites/tags/${tagId}`, {
+      const response = await fetch(`/api/`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -204,7 +204,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/favorites/tags/${tagId}`, {
+      const response = await fetch(`/api/`, {
         method: 'DELETE',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })
@@ -237,7 +237,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/favorites/${postId}/tag`, {
+      const response = await fetch(`/api/`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -449,7 +449,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch('/favorites/batch/delete', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -545,7 +545,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch('/favorites/batch/move', {
+      const response = await fetch('/api/', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -578,7 +578,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/favorites/${postId}`, {
+      const response = await fetch(`/api/`, {
         method: 'DELETE',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })

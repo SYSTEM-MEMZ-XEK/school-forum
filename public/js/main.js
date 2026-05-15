@@ -53,7 +53,7 @@ const app = {
   // 初始化公告
   initAnnouncements: async function() {
     try {
-      const response = await fetch('/announcements/active');
+      const response = await fetch('/api/');
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
