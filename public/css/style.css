@@ -442,6 +442,18 @@ header {
   color: var(--primary-color);
 }
 
+.comments-closed-badge {
+  display: inline-block;
+  background: #ff4757;
+  color: white;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
 /* 帖子列表区域 */
 .posts-section {
   background: var(--background-card);

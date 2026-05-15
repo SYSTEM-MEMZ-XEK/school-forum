@@ -107,6 +107,17 @@ const postDetailManager = {
         await this.renderPostDetail();
         this.renderComments();
 
+        // 处理评论开关
+        const commentInputContainer = document.getElementById('comment-input-container');
+        if (this.post.commentsEnabled === false) {
+          if (commentInputContainer) commentInputContainer.style.display = 'none';
+          // 在评论头部添加关闭提示
+          const commentsHeader = document.querySelector('.comments-header h3');
+          if (commentsHeader) {
+            commentsHeader.innerHTML = `评论 (<span id="comment-count">${this.post.comments ? this.post.comments.length : 0}</span>) <span class="comments-closed-badge">已关闭</span>`;
+          }
+        }
+
         // 增加浏览量
         this.incrementViewCount();
         

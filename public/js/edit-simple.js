@@ -172,6 +172,12 @@ const simpleEditManager = {
         }
       }
       
+      // 设置评论开关
+      const commentsEnabledCheckbox = document.getElementById('post-comments-enabled');
+      if (commentsEnabledCheckbox) {
+        commentsEnabledCheckbox.checked = post.commentsEnabled !== false;
+      }
+      
       utils.showNotification('帖子内容已加载', 'info');
     } catch (error) {
       console.error('加载帖子失败:', error);
@@ -735,6 +741,10 @@ const simpleEditManager = {
         formData.append('categoryId', categorySelect.value || '');
       }
       
+      // 添加评论开关
+      const commentsEnabledCheckbox = document.getElementById('post-comments-enabled');
+      formData.append('commentsEnabled', commentsEnabledCheckbox ? commentsEnabledCheckbox.checked : 'true');
+      
       // 添加新图片文件
       this.state.selectedImages.forEach((image) => {
         formData.append('images', image.file);
@@ -868,6 +878,10 @@ const simpleEditManager = {
       if (categorySelect && categorySelect.value) {
         formData.append('categoryId', categorySelect.value);
       }
+      
+      // 添加评论开关
+      const commentsEnabledCheckboxNewPost = document.getElementById('post-comments-enabled');
+      formData.append('commentsEnabled', commentsEnabledCheckboxNewPost ? commentsEnabledCheckboxNewPost.checked : 'true');
       
       // 添加图片文件
       this.state.selectedImages.forEach((image) => {

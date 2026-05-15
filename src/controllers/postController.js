@@ -436,7 +436,7 @@ const postController = {
     try {
       // userId 必须来自已认证的 JWT，防止客户端伪造
       const userId = req.user.id;
-      const { username, school, grade, className, content, anonymous, visibility, deviceInfo, categoryId } = req.body;
+      const { username, school, grade, className, content, anonymous, visibility, deviceInfo, categoryId, commentsEnabled } = req.body;
       
       if (!username || !school || !grade || !className) {
         return res.status(400).json(generateErrorResponse('请填写所有必填字段'));
@@ -519,7 +519,8 @@ const postController = {
         isDeleted: false,
         visibility: postVisibility,
         deviceInfo: deviceInfo || '',
-        categoryId: postCategoryId
+        categoryId: postCategoryId,
+        commentsEnabled: commentsEnabled !== false
       };
 
       await createPost(newPost);
@@ -730,6 +731,11 @@ const postController = {
       if (!post || post.isDeleted) {
         logger.logWarn('添加评论失败：帖子不存在', { postId });
         return res.status(404).json(generateErrorResponse('帖子不存在'));
+      }
+
+      // 检查评论是否已关闭
+      if (post.commentsEnabled === false) {
+        return res.status(403).json(generateErrorResponse('评论区已关闭'));
       }
 
       const isAnonymous = anonymous === true || anonymous === 'true';
@@ -957,7 +963,7 @@ const postController = {
       const postId = req.params.id;
       // userId 来自已认证的 JWT，防止客户端伪造
       const userId = req.user.id;
-      const { content, deletedImages, visibility } = req.body;
+      const { content, deletedImages, visibility, commentsEnabled } = req.body;
 
       const post = await getPostById(postId);
 
@@ -1013,7 +1019,8 @@ const postController = {
         content: content || post.content,
         images: allImages,
         updatedAt: new Date().toISOString(),
-        visibility: postVisibility
+        visibility: postVisibility,
+        commentsEnabled: typeof commentsEnabled === 'boolean' ? commentsEnabled : (post.commentsEnabled !== false)
       };
 
       const updatedPost = await updatePost(postId, updateData);
@@ -1074,6 +1081,11 @@ const postController = {
       if (!post || post.isDeleted) {
         logger.logWarn('回复评论失败：帖子不存在', { postId });
         return res.status(404).json(generateErrorResponse('帖子不存在'));
+      }
+
+      // 检查评论是否已关闭
+      if (post.commentsEnabled === false) {
+        return res.status(403).json(generateErrorResponse('评论区已关闭'));
       }
 
       const comments = post.comments || [];

@@ -189,6 +189,11 @@ const PostSchema = new Schema({
     type: String,
     default: null,
     index: true
+  },
+  // 评论区开关
+  commentsEnabled: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: false,
