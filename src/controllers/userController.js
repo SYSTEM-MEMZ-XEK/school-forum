@@ -19,7 +19,7 @@ const {
   generateSuccessResponse
 } = require('../utils/validationUtils');
 const { sendVerificationEmail, verifyCode } = require('../utils/emailUtils');
-const { userCache, notificationCache } = require('../utils/redisUtils');
+const { userCache, notificationCache, captchaCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
 const User = require('../models/User');
 
@@ -27,6 +27,38 @@ const User = require('../models/User');
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const userController = {
+  // 生成图形验证码
+  async getCaptcha(req, res) {
+    try {
+      // 生成随机 4 位数字
+      const code = String(Math.floor(1000 + Math.random() * 9000));
+      const captchaId = uuidv4();
+
+      // 存储到 Redis（5分钟过期）
+      await captchaCache.set(captchaId, code);
+
+      // 生成 SVG 图片
+      const svg = generateCaptchaSvg(code);
+
+      res.json({
+        success: true,
+        captchaId,
+        svg
+      });
+    } catch (error) {
+      logger.logError('生成验证码失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('生成验证码失败', 500));
+    }
+  },
+
+  // 验证图形验证码（内部辅助方法）
+  async _verifyCaptcha(captchaId, captchaCode) {
+    if (!captchaId || !captchaCode) {
+      return { valid: false, message: '请输入图形验证码' };
+    }
+    return await captchaCache.verify(captchaId, captchaCode);
+  },
+
   // 发送验证码
   async sendVerificationCode(req, res) {
     try {
@@ -208,7 +240,13 @@ const userController = {
   // 用户注册
   async register(req, res) {
     try {
-      const { qq, username, password, email, verificationCode, school, enrollmentYear, className, birthday, gender } = req.body;
+      const { qq, username, password, email, verificationCode, school, enrollmentYear, className, birthday, gender, captchaId, captchaCode } = req.body;
+
+      // 先验证图形验证码
+      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
+      if (!captchaResult.valid) {
+        return res.status(400).json(generateErrorResponse(captchaResult.message));
+      }
 
       // 验证输入
       const validationErrors = validateUserInput(req.body);
@@ -317,7 +355,7 @@ const userController = {
   // 用户登录（安全增强版）
   async login(req, res) {
     try {
-      const { email, qq, password, verificationCode } = req.body;
+      const { email, qq, password, verificationCode, captchaId, captchaCode } = req.body;
 
       // 获取客户端 IP
       const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
@@ -353,6 +391,12 @@ const userController = {
       if (!password) {
         logger.logWarn('登录失败：密码为空', { qq, ip: clientIp });
         return res.status(400).json(generateErrorResponse('密码不能为空'));
+      }
+
+      // 验证图形验证码
+      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
+      if (!captchaResult.valid) {
+        return res.status(400).json(generateErrorResponse(captchaResult.message));
       }
 
       // 验证验证码
@@ -1760,6 +1804,51 @@ function filterUserInfoByPrivacy(user, isSelf, isFollower) {
   }
   
   return filteredUser;
+}
+
+/**
+ * 生成验证码 SVG 图片
+ * 随机 4 位数字，带干扰线和噪点
+ */
+function generateCaptchaSvg(code) {
+  const width = 130;
+  const height = 48;
+  const fontSize = 28;
+
+  // 为每个字符生成随机位置和旋转
+  const chars = code.split('').map((char, i) => {
+    const x = 18 + i * 26;
+    const y = 30 + Math.random() * 8 - 4;
+    const rotate = Math.random() * 20 - 10;
+    const r = Math.floor(Math.random() * 60);
+    const g = Math.floor(Math.random() * 60);
+    const b = Math.floor(Math.random() * 60 + 40);
+    return `<text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="rgb(${r},${g},${b})" transform="rotate(${rotate},${x},${y})">${char}</text>`;
+  }).join('');
+
+  // 生成干扰线
+  const lines = Array.from({ length: 4 }, () => {
+    const x1 = Math.random() * width;
+    const y1 = Math.random() * height;
+    const x2 = Math.random() * width;
+    const y2 = Math.random() * height;
+    const r = Math.floor(Math.random() * 150 + 100);
+    const g = Math.floor(Math.random() * 150 + 100);
+    const b = Math.floor(Math.random() * 150 + 100);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(${r},${g},${b},0.4)" stroke-width="1"/>`;
+  }).join('');
+
+  // 生成噪点
+  const dots = Array.from({ length: 30 }, () => {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    const r = Math.floor(Math.random() * 200);
+    const g = Math.floor(Math.random() * 200);
+    const b = Math.floor(Math.random() * 200);
+    return `<circle cx="${x}" cy="${y}" r="1" fill="rgba(${r},${g},${b},0.5)"/>`;
+  }).join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="#f0f0f0" rx="4"/>${lines}${dots}${chars}</svg>`;
 }
 
 module.exports = userController;

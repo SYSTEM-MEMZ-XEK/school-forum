@@ -40,6 +40,9 @@ const avatarUpload = multer({
   }
 });
 
+// 获取图形验证码
+router.get('/captcha', userController.getCaptcha);
+
 // 用户注册
 router.post('/register', userController.register);
 

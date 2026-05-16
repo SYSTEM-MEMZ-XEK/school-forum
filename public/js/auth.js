@@ -1,7 +1,8 @@
 // 全局状态
 const state = {
   currentUser: null,
-  schools: [] // 存储学校配置
+  schools: [], // 存储学校配置
+  captchaKeys: { login: null, register: null, admin: null } // 图形验证码 key
 };
 
 // DOM元素（登录页面专用）
@@ -42,6 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 设置事件监听器
   setupEventListeners();
+  
+  // 加载图形验证码
+  loadCaptcha('login');
+  loadCaptcha('register');
+  loadCaptcha('admin');
   
   // 检查是否已登录，如果已登录则跳转到首页
   checkAutoLogin();
@@ -211,6 +217,27 @@ function checkAutoLogin() {
   }
 }
 
+// 加载图形验证码
+async function loadCaptcha(type) {
+  try {
+    const response = await fetch('/api/captcha');
+    if (!response.ok) throw new Error('加载验证码失败');
+    const data = await response.json();
+    if (data.success) {
+      state.captchaKeys[type] = data.captchaId;
+      const imgEl = document.getElementById(`captcha-img-${type}`);
+      if (imgEl) {
+        imgEl.innerHTML = data.svg;
+      }
+      // 清空输入框
+      const inputEl = document.getElementById(`captcha-code-${type}`);
+      if (inputEl) inputEl.value = '';
+    }
+  } catch (error) {
+    console.error('加载验证码失败:', error);
+  }
+}
+
 // 设置事件监听器
 function setupEventListeners() {
   // 表单切换
@@ -281,6 +308,15 @@ function setupEventListeners() {
   if (dom.passwordRegister) {
     dom.passwordRegister.addEventListener('input', checkPasswordStrength);
   }
+
+  // 图形验证码点击刷新
+  ['login', 'register', 'admin'].forEach(type => {
+    const img = document.getElementById(`captcha-img-${type}`);
+    if (img) {
+      img.addEventListener('click', () => loadCaptcha(type));
+      img.style.cursor = 'pointer';
+    }
+  });
 
   // 回车键支持
   document.addEventListener('keypress', (e) => {
@@ -570,6 +606,8 @@ async function registerUser() {
   const className = dom.classRegister?.value;
   const birthday = document.getElementById('birthday-register')?.value || null;
   const gender = document.getElementById('gender-register')?.value || '';
+  const captchaId = state.captchaKeys.register;
+  const captchaCode = document.getElementById('captcha-code-register')?.value.trim();
   
   // 验证输入
   if (!qq) {
@@ -609,6 +647,11 @@ async function registerUser() {
     return;
   }
   
+  if (!captchaCode) {
+    showNotification('请输入图形验证码', 'error');
+    return;
+  }
+  
   if (!school || !enrollmentYear || !className) {
     showNotification('请选择学校、入学年份和班级', 'error');
     return;
@@ -635,7 +678,9 @@ async function registerUser() {
         enrollmentYear,
         className,
         birthday,
-        gender
+        gender,
+        captchaId,
+        captchaCode
       })
     });
     
@@ -662,6 +707,7 @@ async function registerUser() {
   } catch (error) {
     console.error('注册失败:', error);
     showNotification(error.message || '注册失败，请稍后重试', 'error');
+    loadCaptcha('register'); // 刷新图形验证码
   } finally {
     if (dom.registerBtn) {
       dom.registerBtn.disabled = false;
@@ -676,6 +722,8 @@ async function loginUser() {
   const qq = dom.qqLogin?.value.trim();
   const password = dom.passwordLogin?.value;
   const verificationCode = dom.verificationCodeLogin?.value.trim();
+  const captchaId = state.captchaKeys.login;
+  const captchaCode = document.getElementById('captcha-code-login')?.value.trim();
   
   if (!email) {
     showNotification('邮箱不能为空', 'error');
@@ -704,6 +752,11 @@ async function loginUser() {
     return;
   }
   
+  if (!captchaCode) {
+    showNotification('请输入图形验证码', 'error');
+    return;
+  }
+  
   if (dom.loginBtn) {
     dom.loginBtn.disabled = true;
     dom.loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
@@ -719,7 +772,9 @@ async function loginUser() {
         email,
         qq,
         password,
-        verificationCode
+        verificationCode,
+        captchaId,
+        captchaCode
       })
     });
     
@@ -759,6 +814,7 @@ async function loginUser() {
   } catch (error) {
     console.error('登录失败:', error);
     showNotification(error.message || '登录失败，请检查输入信息', 'error');
+    loadCaptcha('login'); // 刷新图形验证码
   } finally {
     if (dom.loginBtn) {
       dom.loginBtn.disabled = false;
@@ -773,6 +829,8 @@ async function loginAdmin() {
   const qq = dom.qqAdmin?.value.trim();
   const password = dom.passwordAdmin?.value;
   const verificationCode = dom.verificationCodeAdmin?.value.trim();
+  const captchaId = state.captchaKeys.admin;
+  const captchaCode = document.getElementById('captcha-code-admin')?.value.trim();
   
   if (!email) {
     showNotification('管理员邮箱不能为空', 'error');
@@ -801,6 +859,11 @@ async function loginAdmin() {
     return;
   }
   
+  if (!captchaCode) {
+    showNotification('请输入图形验证码', 'error');
+    return;
+  }
+  
   if (dom.adminLoginBtn) {
     dom.adminLoginBtn.disabled = true;
     dom.adminLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
@@ -816,7 +879,9 @@ async function loginAdmin() {
         email,
         qq,
         password,
-        verificationCode
+        verificationCode,
+        captchaId,
+        captchaCode
       })
     });
     
@@ -854,6 +919,7 @@ async function loginAdmin() {
   } catch (error) {
     console.error('管理员登录失败:', error);
     showNotification(error.message || '管理员登录失败，请检查QQ号和密码', 'error');
+    loadCaptcha('admin'); // 刷新图形验证码
   } finally {
     if (dom.adminLoginBtn) {
       dom.adminLoginBtn.disabled = false;

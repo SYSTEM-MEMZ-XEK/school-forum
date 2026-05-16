@@ -1409,6 +1409,75 @@ const rateLimiter = {
 };
 
 /**
+ * 图形验证码缓存
+ */
+const captchaCache = {
+  // 验证码过期时间（5分钟）
+  EXPIRE_TIME: 5 * 60,
+
+  getKey(captchaId) {
+    return `captcha:${captchaId}`;
+  },
+
+  /**
+   * 存储验证码答案
+   */
+  async set(captchaId, code) {
+    if (!isConnected) {
+      // Redis 不可用时使用内存 fallback
+      if (!this._memoryStore) this._memoryStore = new Map();
+      this._memoryStore.set(captchaId, { code, expireAt: Date.now() + this.EXPIRE_TIME * 1000 });
+      return true;
+    }
+    try {
+      const client = getRedisClient();
+      await client.setEx(this.getKey(captchaId), this.EXPIRE_TIME, code);
+      return true;
+    } catch (error) {
+      // fallback 到内存
+      if (!this._memoryStore) this._memoryStore = new Map();
+      this._memoryStore.set(captchaId, { code, expireAt: Date.now() + this.EXPIRE_TIME * 1000 });
+      return true;
+    }
+  },
+
+  /**
+   * 验证验证码（验证后删除，一次性使用）
+   */
+  async verify(captchaId, inputCode) {
+    if (!isConnected) {
+      // 内存 fallback
+      if (!this._memoryStore) return { valid: false, message: '验证码已过期' };
+      const entry = this._memoryStore.get(captchaId);
+      if (!entry) return { valid: false, message: '验证码已过期' };
+      if (Date.now() > entry.expireAt) {
+        this._memoryStore.delete(captchaId);
+        return { valid: false, message: '验证码已过期' };
+      }
+      this._memoryStore.delete(captchaId);
+      if (entry.code.toLowerCase() === inputCode.toLowerCase()) {
+        return { valid: true, message: '验证成功' };
+      }
+      return { valid: false, message: '验证码错误' };
+    }
+    try {
+      const client = getRedisClient();
+      const key = this.getKey(captchaId);
+      const stored = await client.get(key);
+      if (!stored) return { valid: false, message: '验证码已过期' };
+      // 验证后立即删除（一次性使用）
+      await client.del(key);
+      if (stored.toLowerCase() === inputCode.toLowerCase()) {
+        return { valid: true, message: '验证成功' };
+      }
+      return { valid: false, message: '验证码错误' };
+    } catch (error) {
+      return { valid: false, message: '验证码验证失败' };
+    }
+  }
+};
+
+/**
  * 热门帖子缓存
  */
 const hotPostsCache = {
@@ -1474,5 +1543,6 @@ module.exports = {
   favoriteCache,
   sessionCache,
   rateLimiter,
-  hotPostsCache
+  hotPostsCache,
+  captchaCache
 };

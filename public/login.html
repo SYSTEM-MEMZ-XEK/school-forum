@@ -73,6 +73,13 @@
             <label for="verification-code-login">验证码</label>
             <input type="text" id="verification-code-login" placeholder="请输入邮箱验证码" required maxlength="6">
           </div>
+          <div class="form-group">
+            <label for="captcha-code-login">图形验证码</label>
+            <div class="captcha-row">
+              <input type="text" id="captcha-code-login" placeholder="请输入图片中的数字" required maxlength="4" autocomplete="off">
+              <div class="captcha-img" id="captcha-img-login" title="点击刷新验证码"></div>
+            </div>
+          </div>
           <button id="confirm-login" class="login-button">立即登录</button>
         </div>
 
@@ -100,6 +107,13 @@
           <div class="form-group">
             <label for="verification-code-admin">验证码</label>
             <input type="text" id="verification-code-admin" placeholder="请输入邮箱验证码" required maxlength="6">
+          </div>
+          <div class="form-group">
+            <label for="captcha-code-admin">图形验证码</label>
+            <div class="captcha-row">
+              <input type="text" id="captcha-code-admin" placeholder="请输入图片中的数字" required maxlength="4" autocomplete="off">
+              <div class="captcha-img" id="captcha-img-admin" title="点击刷新验证码"></div>
+            </div>
           </div>
           <button id="confirm-admin-login" class="login-button admin-button">管理员登录</button>
         </div>
@@ -156,6 +170,14 @@
           <div class="form-group">
             <label for="verification-code">验证码</label>
             <input type="text" id="verification-code" placeholder="请输入邮箱验证码" required maxlength="6">
+          </div>
+
+          <div class="form-group">
+            <label for="captcha-code-register">图形验证码</label>
+            <div class="captcha-row">
+              <input type="text" id="captcha-code-register" placeholder="请输入图片中的数字" required maxlength="4" autocomplete="off">
+              <div class="captcha-img" id="captcha-img-register" title="点击刷新验证码"></div>
+            </div>
           </div>
 
           <div class="form-row">
