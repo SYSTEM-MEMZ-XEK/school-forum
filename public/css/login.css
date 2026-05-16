@@ -456,15 +456,6 @@ input[type="date"]::-webkit-date-and-time-value {
   background: var(--primary-light);
 }
 
-/* 通知区域 */
-.notification-area {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  max-width: 350px;
-  z-index: 1000;
-}
-
 /* 响应式设计 */
 @media (max-width: 900px) {
   .login-wrapper {

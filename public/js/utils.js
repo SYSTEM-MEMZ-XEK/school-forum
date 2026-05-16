@@ -46,17 +46,27 @@ const utils = {
 
   // 消息通知函数
   showNotification: function(message, type = 'info') {
-    console.log('showNotification 被调用:', message, type);
+    const iconMap = {
+      success: 'fa-check-circle',
+      error: 'fa-exclamation-circle',
+      warning: 'fa-exclamation-triangle',
+      info: 'fa-info-circle'
+    };
 
     const notification = document.createElement('div');
     notification.className = `notification-message ${type}`;
 
     notification.innerHTML = `
-      <i class="fas fa-${
-        type === 'success' ? 'check-circle' :
-        type === 'error' ? 'exclamation-circle' : 'info-circle'
-      }"></i>
-      <span>${message}</span>
+      <div class="notification-icon-circle">
+        <i class="fas ${iconMap[type] || iconMap.info}"></i>
+      </div>
+      <div class="notification-body">
+        <span>${message}</span>
+      </div>
+      <button class="notification-close" aria-label="关闭">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="notification-progress"></div>
     `;
 
     // 每次调用时重新获取 notificationArea
@@ -64,30 +74,50 @@ const utils = {
 
     // 如果 notificationArea 不存在，创建一个
     if (!notificationArea) {
-      console.log('notificationArea 不存在，创建一个');
       notificationArea = document.createElement('div');
       notificationArea.id = 'notificationArea';
       notificationArea.className = 'notification-area';
       document.body.appendChild(notificationArea);
     }
 
-    console.log('notificationArea 元素:', notificationArea);
     notificationArea.appendChild(notification);
 
     // 添加动画效果
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       notification.classList.add('show');
-    }, 10);
+    });
+
+    // 关闭通知的函数
+    const closeNotification = () => {
+      notification.classList.remove('show');
+      notification.classList.add('hide');
+      // 停止进度条动画
+      const progress = notification.querySelector('.notification-progress');
+      if (progress) progress.style.animationPlayState = 'paused';
+      setTimeout(() => {
+        notification.remove();
+      }, 350);
+    };
+
+    // 关闭按钮点击
+    notification.querySelector('.notification-close').addEventListener('click', closeNotification);
+
+    // 悬停时暂停进度条
+    notification.addEventListener('mouseenter', () => {
+      const progress = notification.querySelector('.notification-progress');
+      if (progress) progress.style.animationPlayState = 'paused';
+    });
+
+    notification.addEventListener('mouseleave', () => {
+      const progress = notification.querySelector('.notification-progress');
+      if (progress) progress.style.animationPlayState = 'running';
+    });
 
     // 自动移除通知
     setTimeout(() => {
-      notification.classList.remove('show');
-      notification.classList.add('hide');
-
-      // 等待动画完成再移除元素
-      setTimeout(() => {
-        notification.remove();
-      }, 300);
+      if (notification.parentNode) {
+        closeNotification();
+      }
     }, 3000);
   },
 

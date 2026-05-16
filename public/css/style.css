@@ -303,8 +303,12 @@ header {
   position: fixed;
   top: 20px;
   right: 20px;
-  max-width: 350px;
+  max-width: 380px;
   z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
 }
 
 #user-actions {
@@ -696,46 +700,200 @@ textarea {
   color: var(--text-light);
 }
 
-/* 通知消息 - 改进动画效果 */
+/* 通知消息 - 现代通知系统 */
 .notification-message {
-  padding: 12px 15px;
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 0;
+  box-shadow: var(--shadow-md);
   opacity: 0;
-  transform: translateY(20px);
-  transition: var(--transition);
+  transform: translateX(100%);
+  transition: all 0.35s cubic-bezier(0.21, 1.02, 0.73, 1);
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .notification-message.show {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
 }
 
 .notification-message.hide {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateX(100%);
 }
 
+/* 通知图标圆 */
+.notification-message .notification-icon-circle {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* 通知内容区 */
+.notification-message .notification-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-message .notification-body span {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 关闭按钮 */
+.notification-message .notification-close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-radius: var(--radius-full);
+  opacity: 0.5;
+  transition: var(--transition-fast);
+  padding: 0;
+  color: inherit;
+}
+
+.notification-message .notification-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* 进度条 */
+.notification-message .notification-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  animation: notification-progress 3s linear forwards;
+}
+
+@keyframes notification-progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* 类型变体 */
 .notification-message.info {
   background: rgba(33, 150, 243, 0.08);
+  border: 1px solid rgba(33, 150, 243, 0.15);
   color: var(--info-color);
-  border-left: 4px solid var(--info-color);
+}
+
+.notification-message.info .notification-icon-circle {
+  background: rgba(33, 150, 243, 0.15);
+  color: var(--info-color);
+}
+
+.notification-message.info .notification-progress {
+  background: var(--info-color);
 }
 
 .notification-message.success {
   background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.15);
   color: var(--success-color);
-  border-left: 4px solid var(--success-color);
+}
+
+.notification-message.success .notification-icon-circle {
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--success-color);
+}
+
+.notification-message.success .notification-progress {
+  background: var(--success-color);
 }
 
 .notification-message.error {
   background: rgba(244, 67, 54, 0.08);
+  border: 1px solid rgba(244, 67, 54, 0.15);
   color: var(--error-color);
-  border-left: 4px solid var(--error-color);
+}
+
+.notification-message.error .notification-icon-circle {
+  background: rgba(244, 67, 54, 0.15);
+  color: var(--error-color);
+}
+
+.notification-message.error .notification-progress {
+  background: var(--error-color);
+}
+
+.notification-message.warning {
+  background: rgba(255, 152, 0, 0.08);
+  border: 1px solid rgba(255, 152, 0, 0.15);
+  color: var(--warning-color);
+}
+
+.notification-message.warning .notification-icon-circle {
+  background: rgba(255, 152, 0, 0.15);
+  color: var(--warning-color);
+}
+
+.notification-message.warning .notification-progress {
+  background: var(--warning-color);
+}
+
+/* 暗色模式 */
+[data-theme="dark"] .notification-message.info {
+  background: rgba(33, 150, 243, 0.15);
+  border-color: rgba(33, 150, 243, 0.25);
+}
+
+[data-theme="dark"] .notification-message.success {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.25);
+}
+
+[data-theme="dark"] .notification-message.error {
+  background: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.25);
+}
+
+[data-theme="dark"] .notification-message.warning {
+  background: rgba(255, 152, 0, 0.15);
+  border-color: rgba(255, 152, 0, 0.25);
+}
+
+[data-theme="dark"] .notification-message .notification-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .notification-area {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    max-width: none;
+  }
+
+  .notification-message {
+    padding: 12px 14px;
+  }
 }
 
 /* 用户面板 */
