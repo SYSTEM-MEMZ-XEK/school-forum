@@ -9,7 +9,7 @@
   background: var(--background-card);
   color: var(--text-color);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
@@ -107,7 +107,7 @@
 /* 通知容器 */
 .notifications-container {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow);
 }
@@ -143,7 +143,7 @@
 .notification-icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,7 +207,7 @@
 .notification-comment {
   background: rgba(0, 0, 0, 0.03);
   padding: 10px 15px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 10px;
   border-left: 3px solid var(--border-color);
   font-size: 14px;
@@ -258,7 +258,7 @@
 .notification-btn {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -294,7 +294,7 @@
   right: 20px;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--error-color);
   animation: pulse 2s infinite;
 }
@@ -316,7 +316,7 @@
   text-align: center;
   padding: 60px 20px;
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
 
@@ -395,7 +395,7 @@
 .notification-system-content {
   background: rgba(253, 126, 20, 0.05);
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 10px;
   border-left: 3px solid #fd7e14;
 }

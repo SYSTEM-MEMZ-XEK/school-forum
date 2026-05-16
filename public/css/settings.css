@@ -13,7 +13,7 @@
   background: var(--background-card);
   color: var(--text-color);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
@@ -51,7 +51,7 @@
 /* 设置卡片 */
 .settings-card {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 30px;
   box-shadow: var(--shadow);
   transition: var(--transition);
@@ -89,7 +89,7 @@
   margin-bottom: 30px;
   padding: 30px;
   background: var(--background-light);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 2px dashed var(--border-color);
 }
 
@@ -99,7 +99,7 @@
   height: 150px;
   margin-bottom: 20px;
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   overflow: hidden;
   border: 3px solid var(--border-color);
   transition: var(--transition);
@@ -181,7 +181,7 @@
 
 .theme-option {
   background: var(--background-light);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 20px;
   cursor: pointer;
   transition: var(--transition);
@@ -203,7 +203,7 @@
 .theme-preview {
   width: 100%;
   height: 120px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 15px;
   overflow: hidden;
   position: relative;
@@ -241,7 +241,7 @@
   width: 40px;
   height: 30px;
   background: var(--background-card);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -281,7 +281,7 @@
 /* 设置按钮 */
 .settings-button {
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -353,7 +353,7 @@
   width: 100%;
   padding: 12px 15px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   background: var(--background-card);
   color: var(--text-color);
@@ -426,7 +426,7 @@
   gap: 15px;
   padding: 15px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   transition: var(--transition);
 }
@@ -470,7 +470,7 @@
 /* 设置导航卡片 */
 .settings-nav-card {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 25px;
   box-shadow: var(--shadow);
   margin-bottom: 20px;
@@ -491,7 +491,7 @@
   padding: 12px 16px;
   color: var(--text-color);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   transition: var(--transition);
 }
 
@@ -514,7 +514,7 @@
 /* 帮助卡片 */
 .help-card {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 25px;
   box-shadow: var(--shadow);
   margin-bottom: 20px;
@@ -603,7 +603,7 @@
 /* 设置状态提示 */
 .save-status {
   padding: 10px 15px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 15px;
   font-size: 14px;
   display: none;
@@ -663,7 +663,7 @@
   margin-top: 25px;
   padding: 15px;
   background: var(--primary-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 4px solid var(--primary-color);
   display: flex;
   align-items: flex-start;
@@ -697,7 +697,7 @@
   justify-content: space-between;
   padding: 16px;
   background: var(--background-light);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   transition: var(--transition);
 }
@@ -767,7 +767,7 @@
   bottom: 3px;
   background-color: white;
   transition: 0.3s;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -822,7 +822,7 @@
 
 .redirect-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 40px;
   box-shadow: 0 8px 32px rgba(244, 67, 54, 0.2);
   max-width: 400px;
@@ -886,7 +886,7 @@
 .login-warning-banner {
   background: linear-gradient(135deg, #ffebee, #ffcdd2);
   border: 2px solid var(--error-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 25px;
   padding: 20px;
   animation: slideDown 0.5s ease-out;
@@ -1022,7 +1022,7 @@
 .password-steps .step-number {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--background-light);
   border: 2px solid var(--border-color);
   display: flex;
@@ -1087,7 +1087,7 @@
 /* 步骤内容 */
 .password-step-content {
   background: var(--background-light);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 25px;
   border: 1px solid var(--border-color);
 }
@@ -1114,7 +1114,7 @@
 .verification-info {
   background: var(--primary-light);
   padding: 15px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -1146,7 +1146,7 @@
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1320,7 +1320,7 @@
 .visibility-select {
   padding: 8px 12px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   background: var(--background-card);
   color: var(--text-color);
@@ -1355,7 +1355,7 @@
   padding: 16px;
   background: #fff8e7;
   border: 1px solid #fbbf24;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin: 20px 0;
 }
 
@@ -1391,7 +1391,7 @@
   cursor: pointer;
   padding: 12px;
   background: var(--background-card);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   transition: var(--transition);
 }
 
@@ -1494,7 +1494,7 @@
   width: 100%;
   padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   background: var(--background-light);
   color: var(--text-color);
@@ -1780,7 +1780,7 @@
 .export-preview-panel {
   margin-top: 24px;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1809,7 +1809,7 @@
   cursor: pointer;
   font-size: 16px;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: var(--transition);
   display: flex;
   align-items: center;
@@ -1836,7 +1836,7 @@
   align-items: center;
   padding: 10px 14px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
 }
 
@@ -1980,7 +1980,7 @@
   padding: 20px 18px;
   background: var(--background-light);
   border: 2px dashed var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: var(--transition);
   text-align: left;
@@ -2042,7 +2042,7 @@
   cursor: pointer;
   font-size: 14px;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   flex-shrink: 0;
   transition: var(--transition);
 }
@@ -2056,7 +2056,7 @@
 .import-result-panel {
   margin-top: 16px;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 

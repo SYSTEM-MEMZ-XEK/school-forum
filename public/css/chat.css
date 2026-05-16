@@ -5,7 +5,7 @@
   display: flex;
   height: calc(100vh - 80px);
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow);
   margin-top: 20px;
@@ -47,7 +47,7 @@
 .new-chat-btn {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: none;
   background: var(--primary-color);
   color: white;
@@ -95,7 +95,7 @@
   color: var(--text-light);
   cursor: pointer;
   margin-left: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   transition: var(--transition);
 }
 
@@ -126,7 +126,7 @@
 .contactable-user-item .user-avatar {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -199,7 +199,7 @@
 .conversation-avatar {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -338,7 +338,7 @@
   background: transparent;
   color: var(--text-color);
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   margin-right: 8px;
   transition: var(--transition);
 }
@@ -356,7 +356,7 @@
 .chat-avatar {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -431,7 +431,7 @@
 .chat-action-btn {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: none;
   background: transparent;
   color: var(--text-light);
@@ -506,7 +506,7 @@
 .message-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -609,7 +609,7 @@
   gap: 8px;
   padding: 10px 14px;
   background: rgba(253, 126, 20, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 12px;
   color: #fd7e14;
   font-size: 13px;
@@ -652,7 +652,7 @@
 .send-btn {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: none;
   background: var(--primary-color);
   color: white;
@@ -715,7 +715,7 @@
 .modal-content {
   background: var(--background-card);
   padding: 24px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   max-width: 400px;
   width: 90%;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -741,33 +741,21 @@
   justify-content: flex-end;
 }
 
-.btn-cancel, .btn-confirm {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.btn-cancel {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
-}
-
-.btn-cancel:hover {
-  background: var(--border-color);
-}
-
+/* btn-cancel/btn-confirm 由 style.css 统一定义；chat 的 confirm 是危险操作（删除），覆盖为红色 */
 .btn-confirm {
   background: var(--error-color);
   border: none;
   color: white;
+  padding: var(--btn-padding-md);
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
 .btn-confirm:hover {
-  background: #c82333;
+  background: var(--error-dark);
 }
 
 /* 加载状态 */

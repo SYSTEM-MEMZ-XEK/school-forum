@@ -13,7 +13,7 @@
   --warning-color: #ff9800;
   --info-color: #2196f3;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --transition: all 0.3s ease;
+  --transition: var(--transition);
 }
 
 /* 全局选中样式 */
@@ -85,7 +85,7 @@
 /* 帖子详情内容 */
 .post-detail-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
   margin-bottom: 30px;
@@ -105,7 +105,7 @@
 .post-detail-avatar {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: white;
   display: flex;
@@ -179,7 +179,7 @@
 .post-detail-content-text code {
   background: var(--primary-light);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-family: 'Courier New', monospace;
   font-size: 14px;
 }
@@ -188,7 +188,7 @@
 .code-block-wrapper {
   position: relative;
   margin: 20px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #0d1117;
 }
 
@@ -196,7 +196,7 @@
 .comment-body pre {
   margin: 0;
   padding: 40px 16px 16px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow-x: auto;
   min-height: 60px;
 }
@@ -226,11 +226,11 @@
   padding: 6px 12px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: #c9d1d9;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -259,7 +259,7 @@
 
 .post-detail-content-text img {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin: 20px 0;
 }
 
@@ -292,7 +292,7 @@
   width: 100%;
   height: 200px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: transform 0.3s ease;
 }
@@ -316,7 +316,7 @@
   padding: 8px 14px;
   border: none;
   background: var(--background-light);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 13px;
   color: var(--text-light);
@@ -397,7 +397,7 @@
 /* 评论区 */
 .comments-section {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   padding: 30px;
 }
@@ -422,7 +422,7 @@
   width: 100%;
   padding: 15px;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
@@ -457,21 +457,7 @@
   cursor: pointer;
 }
 
-.btn-primary {
-  padding: 10px 25px;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+/* btn-primary 由 style.css 统一定义；此处仅保留 post-detail 的附加效果 */
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
@@ -493,7 +479,7 @@
 .comment-item {
   padding: 20px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   transition: var(--transition);
 }
 
@@ -570,7 +556,7 @@
   margin-top: 15px;
   padding: 15px;
   background: var(--background-card);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
 }
 
@@ -578,7 +564,7 @@
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
@@ -620,7 +606,7 @@
 .reply-item {
   padding: 12px;
   background: var(--background-card);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transition: var(--transition);
 }
 
@@ -774,7 +760,7 @@
   margin-top: 10px;
   padding: 12px;
   background: var(--background-card);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
 }
 
@@ -796,7 +782,7 @@
 .nested-reply-item {
   padding: 10px;
   background: var(--background-card);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transition: var(--transition);
 }
 
@@ -848,7 +834,7 @@
 .exceeded-reply {
   padding: 8px;
   background: var(--background-card);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
 }
 
@@ -957,7 +943,7 @@
 
 .favorite-tag-modal-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 380px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -1005,8 +991,8 @@
   font-size: 22px;
   color: var(--text-light);
   cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-full);
+  transition: var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1039,9 +1025,9 @@
   gap: 10px;
   padding: 12px 14px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   border: 2px solid transparent;
 }
 
@@ -1061,7 +1047,7 @@
 .tag-color-dot {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
@@ -1073,17 +1059,14 @@
   border-top: 1px solid var(--border-color);
 }
 
-.btn-skip,
-.btn-save-tag {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+/* btn-skip 等同于 btn-cancel，btn-save-tag 等同于 btn-primary，由全局类提供底座 */
+.btn-skip {
+  padding: var(--btn-padding-md);
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-skip {
+  transition: var(--transition-fast);
   background: var(--background-light);
   color: var(--text-color);
   border: 1px solid var(--border-color);
@@ -1094,6 +1077,12 @@
 }
 
 .btn-save-tag {
+  padding: var(--btn-padding-md);
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
   background: var(--primary-color);
   color: white;
   border: none;
@@ -1156,7 +1145,7 @@
 
 .visibility-modal-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 420px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -1193,8 +1182,8 @@
   font-size: 22px;
   color: var(--text-light);
   cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-full);
+  transition: var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1246,7 +1235,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid var(--border-color);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
   margin-top: 2px;
   transition: var(--transition);
@@ -1266,7 +1255,7 @@
   width: 8px;
   height: 8px;
   background: white;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
 .visibility-info {
@@ -1308,30 +1297,17 @@
   border-top: 1px solid var(--border-color);
 }
 
-.btn-cancel,
-.btn-save {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-cancel {
-  background: var(--background-light);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-}
-
-.btn-cancel:hover {
-  background: var(--border-color);
-}
-
+/* btn-cancel 由 style.css 统一定义，btn-save 等同于 btn-primary 样式 */
 .btn-save {
   background: var(--primary-color);
   color: white;
+  padding: var(--btn-padding-md);
   border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
 .btn-save:hover {

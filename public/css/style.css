@@ -1,20 +1,69 @@
 /* 全局样式 */
 :root {
+  /* 主色调 */
   --primary-color: #4361ee;
   --primary-light: #edf0fe;
+  --primary-dark: #3451d1;
   --secondary-color: #3f37c9;
+
+  /* 语义颜色 */
+  --success-color: #4caf50;
+  --success-dark: #388e3c;
+  --error-color: #f44336;
+  --error-dark: #d32f2f;
+  --warning-color: #ff9800;
+  --warning-dark: #f57c00;
+  --info-color: #2196f3;
+  --info-dark: #1976d2;
+  --favorite-color: #ffa000;
+  --favorite-dark: #ff8f00;
+  --dislike-color: #e91e63;
+  --dislike-dark: #c2185b;
+
+  /* 文字颜色 */
   --text-color: #333333;
   --text-light: #666666;
+  --text-muted: #999999;
+
+  /* 背景颜色 */
   --background-light: #f5f7fb;
   --background-card: #ffffff;
+  --background-hover: #f0f0f0;
+
+  /* 边框 */
   --border-color: #e0e0e0;
-  --success-color: #4caf50;
-  --error-color: #f44336;
-  --warning-color: #ff9800;
-  --info-color: #2196f3;
+  --border-light: #f0f0f0;
+
+  /* 图标 */
   --icon-color: #666666;
+
+  /* 圆角 */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 50px;
+  --radius-full: 50%;
+
+  /* 阴影 */
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.12);
+
+  /* 过渡动效 */
   --transition: all 0.3s ease;
+  --transition-fast: all 0.2s ease;
+  --transition-slow: all 0.4s ease;
+
+  /* 按钮内边距 */
+  --btn-padding-sm: 6px 14px;
+  --btn-padding-md: 10px 20px;
+  --btn-padding-lg: 12px 28px;
+  --btn-font-size: 14px;
+  --btn-font-size-sm: 13px;
 }
 
 * {
@@ -87,7 +136,7 @@ header {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 25px;
   padding: 0 5px;
-  transition: all 0.3s ease;
+  transition: var(--transition);
 }
 
 .search-box-wrapper:focus-within {
@@ -123,12 +172,12 @@ header {
   background: transparent;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .search-clear-btn:hover {
@@ -145,7 +194,7 @@ header {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   margin-left: 5px;
 }
 
@@ -160,7 +209,7 @@ header {
   left: 0;
   right: 0;
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   overflow: hidden;
@@ -183,8 +232,8 @@ header {
   font-size: 12px;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-xs);
+  transition: var(--transition-fast);
 }
 
 .clear-history-btn:hover {
@@ -203,7 +252,7 @@ header {
   justify-content: space-between;
   padding: 10px 15px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .history-item:hover {
@@ -230,8 +279,8 @@ header {
   color: var(--text-light);
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-xs);
+  transition: var(--transition-fast);
 }
 
 .history-item:hover .history-item-delete {
@@ -271,7 +320,7 @@ header {
   border-radius: 30px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: var(--transition);
 }
 
 #user-actions button:hover {
@@ -286,7 +335,7 @@ header {
   border-radius: 30px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: var(--transition);
 }
 
 .logout-button:hover {
@@ -311,7 +360,7 @@ header {
   width: 56px;
   min-height: 50px;
   padding: 5px 4px 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--background-card);
   color: var(--text-color);
   transition: var(--transition);
@@ -341,50 +390,38 @@ header {
 }
 
 
-/* 消息徽章 */
-.message-badge {
+/* =============================================
+   通知徽章（角标）公共底座
+   ============================================= */
+.notification-badge {
   position: absolute;
   top: -4px;
   right: -4px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  background: #ef4444;
   color: white;
   font-size: 11px;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: var(--radius-pill);
   display: none;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
-.message-badge:not(:empty) {
+.notification-badge:not(:empty) {
   animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* 消息徽章 */
+.message-badge {
+  background: var(--error-color);
 }
 
 /* 更新动态徽章 */
 .updates-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  background: #10b981;
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 9px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.updates-badge:not(:empty) {
-  animation: badge-pulse 2s ease-in-out infinite;
+  background: var(--success-color);
 }
 
 @keyframes badge-pulse {
@@ -422,7 +459,7 @@ header {
 .user-panel,
 .post {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow);
   margin-bottom: 20px;
@@ -444,11 +481,11 @@ header {
 
 .comments-closed-badge {
   display: inline-block;
-  background: #ff4757;
+  background: var(--error-color);
   color: white;
   font-size: 12px;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   margin-left: 8px;
   font-weight: normal;
   vertical-align: middle;
@@ -457,7 +494,7 @@ header {
 /* 帖子列表区域 */
 .posts-section {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   padding: 20px;
 }
@@ -482,7 +519,7 @@ header {
   justify-content: space-between;
   padding: 10px 15px;
   background: var(--primary-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 15px;
   font-size: 14px;
 }
@@ -509,7 +546,7 @@ header {
   border-radius: 15px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .clear-search-btn:hover {
@@ -524,7 +561,7 @@ header {
   gap: 12px;
   padding: 10px 15px;
   background: var(--background-card);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 15px;
   border: 1px solid var(--border-color);
 }
@@ -549,7 +586,7 @@ header {
   border-radius: 20px;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .sort-btn:hover {
@@ -583,7 +620,7 @@ select {
   width: 100%;
   padding: 12px 15px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   background: var(--background-card);
   color: var(--text-color);
@@ -629,7 +666,7 @@ textarea {
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -662,7 +699,7 @@ textarea {
 /* 通知消息 - 改进动画效果 */
 .notification-message {
   padding: 12px 15px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -684,19 +721,19 @@ textarea {
 }
 
 .notification-message.info {
-  background: #e3f2fd;
+  background: rgba(33, 150, 243, 0.08);
   color: var(--info-color);
   border-left: 4px solid var(--info-color);
 }
 
 .notification-message.success {
-  background: #e8f5e9;
+  background: rgba(76, 175, 80, 0.08);
   color: var(--success-color);
   border-left: 4px solid var(--success-color);
 }
 
 .notification-message.error {
-  background: #ffebee;
+  background: rgba(244, 67, 54, 0.08);
   color: var(--error-color);
   border-left: 4px solid var(--error-color);
 }
@@ -771,7 +808,7 @@ textarea {
 .notification {
   background: var(--primary-light);
   padding: 15px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 20px;
   font-size: 14px;
   color: var(--primary-color);
@@ -786,7 +823,7 @@ textarea {
 /* 图片上传区域 */
 .image-upload-area {
   border: 2px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
@@ -833,7 +870,7 @@ textarea {
   position: relative;
   width: 100px;
   height: 100px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: var(--shadow);
 }
@@ -851,7 +888,7 @@ textarea {
   width: 20px;
   height: 20px;
   background: rgba(0, 0, 0, 0.7);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -882,7 +919,7 @@ textarea {
   padding: 6px 12px;
   border: 1px solid var(--border-color);
   background: var(--background-card);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font-size: 13px;
   transition: var(--transition);
@@ -907,7 +944,7 @@ textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -930,7 +967,7 @@ textarea {
   min-height: 150px;
   padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--background-card);
   overflow-y: auto;
 }
@@ -961,10 +998,10 @@ textarea {
 }
 
 .markdown-preview blockquote {
-  border-left: 3px solid #ddd;
+  border-left: 3px solid var(--border-color);
   padding-left: 10px;
   margin-left: 0;
-  color: #666;
+  color: var(--text-light);
 }
 
 .editor-help {
@@ -976,7 +1013,7 @@ textarea {
 /* 文本文件上传区域 */
 .text-upload-area {
   border: 2px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 30px 20px;
   text-align: center;
   cursor: pointer;
@@ -1009,13 +1046,13 @@ textarea {
 .text-upload-area.disabled {
   opacity: 0.6;
   cursor: not-allowed !important;
-  background: #f5f5f5;
-  border-color: #ddd;
+  background: var(--background-light);
+  border-color: var(--border-color);
 }
 
 .text-upload-area.disabled:hover {
-  border-color: #ddd;
-  background: #f5f5f5;
+  border-color: var(--border-color);
+  background: var(--background-light);
 }
 
 .text-file-info {
@@ -1025,7 +1062,7 @@ textarea {
   margin-top: 15px;
   padding: 10px;
   background: var(--primary-light);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
 }
 
@@ -1071,7 +1108,7 @@ textarea {
 .avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--primary-light);
   display: flex;
   align-items: center;
@@ -1083,7 +1120,7 @@ textarea {
 
 .clickable-avatar {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--transition);
   border: 2px solid transparent;
 }
 
@@ -1096,8 +1133,8 @@ textarea {
 }
 
 .anonymous-avatar {
-  background: #e0e0e0;
-  color: #666;
+  background: var(--border-color);
+  color: var(--text-light);
   cursor: default;
 }
 
@@ -1140,15 +1177,15 @@ textarea {
   background: var(--primary-light);
   color: var(--primary-color);
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 13px;
   margin-right: 8px;
   margin-bottom: 10px;
 }
 
 .anonymous-tag {
-  background: #f1f1f1;
-  color: #666;
+  background: var(--background-hover);
+  color: var(--text-light);
 }
 
 /* 帖子页脚 */
@@ -1169,8 +1206,8 @@ textarea {
   color: var(--text-light);
   cursor: pointer;
   padding: 6px 12px;
-  border-radius: 50px;
-  transition: var(--transition);
+  border-radius: var(--radius-pill);
+  transition: var(--transition-fast);
 }
 
 .action-btn:hover {
@@ -1212,12 +1249,12 @@ textarea {
 }
 
 .action-btn.favorite-btn:hover {
-  background: #fff8e1;
-  color: #ffa000;
+  background: rgba(255, 160, 0, 0.1);
+  color: var(--favorite-color);
 }
 
 .action-btn.favorite-btn.active {
-  background: linear-gradient(135deg, #ffa000, #ff8f00);
+  background: linear-gradient(135deg, var(--favorite-color), var(--favorite-dark));
   color: white;
 }
 
@@ -1231,12 +1268,12 @@ textarea {
 }
 
 .action-btn.dislike-btn:hover {
-  background: #fce4ec;
-  color: #e91e63;
+  background: rgba(233, 30, 99, 0.08);
+  color: var(--dislike-color);
 }
 
 .action-btn.dislike-btn.active {
-  background: linear-gradient(135deg, #e91e63, #c2185b);
+  background: linear-gradient(135deg, var(--dislike-color), var(--dislike-dark));
   color: white;
 }
 
@@ -1279,7 +1316,7 @@ textarea {
 .comment {
   background: var(--background-light);
   padding: 12px 15px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .comment-header {
@@ -1314,7 +1351,7 @@ textarea {
 .view-all-comments:hover {
   color: var(--primary-color);
   background: var(--background-light);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 /* 模态框 */
@@ -1333,7 +1370,7 @@ textarea {
 
 .modal-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 500px;
   padding: 25px;
@@ -1378,35 +1415,143 @@ textarea {
   border-top: 1px solid var(--border-color);
 }
 
-/* 通用操作按钮（用于弹窗等场景） */
-.btn-cancel {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+/* =============================================
+   全局按钮系统（底座 + 语义变体）
+   ============================================= */
+
+/* 底座 — 所有按钮共用 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--btn-padding-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: none;
   cursor: pointer;
-  transition: var(--transition);
+  transition: var(--transition-fast);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 尺寸变体 */
+.btn-sm {
+  padding: var(--btn-padding-sm);
+  font-size: var(--btn-font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
+.btn-lg {
+  padding: var(--btn-padding-lg);
+  font-size: 15px;
+  border-radius: var(--radius-lg);
+}
+
+/* 主要按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--secondary-color));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+}
+
+/* 次要/取消按钮 */
+.btn-cancel,
+.btn-secondary {
   background: var(--background-light);
   color: var(--text-color);
   border: 1px solid var(--border-color);
 }
 
-.btn-cancel:hover {
+.btn-cancel:hover,
+.btn-secondary:hover {
   background: var(--border-color);
 }
 
-.btn-success {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: var(--transition);
+/* 成功/确认按钮 */
+.btn-success,
+.btn-confirm {
   background: var(--success-color);
-  color: #fff;
+  color: white;
   border: none;
 }
 
-.btn-success:hover {
-  background: #388e3c;
+.btn-success:hover,
+.btn-confirm:hover {
+  background: var(--success-dark);
+}
+
+/* 危险按钮 */
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: var(--error-dark);
+}
+
+/* 警告按钮 */
+.btn-warning {
+  background: var(--warning-color);
+  color: white;
+  border: none;
+}
+
+.btn-warning:hover {
+  background: var(--warning-dark);
+}
+
+/* 信息按钮 */
+.btn-info {
+  background: var(--info-color);
+  color: white;
+  border: none;
+}
+
+.btn-info:hover {
+  background: var(--info-dark);
+}
+
+/* 轮廓按钮 */
+.btn-outline {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-outline:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* 链接式按钮 */
+.btn-link {
+  background: transparent;
+  color: var(--primary-color);
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
 }
 
 /* 弹窗关闭按钮（用于 categories.html / category.html 的 <button class="modal-close">） */
@@ -1418,19 +1563,24 @@ textarea {
   color: var(--text-light);
   padding: 0;
   line-height: 1;
+  transition: var(--transition-fast);
 }
 
 .modal-close:hover {
   color: var(--error-color);
 }
 
-/* 弹窗操作按钮 */
+/* 弹窗操作按钮（向后兼容） */
 .modal-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--btn-padding-md);
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
   cursor: pointer;
-  transition: var(--transition);
+  transition: var(--transition-fast);
   border: none;
 }
 
@@ -1446,11 +1596,11 @@ textarea {
 
 .modal-btn.confirm {
   background: var(--primary-color);
-  color: #fff;
+  color: white;
 }
 
 .modal-btn.confirm:hover {
-  opacity: 0.9;
+  background: var(--primary-dark);
 }
 
 @keyframes modalFadeIn {
@@ -1509,14 +1659,14 @@ textarea {
   gap: 15px;
   padding: 15px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
 }
 
 .user-info-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--primary-light);
   display: flex;
   align-items: center;
@@ -1545,7 +1695,7 @@ textarea {
   margin-top: 10px;
   padding: 10px 12px;
   background: var(--primary-light);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--primary-color);
   display: flex;
@@ -1590,7 +1740,7 @@ textarea {
 /* 用户信息卡片样式优化 */
 .user-info-card {
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .user-info-details {
@@ -1606,7 +1756,7 @@ textarea {
 /* 图片上传样式 */
 .image-upload-area {
   border: 2px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
@@ -1664,7 +1814,7 @@ textarea {
   position: relative;
   width: 80px;
   height: 80px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border-color);
 }
@@ -1684,7 +1834,7 @@ textarea {
   border: none;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   font-size: 12px;
   cursor: pointer;
   display: flex;
@@ -1707,7 +1857,7 @@ textarea {
 .post-image {
   max-width: 200px;
   max-height: 200px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition);
 }
@@ -1738,7 +1888,7 @@ textarea {
 .image-modal-content img {
   max-width: 100%;
   max-height: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .image-modal-close {
@@ -1751,7 +1901,7 @@ textarea {
   background: rgba(0, 0, 0, 0.5);
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1777,7 +1927,7 @@ textarea {
 }/* 新帖子卡片样�?*/
 .post-form-simple {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 20px;
   margin-bottom: 25px;
   box-shadow: var(--shadow);
@@ -1792,7 +1942,7 @@ textarea {
 .new-post-avatar {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--primary-light);
   display: flex;
   align-items: center;
@@ -1834,7 +1984,7 @@ textarea {
   background: var(--primary-color);
   color: var(--button-text);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 15px;
   font-weight: 500;
@@ -1866,7 +2016,7 @@ textarea {
 .markdown-image {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin: 10px 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
@@ -1907,7 +2057,7 @@ textarea {
 .post-content code {
   background: var(--inline-code-bg);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
   color: var(--code-text);
@@ -1917,7 +2067,7 @@ textarea {
 .post-content pre {
   background: var(--code-bg);
   padding: 15px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow-x: auto;
   margin: 1em 0;
   border: 1px solid var(--code-border);
@@ -1932,7 +2082,7 @@ textarea {
   border-left: 4px solid var(--primary-color);
   padding-left: 15px;
   margin-left: 0;
-  color: #666;
+  color: var(--text-light);
   font-style: italic;
 }
 
@@ -2051,7 +2201,7 @@ textarea {
   color: var(--primary-color);
   text-decoration: none;
   border-bottom: 1px dashed var(--primary-color);
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .md-link:hover {
@@ -2064,7 +2214,7 @@ textarea {
 .md-image {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin: 1em 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   display: block;
@@ -2119,9 +2269,9 @@ textarea {
   border-spacing: 0;
   width: 100%;
   margin: 1.5em 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .md-table th {
@@ -2150,7 +2300,7 @@ textarea {
 /* 代码块优化 */
 .md-code-block {
   margin: 1.5em 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   background: var(--code-bg);
@@ -2178,10 +2328,10 @@ textarea {
   color: white;
   border: none;
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .copy-code-btn:hover {
@@ -2189,7 +2339,7 @@ textarea {
 }
 
 .copy-code-btn.copied {
-  background: #4caf50;
+  background: var(--success-color);
 }
 
 .md-pre {
@@ -2214,7 +2364,7 @@ textarea {
 .inline-code {
   background: var(--inline-code-bg);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
   color: var(--code-text);
@@ -2341,8 +2491,8 @@ textarea {
 .table-container {
   margin: 1.5em 0;
   overflow-x: auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 增强表格 */
@@ -2368,8 +2518,8 @@ textarea {
 .enhanced-table td {
   padding: 12px 16px;
   border: none;
-  border-bottom: 1px solid #e9ecef;
-  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+  transition: var(--transition-fast);
 }
 
 .enhanced-table tr:nth-child(even) {
@@ -2421,7 +2571,7 @@ textarea {
 @media (max-width: 768px) {
   .table-container {
     margin: 1em 0;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
   }
   
   .enhanced-table th,
@@ -2457,7 +2607,7 @@ textarea {
   margin: 1.5em 0;
   padding: 1em;
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 4px solid #4361ee;
   overflow-x: auto;
   overflow-y: hidden;
@@ -2513,7 +2663,7 @@ textarea {
   background: rgba(220, 53, 69, 0.05);
   border: 1px dashed #dc3545;
   padding: 0.5em;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
 }
@@ -2548,11 +2698,11 @@ textarea {
   color: #4361ee;
   border: 1px solid rgba(67, 97, 238, 0.3);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 12px;
   cursor: pointer;
   opacity: 0;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .math-block:hover .math-copy-btn {
@@ -2565,7 +2715,7 @@ textarea {
 }
 
 .math-copy-btn.copied {
-  background: #4caf50;
+  background: var(--success-color);
   color: white;
   border-color: #4caf50;
 }
@@ -2615,7 +2765,7 @@ textarea {
   margin: 1.5em 0;
   border-radius: 0 8px 8px 0;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .md-blockquote::before {
@@ -2699,7 +2849,7 @@ textarea {
   color: #4361ee;
   text-decoration: none;
   border-bottom: 1px dashed rgba(67, 97, 238, 0.3);
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   position: relative;
 }
 
@@ -2723,7 +2873,7 @@ textarea {
 .md-image {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   display: block;
@@ -2907,12 +3057,12 @@ textarea {
 
 .md-pre::-webkit-scrollbar-track {
   background: #252526;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .md-pre::-webkit-scrollbar-thumb {
   background: #555;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .md-pre::-webkit-scrollbar-thumb:hover {
@@ -2921,7 +3071,7 @@ textarea {
 
 /* 代码块复制按钮动画 */
 .copy-code-btn {
-  transition: all 0.3s ease;
+  transition: var(--transition);
 }
 
 .copy-code-btn:active {
@@ -2943,7 +3093,7 @@ textarea {
 .md-table.enhanced-table {
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -2993,7 +3143,7 @@ textarea {
 .header-user-avatar .header-avatar-image {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   object-fit: cover;
   display: block;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -3030,14 +3180,14 @@ textarea {
   top: 100%;
   right: 0;
   background: var(--background-card);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   min-width: 220px;
   margin-top: 10px;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
-  transition: all 0.3s ease;
+  transition: var(--transition);
   z-index: 1000;
   border: 1px solid var(--border-color);
 }
@@ -3092,7 +3242,7 @@ textarea {
   padding: 10px 15px;
   color: var(--text-color);
   text-decoration: none;
-  transition: background 0.2s ease;
+  transition: var(--transition-fast);
   border: none;
   background: none;
   width: 100%;
@@ -3167,7 +3317,7 @@ textarea {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 12px;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -3193,7 +3343,7 @@ textarea {
 
 .level-progress {
   background: var(--background-card);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 15px;
   margin: 10px 0;
   border: 1px solid var(--border-color);
@@ -3224,7 +3374,7 @@ textarea {
 .level-progress-bar {
   height: 8px;
   background: var(--background-light);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -3232,7 +3382,7 @@ textarea {
 .level-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: width 0.3s ease;
 }
 
@@ -3311,7 +3461,7 @@ textarea {
 
 .report-modal-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 450px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -3369,7 +3519,7 @@ textarea {
   gap: 12px;
   padding: 12px 15px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: var(--transition);
   border: 2px solid transparent;
@@ -3423,7 +3573,7 @@ textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   resize: vertical;
   background: var(--background-light);
@@ -3449,7 +3599,7 @@ textarea {
   padding: 10px 20px;
   background: var(--background-light);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   color: var(--text-color);
   cursor: pointer;
@@ -3464,7 +3614,7 @@ textarea {
   padding: 10px 20px;
   background: var(--warning-color);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   color: white;
   cursor: pointer;
@@ -3605,7 +3755,7 @@ textarea {
 
 .favorite-tag-modal-content {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 380px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -3653,8 +3803,8 @@ textarea {
   font-size: 22px;
   color: var(--text-light);
   cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-full);
+  transition: var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3687,9 +3837,9 @@ textarea {
   gap: 10px;
   padding: 12px 14px;
   background: var(--background-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   border: 2px solid transparent;
 }
 
@@ -3709,7 +3859,7 @@ textarea {
 .tag-color-dot {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
@@ -3721,20 +3871,17 @@ textarea {
   border-top: 1px solid var(--border-color);
 }
 
-.btn-skip,
-.btn-save-tag {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
+/* btn-skip/btn-save-tag 已统一到全局按钮体系，此处仅保留语义定义 */
 .btn-skip {
   background: var(--background-light);
   color: var(--text-color);
   border: 1px solid var(--border-color);
+  padding: var(--btn-padding-md);
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
 .btn-skip:hover {
@@ -3745,6 +3892,12 @@ textarea {
   background: var(--primary-color);
   color: white;
   border: none;
+  padding: var(--btn-padding-md);
+  border-radius: var(--radius-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
 .btn-save-tag:hover {
@@ -4073,7 +4226,7 @@ mjx-container svg {
   padding: 15px;
   margin-bottom: 10px;
   border-left: 4px solid;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -4340,7 +4493,7 @@ mjx-container svg {
 .category-nav-item.active {
   background: var(--primary-color);
   border-color: var(--primary-color);
-  color: #fff;
+  color: white;
   font-weight: 500;
 }
 
@@ -4369,7 +4522,7 @@ mjx-container svg {
 .category-sidebar-card {
   background: var(--background-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -4390,7 +4543,7 @@ mjx-container svg {
   background: var(--primary-light);
   border: 1px solid var(--primary-color);
   color: var(--primary-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -4402,7 +4555,7 @@ mjx-container svg {
 
 .category-sidebar-apply-btn:hover {
   background: var(--primary-color);
-  color: #fff;
+  color: white;
 }
 
 .category-sidebar-list {
@@ -4418,7 +4571,7 @@ mjx-container svg {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-color);
   font-size: 13px;
   text-decoration: none;
@@ -4473,7 +4626,7 @@ mjx-container svg {
   justify-content: center;
   gap: 6px;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--primary-color);
   font-size: 13px;
   text-decoration: none;
@@ -4502,7 +4655,7 @@ mjx-container svg {
   align-items: center;
   background: var(--background-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 20px 24px;
   margin-bottom: 20px;
 }
@@ -4516,7 +4669,7 @@ mjx-container svg {
 .category-icon {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4550,7 +4703,7 @@ mjx-container svg {
   padding: 8px 16px;
   background: var(--background-light);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-color);
   font-size: 14px;
   text-decoration: none;
@@ -4569,8 +4722,8 @@ mjx-container svg {
   padding: 8px 16px;
   background: var(--primary-color);
   border: none;
-  border-radius: 8px;
-  color: #fff;
+  border-radius: var(--radius-md);
+  color: white;
   font-size: 14px;
   cursor: pointer;
   transition: var(--transition);
@@ -4617,7 +4770,7 @@ mjx-container svg {
 .sort-btn.active {
   background: var(--primary-color);
   border-color: var(--primary-color);
-  color: #fff;
+  color: white;
 }
 
 /* 搜索结果提示 */
@@ -4627,7 +4780,7 @@ mjx-container svg {
   justify-content: space-between;
   padding: 12px 16px;
   background: var(--primary-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 16px;
   font-size: 14px;
   color: var(--primary-color);
@@ -4636,7 +4789,7 @@ mjx-container svg {
 .clear-search-btn {
   padding: 4px 12px;
   border: 1px solid var(--primary-color);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--primary-color);
   font-size: 12px;
@@ -4646,7 +4799,7 @@ mjx-container svg {
 
 .clear-search-btn:hover {
   background: var(--primary-color);
-  color: #fff;
+  color: white;
 }
 
 /* 侧边栏提示 */
@@ -4662,8 +4815,8 @@ mjx-container svg {
   padding: 10px 16px;
   background: var(--primary-color);
   border: none;
-  border-radius: 8px;
-  color: #fff;
+  border-radius: var(--radius-md);
+  color: white;
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -4681,7 +4834,7 @@ mjx-container svg {
 .post-item {
   background: var(--background-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 12px;
   transition: var(--transition);
@@ -4712,7 +4865,7 @@ mjx-container svg {
 .post-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   object-fit: cover;
 }
 
@@ -4760,7 +4913,7 @@ mjx-container svg {
 .post-image {
   max-width: 200px;
   max-height: 200px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   object-fit: cover;
   transition: var(--transition);
@@ -4819,14 +4972,14 @@ mjx-container svg {
 .image-modal-content {
   max-width: 90%;
   max-height: 90%;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .image-modal-close {
   position: absolute;
   top: 20px;
   right: 30px;
-  color: #fff;
+  color: white;
   font-size: 40px;
   cursor: pointer;
 }
@@ -4837,7 +4990,7 @@ mjx-container svg {
   padding: 60px 20px;
   background: var(--background-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .empty-state i {
@@ -4881,7 +5034,7 @@ mjx-container svg {
 
 .load-more-btn:hover {
   background: var(--primary-color);
-  color: #fff;
+  color: white;
 }
 
 /* 加载占位符 */
@@ -4915,7 +5068,7 @@ mjx-container svg {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--text-color);
   font-size: 13px;
   text-decoration: none;

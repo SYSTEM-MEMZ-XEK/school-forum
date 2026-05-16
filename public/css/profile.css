@@ -13,7 +13,7 @@
   background: var(--background-card);
   color: var(--text-color);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   transition: var(--transition);
   box-shadow: var(--shadow);
@@ -32,7 +32,7 @@
 /* 个人主页头部 */
 .profile-header {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 30px;
   margin-bottom: 25px;
   box-shadow: var(--shadow);
@@ -44,7 +44,7 @@
 .profile-avatar {
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   display: flex;
   align-items: center;
@@ -187,7 +187,7 @@
   margin-bottom: 20px;
   padding: 15px;
   background: var(--background-card);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow);
 }
 
@@ -217,7 +217,7 @@
 /* 个人主页帖子列表 */
 .profile-posts-section {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 25px;
   box-shadow: var(--shadow);
 }
@@ -280,7 +280,7 @@
   background: var(--primary-light);
   color: var(--primary-color);
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 13px;
   margin-right: 8px;
   margin-bottom: 10px;
@@ -332,7 +332,7 @@
   padding: 6px 15px;
   background: var(--background-card);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   color: var(--text-color);
   cursor: pointer;
@@ -594,7 +594,7 @@
 .follow-item-avatar {
   width: 45px;
   height: 45px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   display: flex;
   align-items: center;
