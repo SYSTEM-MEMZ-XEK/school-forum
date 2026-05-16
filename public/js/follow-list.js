@@ -86,7 +86,7 @@ const followListManager = {
   // 加载用户数据
   loadUserData: async function() {
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/user/profile/${this.state.userId}`);
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
       }
@@ -142,7 +142,7 @@ const followListManager = {
   // 加载关注统计
   loadFollowStats: async function() {
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/user/profile/${this.state.userId}`);
       if (!response.ok) return;
 
       const data = await response.json();

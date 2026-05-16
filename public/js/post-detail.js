@@ -222,7 +222,7 @@ const postDetailManager = {
       const currentUser = userManager.state.currentUser;
       if (!currentUser) return false;
 
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/favorites/check/${this.postId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -255,12 +255,9 @@ const postDetailManager = {
       const isFavorited = favoriteBtn.classList.contains('active');
       const method = isFavorited ? 'DELETE' : 'POST';
 
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/${this.postId}`, {
         method: method,
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -310,7 +307,7 @@ const postDetailManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/favorites/tags/${currentUser.id}`);
       const data = await response.json();
 
       if (data.success) {
@@ -401,11 +398,10 @@ const postDetailManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/${this.postId}/tag`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: currentUser.id,
           tagId: tagId || null
         })
       });
@@ -842,12 +838,10 @@ const postDetailManager = {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发表中...';
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments`, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
-          username: userManager.state.currentUser.username,
           content: processedContent,
           anonymous: isAnonymous
         })
@@ -888,12 +882,9 @@ const postDetailManager = {
     }
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments/${commentId}`, {
         method: 'DELETE',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -945,8 +936,8 @@ const postDetailManager = {
     }
 
     // 检测并转换 HTML 内容为 Markdown 代码块
-    const processedContent = typeof utils !== 'undefined' && utils.detectAndEscapeHtml 
-      ? utils.detectAndEscapeHtml(content) 
+    const processedContent = typeof utils !== 'undefined' && utils.detectAndEscapeHtml
+      ? utils.detectAndEscapeHtml(content)
       : content;
 
     // 禁用提交按钮
@@ -954,12 +945,10 @@ const postDetailManager = {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 回复中...';
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments/${commentId}/reply`, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
-          username: userManager.state.currentUser.username,
           content: processedContent,
           anonymous: isAnonymous
         })
@@ -1031,12 +1020,10 @@ const postDetailManager = {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 回复中...';
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments/${commentId}/reply`, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
-          username: userManager.state.currentUser.username,
           content: processedContent,
           anonymous: isAnonymous,
           replyToId: replyId
@@ -1079,13 +1066,9 @@ const postDetailManager = {
     }
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments/${replyId}`, {
         method: 'DELETE',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
-          replyId: replyId
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -1116,14 +1099,9 @@ const postDetailManager = {
     }
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments/${nestedReplyId}`, {
         method: 'DELETE',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
-          replyId: replyId,
-          nestedReplyId: nestedReplyId
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -1145,7 +1123,7 @@ const postDetailManager = {
   // 增加浏览量
   incrementViewCount: async function() {
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/view`, {
         method: 'POST',
         headers: userManager.getAuthHeaders()
       });
@@ -1183,12 +1161,9 @@ const postDetailManager = {
     likeBtn.classList.add('processing');
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/like`, {
         method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -1302,12 +1277,9 @@ const postDetailManager = {
     try {
       console.log('发送评论点赞请求:', { postId: this.postId, commentId, userId });
       
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/comments/${commentId}/like`, {
         method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userId
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -1352,12 +1324,9 @@ const postDetailManager = {
     dislikeBtn.classList.add('processing');
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}/dislike`, {
         method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -1436,12 +1405,9 @@ const postDetailManager = {
     }
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${this.postId}`, {
         method: 'DELETE',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: userManager.state.currentUser.id
-        })
+        headers: userManager.getAuthHeaders()
       });
 
       if (!response.ok) {
@@ -1697,11 +1663,10 @@ const postDetailManager = {
       saveBtn.textContent = '保存中...';
 
       try {
-        const response = await fetch(`/api/`, {
+        const response = await fetch(`/api/posts/${this.postId}`, {
           method: 'PUT',
           headers: userManager.getAuthHeaders(),
           body: JSON.stringify({
-            userId: userManager.state.currentUser.id,
             visibility: newVisibility
           })
         });
@@ -1844,7 +1809,7 @@ const postDetailManager = {
         
         console.log('发送举报请求:', { targetId, targetType, reason: selectedReason.value, reporterId: userId });
         
-        const response = await fetch('/api/', {
+        const response = await fetch('/api/reports', {
           method: 'POST',
           headers: userManager.getAuthHeaders(),
           body: JSON.stringify({

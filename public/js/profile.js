@@ -633,10 +633,7 @@ const profileManager = {
   // 加载关注统计数据
   loadFollowStats: async function() {
     try {
-      const response = await fetch(`/api/`);
-      if (!response.ok) {
-        throw new Error(`加载失败: ${response.status}`);
-      }
+      const response = await fetch(`/api/user/profile/${this.state.userId}`);
       
       const data = await response.json();
       
@@ -679,7 +676,7 @@ const profileManager = {
     }
     
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/follow/check/${this.state.userId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {

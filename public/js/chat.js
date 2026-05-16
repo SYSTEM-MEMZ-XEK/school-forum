@@ -112,7 +112,7 @@ const chatManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/messages`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
@@ -230,9 +230,9 @@ const chatManager = {
   // 获取对方用户信息
   fetchOtherUserInfo: async function(userId) {
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/user/profile/${userId}`);
       const data = await response.json();
-      
+
       if (data.success && data.user) {
         this.state.currentOtherUser = {
           id: userId,
@@ -249,20 +249,20 @@ const chatManager = {
   // 检查发送权限
   checkSendPermission: async function(senderId, receiverId) {
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/blacklist/check/${receiverId}`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
-      
+
       if (data.success) {
         this.state.canSendMessage = data.canSend;
         this.state.sendPermissionReason = data.reason;
         this.state.relation = data.relation;
         this.state.blockStatus = data.blockStatus;
-        
+
         // 更新UI
         this.updatePermissionUI();
-        
+
         // 更新关系显示
         this.updateRelationDisplay(data.relation, data.blockStatus);
       }
@@ -465,7 +465,7 @@ const chatManager = {
     this.dom.messageInput.style.height = 'auto';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/messages', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -544,9 +544,9 @@ const chatManager = {
   // 加载可联系的用户
   loadContactableUsers: async function(searchTerm = '') {
     const currentUser = this.getCurrentUser();
-    
+
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/following/${currentUser.id}`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
@@ -643,8 +643,7 @@ const chatManager = {
     if (!conversationId || !currentUser) return;
     
     try {
-      const response = await fetch(`/api/`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/messages/${conversationId}`, {
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })
       });

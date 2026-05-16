@@ -71,7 +71,7 @@ const followingManager = {
     if (!userManager.state.currentUser) return;
     
     try {
-      await fetch('/api/', {
+      await fetch('/api/follow/mark-viewed', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: userManager.state.currentUser.id })
@@ -111,13 +111,13 @@ const followingManager = {
     if (!userManager.state.currentUser) return;
 
     const container = this.dom.followingPostsContainer;
-    
+
     if (page === 1) {
       container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
     }
 
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/following/posts/${userManager.state.currentUser.id}?page=${page}`);
       
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
@@ -163,7 +163,7 @@ const followingManager = {
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
 
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/following/${userManager.state.currentUser.id}`);
       
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
@@ -200,9 +200,9 @@ const followingManager = {
     }
     
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/favorites/user/${userManager.state.currentUser.id}`);
       const data = await response.json();
-      
+
       if (data.success && data.posts) {
         this.state.favoritesSet = new Set(data.posts.map(post => post.id));
       }
@@ -368,11 +368,10 @@ const followingManager = {
     btn.disabled = true;
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/unfollow', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          followerId: userManager.state.currentUser.id,
           followingId: followingId
         })
       });
@@ -489,10 +488,9 @@ const followingManager = {
     likeBtn.classList.add('processing');
     
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${postId}/like`, {
         method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: userManager.state.currentUser.id })
+        headers: userManager.getAuthHeaders()
       });
       
       const data = await response.json();
@@ -540,10 +538,9 @@ const followingManager = {
       const isFavorited = favoriteBtn.classList.contains('active');
       const method = isFavorited ? 'DELETE' : 'POST';
       
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/${postId}`, {
         method: method,
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: userManager.state.currentUser.id })
+        headers: userManager.getAuthHeaders()
       });
       
       const data = await response.json();

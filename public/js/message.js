@@ -105,7 +105,7 @@ const messageManager = {
     }
     
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/notifications`, {
         headers: userManager.getAuthHeaders()
       });
       if (!response.ok) {
@@ -438,12 +438,9 @@ const messageManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/api/`, {
-        method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: currentUser.id
-        })
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: userManager.getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -500,12 +497,9 @@ const messageManager = {
     }
     
     try {
-      const response = await fetch('/api/', {
-        method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          userId: currentUser.id
-        })
+      const response = await fetch('/api/notifications/read-all', {
+        method: 'PUT',
+        headers: userManager.getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -543,12 +537,7 @@ const messageManager = {
   // 向服务器验证用户状态
   verifyUserWithServer: async function(userId) {
     try {
-      const response = await fetch('/api/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId })
+      const response = await fetch('/api/auth/verify', {
       });
       
       if (!response.ok) {

@@ -130,7 +130,7 @@ const userManager = {
     try {
       console.log('verifyUserWithServer: 正在验证用户状态，userId:', userId);
       
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1053,10 +1053,7 @@ const userManager = {
     }
     
     try {
-      const response = await fetch(`/api/`, {
-        method: 'PUT',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify({ settings })
+      const response = await fetch(`/api/users/${currentUser.id}/settings`, {
       });
       
       if (!response.ok) {
@@ -1155,7 +1152,7 @@ const userManager = {
     
     try {
       console.log('updateUnreadMessageCount: 正在获取未读消息数量, userId:', currentUser.id);
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/notifications`, {
         headers: this.getAuthHeaders()
       });
       if (!response.ok) {
@@ -1241,7 +1238,7 @@ const userManager = {
     
     try {
       console.log('updateUpdatesCount: 正在获取新帖子数量, userId:', currentUser.id);
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/stats`);
       if (!response.ok) {
         console.error('updateUpdatesCount: 获取新帖子数量失败');
         return;
@@ -1290,7 +1287,7 @@ const userManager = {
     }
     
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/messages/unread-count`, {
         headers: this.getAuthHeaders()
       });
       if (!response.ok) {

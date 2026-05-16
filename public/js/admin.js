@@ -117,7 +117,7 @@ checkAdminAuth: async function() {
 // 向服务器验证用户状态，返回 { isAdmin, user } 或 false
 verifyUserWithServer: async function(user) {
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/auth/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

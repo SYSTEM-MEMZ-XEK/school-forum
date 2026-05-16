@@ -82,7 +82,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/favorites/tags/${currentUser.id}`);
       const data = await response.json();
 
       if (data.success) {
@@ -134,7 +134,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/favorites/tags', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -167,7 +167,7 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/tags/${tagId}`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -204,10 +204,9 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/tags/${tagId}`, {
         method: 'DELETE',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: currentUser.id })
+        headers: userManager.getAuthHeaders()
       });
 
       const data = await response.json();
@@ -237,11 +236,10 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/${postId}/tag`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: currentUser.id,
           tagId: tagId
         })
       });
@@ -449,11 +447,10 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/favorites/batch/delete', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: currentUser.id,
           postIds: Array.from(this.selectedPostIds)
         })
       });
@@ -545,11 +542,10 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/favorites/batch/move', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: currentUser.id,
           postIds: Array.from(this.selectedPostIds),
           tagId: tagId || null
         })
@@ -578,10 +574,9 @@ const favoritesManager = {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/favorites/${postId}`, {
         method: 'DELETE',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ userId: currentUser.id })
+        headers: userManager.getAuthHeaders()
       });
 
       const data = await response.json();

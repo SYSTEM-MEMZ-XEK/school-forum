@@ -90,7 +90,7 @@ const commentsManager = {
     }
     
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

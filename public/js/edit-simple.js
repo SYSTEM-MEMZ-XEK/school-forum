@@ -121,7 +121,7 @@ const simpleEditManager = {
   // 加载帖子用于编辑
   loadPostForEdit: async function(postId) {
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/posts/${postId}`);
       
       if (!response.ok) {
         throw new Error('加载帖子失败');
@@ -753,8 +753,7 @@ const simpleEditManager = {
       // 发送请求（FormData 不需要 Content-Type，让浏览器自动设置）
       const token = localStorage.getItem('accessToken');
       const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const response = await fetch(`/api/`, {
-        method: 'PUT',
+      const response = await fetch(`/api/posts/${this.state.editPostId}`, {
         headers: authHeaders,
         body: formData
       });
@@ -891,8 +890,7 @@ const simpleEditManager = {
       // 发布请求（FormData 不需要 Content-Type，让浏览器自动设置 multipart/form-data）
       const token = localStorage.getItem('accessToken');
       const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const response = await fetch('/api/', {
-        method: 'POST',
+      const response = await fetch('/api/posts', {
         headers: authHeaders,
         body: formData
       });

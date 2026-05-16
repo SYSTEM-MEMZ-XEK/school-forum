@@ -568,9 +568,9 @@ const postsManager = {
     }
     
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/favorites/user/${currentUser.id}`);
       const data = await response.json();
-      
+
       if (data.success && data.posts) {
         // 返回收藏帖子ID的Set
         return new Set(data.posts.map(post => post.id));
@@ -888,7 +888,7 @@ const postsManager = {
     // 增加浏览量
     incrementViewCount: async function(postId) {
       try {
-        const response = await fetch(`/api/`, {
+        const response = await fetch(`/api/posts/${postId}/view`, {
           method: 'POST',
           headers: userManager.getAuthHeaders()
         });
@@ -915,7 +915,7 @@ const postsManager = {
       if (!currentUser) return;
 
       try {
-        const response = await fetch(`/api/`);
+        const response = await fetch(`/api/favorites/tags/${currentUser.id}`);
         const data = await response.json();
 
         if (data.success) {
@@ -1007,11 +1007,10 @@ const postsManager = {
       if (!currentUser) return;
 
       try {
-        const response = await fetch(`/api/`, {
+        const response = await fetch(`/api/favorites/${postId}/tag`, {
           method: 'PUT',
           headers: userManager.getAuthHeaders(),
           body: JSON.stringify({
-            userId: currentUser.id,
             tagId: tagId || null
           })
         });
@@ -1235,12 +1234,9 @@ const postsManager = {
         try {
           console.log('发送点赞请求:', { postId, userId });
           
-          const response = await fetch(`/api/`, {
+          const response = await fetch(`/api/posts/${postId}/like`, {
             method: 'POST',
-            headers: userManager.getAuthHeaders(),
-            body: JSON.stringify({
-              userId: userId
-            })
+            headers: userManager.getAuthHeaders()
           });
           
           if (!response.ok) {
@@ -1323,12 +1319,9 @@ const postsManager = {
         dislikeBtn.classList.add('processing');
         
         try {
-          const response = await fetch(`/api/`, {
+          const response = await fetch(`/api/posts/${postId}/dislike`, {
             method: 'POST',
-            headers: userManager.getAuthHeaders(),
-            body: JSON.stringify({
-              userId: userManager.state.currentUser.id
-            })
+            headers: userManager.getAuthHeaders()
           });
           
           if (!response.ok) {
@@ -1410,12 +1403,9 @@ const postsManager = {
           const isFavorited = favoriteBtn.classList.contains('active');
           const method = isFavorited ? 'DELETE' : 'POST';
           
-          const response = await fetch(`/api/`, {
+          const response = await fetch(`/api/favorites/${postId}`, {
             method: method,
-            headers: userManager.getAuthHeaders(),
-            body: JSON.stringify({
-              userId: userManager.state.currentUser.id
-            })
+            headers: userManager.getAuthHeaders()
           });
           
           if (!response.ok) {
@@ -1498,12 +1488,9 @@ const postsManager = {
         try {
           console.log('发送删除请求:', { postId, userId });
           
-          const response = await fetch(`/api/`, {
+          const response = await fetch(`/api/posts/${postId}`, {
             method: 'DELETE',
-            headers: userManager.getAuthHeaders(),
-            body: JSON.stringify({
-              userId: userId
-            })
+            headers: userManager.getAuthHeaders()
           });
           
           if (!response.ok) {
@@ -1674,7 +1661,7 @@ const postsManager = {
         submitBtn.disabled = true;
         submitBtn.textContent = '提交中...';
         
-        const response = await fetch('/api/', {
+        const response = await fetch('/api/reports', {
           method: 'POST',
           headers: userManager.getAuthHeaders(),
           body: JSON.stringify({

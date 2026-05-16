@@ -49,7 +49,7 @@ const categoryManager = {
   // 申请新建栏目
   applyForCategory: async function(categoryName, description) {
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/categories/apply', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ categoryName, description })

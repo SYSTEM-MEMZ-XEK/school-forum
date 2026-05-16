@@ -428,12 +428,12 @@ const settingsManager = {
       const settings = {
         privacy: privacySettings
       };
-      
+
       // 发送更新请求
-      const response = await fetch(`/api/`, {
-        method: 'PUT',
+      const response = await fetch(`/api/user/privacy-settings`, {
+        method: 'POST',
         headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ settings })
+        body: JSON.stringify(privacySettings)
       });
       
       if (!response.ok) {
@@ -507,12 +507,12 @@ const settingsManager = {
       const settings = {
         notifications: notificationSettings
       };
-      
+
       // 发送更新请求
-      const response = await fetch(`/api/`, {
-        method: 'PUT',
+      const response = await fetch(`/api/user/notification-settings`, {
+        method: 'POST',
         headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({ settings })
+        body: JSON.stringify(notificationSettings)
       });
       
       if (!response.ok) {
@@ -1055,13 +1055,12 @@ const settingsManager = {
     // 禁用按钮，显示加载状态
     this.dom.verifyCurrentPasswordBtn.disabled = true;
     this.dom.verifyCurrentPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
-    
+
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/send-password-change-code', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           currentPassword: currentPassword
         })
       });
@@ -1109,13 +1108,12 @@ const settingsManager = {
     // 禁用按钮，显示加载状态
     this.dom.sendPasswordCodeBtn.disabled = true;
     this.dom.sendPasswordCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
-    
+
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/send-password-change-code', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           currentPassword: this.state.passwordChange.currentPassword
         })
       });
@@ -1176,13 +1174,12 @@ const settingsManager = {
     // 禁用按钮，显示加载状态
     this.dom.verifyCodeBtn.disabled = true;
     this.dom.verifyCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
-    
+
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/verify-password-change-code', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           verificationCode: verificationCode
         })
       });
@@ -1237,7 +1234,7 @@ const settingsManager = {
     this.dom.changePasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 修改中...';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/change-password', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
@@ -1669,7 +1666,7 @@ const settingsManager = {
       this.dom.saveAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
       
       // 发送更新请求
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/users/${userManager.state.currentUser.id}`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify(updateData)
@@ -1810,7 +1807,7 @@ const settingsManager = {
       
       utils.showNotification('头像上传中...', 'info');
       
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/users/${userManager.state.currentUser.id}/avatar`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` },
         body: formData
@@ -1856,7 +1853,7 @@ const settingsManager = {
     try {
       utils.showNotification('头像移除中...', 'info');
       
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/users/${userManager.state.currentUser.id}/avatar`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` }
       });
@@ -2108,7 +2105,7 @@ const settingsManager = {
     }
     
     try {
-      const response = await fetch(`/api/`, {
+      const response = await fetch(`/api/users/${userManager.state.currentUser.id}`, {
         method: 'PUT',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify(updateData)
@@ -2165,11 +2162,10 @@ const settingsManager = {
     this.dom.verifyEmailPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/send-email-change-code', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           currentPassword: currentPassword,
           newEmail: newEmail
         })
@@ -2247,11 +2243,10 @@ const settingsManager = {
     this.dom.verifyEmailCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/verify-email-change', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           verificationCode: verificationCode,
           newEmail: this.state.emailChange.newEmail
         })
@@ -2357,11 +2352,10 @@ const settingsManager = {
     this.dom.verifyQQPasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/change-qq', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           currentPassword: currentPassword,
           newQQ: newQQ
         })
@@ -2506,11 +2500,10 @@ const settingsManager = {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/send-deletion-code', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           password: password
         })
       });
@@ -2552,11 +2545,10 @@ const settingsManager = {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注销中...';
     
     try {
-      const response = await fetch('/api/', {
+      const response = await fetch('/api/delete-account', {
         method: 'POST',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({
-          userId: userManager.state.currentUser.id,
           password: this.state.deletionPassword,
           verificationCode: code,
           keepData: keepData
@@ -2658,8 +2650,7 @@ const settingsManager = {
       const include = includes.join(',');
       this._setExportProgress(true, '正在收集您的数据，请稍候...', 50);
 
-      const res = await fetch(`/api/`, {
-        method: 'GET',
+      const res = await fetch(`/api/user/export-data?include=${encodeURIComponent(include)}`, {
         headers: userManager.getAuthHeaders()
       });
 
@@ -2716,8 +2707,7 @@ const settingsManager = {
 
     try {
       // 查询全部数据以获取数量统计
-      const res = await fetch('/api/', {
-        method: 'GET',
+      const res = await fetch('/api/user/export-data', {
         headers: userManager.getAuthHeaders()
       });
 
@@ -2984,7 +2974,7 @@ const settingsManager = {
       const jsonStr = JSON.stringify(this._importFileData);
       this._setImportProgress(true, '正在上传数据，请稍候...', 40);
 
-      const res = await fetch(`/api/`, {
+      const res = await fetch(`/api/user/import-data`, {
         method: 'POST',
         headers: {
           ...userManager.getAuthHeaders(),
