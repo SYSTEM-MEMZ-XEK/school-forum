@@ -170,8 +170,8 @@ const followListManager = {
     try {
       // 构建URL，添加当前用户ID用于判断关注状态
       let endpoint = this.state.type === 'following'
-        ? `/following/${this.state.userId}?page=${page}&limit=${this.state.limit}`
-        : `/followers/${this.state.userId}?page=${page}&limit=${this.state.limit}`;
+        ? `/api/following/${this.state.userId}?page=${page}&limit=${this.state.limit}`
+        : `/api/followers/${this.state.userId}?page=${page}&limit=${this.state.limit}`;
       
       // 如果有当前登录用户，添加参数
       if (userManager.state.currentUser) {
@@ -322,7 +322,7 @@ const followListManager = {
 
     try {
       // 关注使用 POST /follow，取消关注使用 POST /unfollow
-      const url = isFollowing ? '/unfollow' : '/follow';
+      const url = isFollowing ? '/api/unfollow' : '/api/follow';
       const response = await fetch(url, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),

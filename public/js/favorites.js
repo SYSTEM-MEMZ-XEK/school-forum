@@ -623,7 +623,7 @@ const favoritesManager = {
     }
 
     try {
-      let url = `/favorites/user/${currentUser.id}?page=${page}&limit=10`;
+      let url = `/api/favorites/user/${currentUser.id}?page=${page}&limit=10`;
       if (this.currentTagId) {
         url += `&tagId=${this.currentTagId}`;
       }

@@ -91,7 +91,7 @@ const postDetailManager = {
       // 获取当前用户ID用于黑名单检查
       const currentUser = userManager.state.currentUser;
       const viewerId = currentUser ? currentUser.id : '';
-      const url = viewerId ? `/posts/${this.postId}?viewerId=${viewerId}` : `/posts/${this.postId}`;
+      const url = viewerId ? `/api/posts/${this.postId}?viewerId=${viewerId}` : `/api/posts/${this.postId}`;
       
       const response = await fetch(url);
 

@@ -155,9 +155,9 @@ const profileManager = {
         (localStorage.getItem('forumUser') ? JSON.parse(localStorage.getItem('forumUser')) : null);
       const viewerId = currentUser ? currentUser.id : '';
       
-      const url = viewerId 
-        ? `/users/${this.state.userId}?viewerId=${encodeURIComponent(viewerId)}`
-        : `/users/${this.state.userId}`;
+      const url = viewerId
+        ? `/api/users/${this.state.userId}?viewerId=${encodeURIComponent(viewerId)}`
+        : `/api/users/${this.state.userId}`;
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -766,7 +766,7 @@ const profileManager = {
     
     try {
       // 关注使用 POST /follow，取消关注使用 POST /unfollow
-      const url = this.state.isFollowing ? '/unfollow' : '/follow';
+      const url = this.state.isFollowing ? '/api/unfollow' : '/api/follow';
       const response = await fetch(url, {
         method: 'POST',
         headers: userManager.getAuthHeaders(),

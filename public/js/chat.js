@@ -318,7 +318,7 @@ const chatManager = {
   // 加载消息
   loadMessages: async function(userId, otherUserId, before = null) {
     try {
-      let url = `/messages?userId=${userId}&otherUserId=${otherUserId}`;
+      let url = `/api/messages?userId=${userId}&otherUserId=${otherUserId}`;
       if (before) {
         url += `&before=${before}`;
       }

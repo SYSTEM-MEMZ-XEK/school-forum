@@ -240,7 +240,12 @@ showNotification: function(message, type = 'info') {
 // 增强的fetchWithTimeout函数 - 带调试信息
 fetchWithTimeout: function(url, options = {}) {
   const { timeout = this.state.requestTimeout } = options;
-  
+
+  // 统一添加 /api 前缀（如果路径不以 /api 开头且不是完整 URL）
+  if (url.startsWith('/') && !url.startsWith('/api/')) {
+    url = '/api' + url;
+  }
+
   console.log('发送管理员请求:', { url, method: options.method, currentAdmin: this.state.currentAdmin });
   
   // 确保所有管理员请求都包含管理员ID 和 Authorization 头
