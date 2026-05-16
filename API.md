@@ -32,6 +32,7 @@
 
 - [基础接口](#基础接口)
 - [用户模块](#用户模块)
+- [图形验证码模块](#图形验证码模块)
 - [帖子模块](#帖子模块)
 - [栏目模块](#栏目模块)  ← 刚刚补充了详细内容
 - [关注模块](#关注模块)
@@ -248,6 +249,39 @@ POST /delete-account
 
 ---
 
+### 获取图形验证码
+
+```
+GET /captcha
+```
+
+获取一次性图形验证码（SVG 格式），用于登录、注册和管理员登录时的人机验证。
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "captchaId": "uuid-string",
+    "svg": "<svg>...</svg>"
+  }
+}
+```
+
+**字段说明**：
+| 字段 | 类型 | 说明 |
+|-----|------|------|
+| captchaId | string | 验证码唯一标识，提交时需携带 |
+| svg | string | SVG 图片字符串，直接嵌入 DOM 显示 |
+
+**使用规则**：
+- 验证码为 4 位随机数字，大小写不敏感
+- 有效期 5 分钟，过期自动失效
+- **一次性使用**：验证后立即删除，不可重复使用
+- 点击验证码图片可刷新获取新的验证码
+
+---
+
 ### 用户注册
 
 ```
@@ -261,7 +295,9 @@ POST /register
 | username | string | 是 | 用户名（2-20字符） |
 | password | string | 是 | 密码（至少6位） |
 | email | string | 是 | 邮箱地址 |
-| verificationCode | string | 是 | 6位验证码 |
+| verificationCode | string | 是 | 6位邮箱验证码 |
+| captchaId | string | 是 | 图形验证码ID（从 GET /captcha 获取） |
+| captchaCode | string | 是 | 图形验证码（图片中的4位数字） |
 | school | string | 是 | 学校ID |
 | enrollmentYear | number | 是 | 入学年份 |
 | className | string | 是 | 班级名称 |
@@ -274,6 +310,8 @@ POST /register
   "password": "password123",
   "email": "user@example.com",
   "verificationCode": "123456",
+  "captchaId": "uuid-from-captcha-api",
+  "captchaCode": "3847",
   "school": "XXXX",
   "enrollmentYear": 2024,
   "className": "高一(1)班"
@@ -318,7 +356,9 @@ POST /login
 | email | string | 是 | 邮箱地址 |
 | qq | string | 是 | QQ号 |
 | password | string | 是 | 密码 |
-| verificationCode | string | 是 | 6位验证码 |
+| verificationCode | string | 是 | 6位邮箱验证码 |
+| captchaId | string | 是 | 图形验证码ID（从 GET /captcha 获取） |
+| captchaCode | string | 是 | 图形验证码（图片中的4位数字） |
 
 **请求示例**：
 ```json
@@ -326,7 +366,9 @@ POST /login
   "email": "user@example.com",
   "qq": "12345678",
   "password": "password123",
-  "verificationCode": "123456"
+  "verificationCode": "123456",
+  "captchaId": "uuid-from-captcha-api",
+  "captchaCode": "5621"
 }
 ```
 
@@ -509,6 +551,58 @@ DELETE /users/:id/avatar
 ```
 
 **请求参数**：无（通过路径参数指定用户）
+
+---
+
+## 图形验证码模块
+
+图形验证码用于登录、注册和管理员登录时的人机验证，防止自动化脚本攻击。
+
+### 技术实现
+
+- **纯 SVG 生成**：零依赖，服务端字符串拼接生成 SVG 图片
+- **验证码内容**：4 位随机数字 + 干扰线（4 条）+ 噪点（30 个）
+- **存储**：Redis 优先，不可用时自动降级到内存 Map
+- **有效期**：5 分钟（TTL），过期自动清除
+- **一次性**：验证成功后立即删除，防止重用
+
+### 获取图形验证码
+
+```
+GET /captcha
+```
+
+获取新的图形验证码，返回 captchaId 和 SVG 图片。
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "captchaId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"130\" height=\"48\">...</svg>"
+  }
+}
+```
+
+**字段说明**：
+| 字段 | 类型 | 说明 |
+|-----|------|------|
+| captchaId | string | 验证码唯一标识（UUID v4），提交表单时需携带 |
+| svg | string | SVG 图片字符串，可直接嵌入 HTML DOM 显示 |
+
+**使用流程**：
+1. 客户端调用 `GET /captcha` 获取 captchaId 和 SVG
+2. 将 SVG 渲染到页面（innerHTML），存储 captchaId
+3. 用户输入图片中的 4 位数字
+4. 提交表单时携带 `captchaId` 和 `captchaCode`
+5. 验证失败后应重新获取验证码（点击图片刷新或提交失败自动刷新）
+
+**注意事项**：
+- 验证码比较大小写不敏感
+- 每个 captchaId 只能验证一次，无论成功或失败
+- 5 分钟内未验证自动过期
+- 建议在登录/注册表单提交失败后自动刷新验证码
 
 ---
 
@@ -3158,6 +3252,7 @@ Android 客户端内置 Token 刷新拦截器（`TokenRefreshInterceptor`），�
 | 请求限流 | 基于 IP 的滑动窗口限流 |
 | 登录锁定 | 连续 5 次登录失败，锁定 30 分钟 |
 | 恶意 User-Agent | 检测并记录可疑请求 |
+| 图形验证码 | 登录/注册/管理员登录需通过人机验证（4位随机数字 SVG，5分钟有效，一次性使用） |
 
 #### CORS 配置
 - 开发环境：允许 `localhost` 和内网 IP（192.168.x.x / 10.x.x.x / 172.16-31.x.x）
@@ -3386,6 +3481,7 @@ Android 客户端内置 Token 刷新拦截器（`TokenRefreshInterceptor`），�
 | JWT 认证 | 基于 Token 的身份认证，支持令牌刷新和注销 |
 | 登录锁定 | 多次登录失败后锁定账户 |
 | 请求 ID 追踪 | 每个请求分配唯一 ID，便于安全审计 |
+| 图形验证码 | 登录/注册/管理员登录人机验证，SVG 零依赖生成，Redis+内存双存储 |
 
 ### JWT 认证
 
