@@ -340,11 +340,12 @@ fetchWithTimeout: function(url, options = {}) {
 
     // 切换页面部分
     showSection: function(sectionId) {
-        // 更新导航按钮状态
-        document.querySelectorAll('.admin-nav button').forEach(btn => {
+        // 更新侧边栏导航按钮状态
+        document.querySelectorAll('.sidebar-nav button[data-section]').forEach(btn => {
             btn.classList.remove('active');
         });
-        event.target.classList.add('active');
+        const activeBtn = document.querySelector(`.sidebar-nav button[data-section="${sectionId}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
         
         // 隐藏所有部分
         document.querySelectorAll('.admin-section').forEach(section => {
@@ -352,8 +353,21 @@ fetchWithTimeout: function(url, options = {}) {
         });
         
         // 显示目标部分
-        document.getElementById(sectionId).classList.add('active');
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) targetSection.classList.add('active');
         this.state.currentSection = sectionId;
+        
+        // 更新移动端顶栏标题
+        const topbarTitle = document.getElementById('topbar-title');
+        if (topbarTitle && activeBtn) {
+            topbarTitle.textContent = activeBtn.querySelector('span')?.textContent || sectionId;
+        }
+        
+        // 移动端关闭侧边栏
+        const sidebar = document.getElementById('admin-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('active');
         
         // 加载对应部分的数据
         switch(sectionId) {
@@ -4382,6 +4396,14 @@ function loadAnnouncements(page) {
 // 栏目管理函数
 function loadCategories(page) {
     adminManager.loadCategories(page);
+}
+
+// 移动端侧边栏开关
+function toggleSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('active');
 }
 
 // 初始化管理员系统 - 最终版
