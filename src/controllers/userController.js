@@ -1811,23 +1811,40 @@ function filterUserInfoByPrivacy(user, isSelf, isFollower) {
  * 随机 4 位数字，带干扰线和噪点
  */
 function generateCaptchaSvg(code) {
-  const width = 130;
-  const height = 48;
-  const fontSize = 28;
+  const width = 150;
+  const height = 52;
 
-  // 为每个字符生成随机位置和旋转
+  // 为每个字符生成随机位置、旋转、倾斜和大小变化
   const chars = code.split('').map((char, i) => {
-    const x = 18 + i * 26;
-    const y = 30 + Math.random() * 8 - 4;
-    const rotate = Math.random() * 20 - 10;
-    const r = Math.floor(Math.random() * 60);
-    const g = Math.floor(Math.random() * 60);
-    const b = Math.floor(Math.random() * 60 + 40);
-    return `<text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="rgb(${r},${g},${b})" transform="rotate(${rotate},${x},${y})">${char}</text>`;
+    const x = 20 + i * 30;
+    const y = 32 + Math.random() * 12 - 6;
+    const rotate = Math.random() * 50 - 25;          // ±25度旋转（原 ±10）
+    const skewX = Math.random() * 20 - 10;            // 水平倾斜 ±10度
+    const charFontSize = 26 + Math.floor(Math.random() * 8); // 26-34 随机大小
+    const r = Math.floor(Math.random() * 80);
+    const g = Math.floor(Math.random() * 80);
+    const b = Math.floor(Math.random() * 80 + 40);
+    return `<text x="${x}" y="${y}" font-family="Arial, sans-serif" font-size="${charFontSize}" font-weight="bold" fill="rgb(${r},${g},${b})" transform="rotate(${rotate},${x},${y}) skewX(${skewX})">${char}</text>`;
   }).join('');
 
-  // 生成干扰线
-  const lines = Array.from({ length: 4 }, () => {
+  // 生成贝塞尔曲线干扰线（比直线更难被 OCR 过滤）
+  const curves = Array.from({ length: 3 }, () => {
+    const x1 = Math.random() * width * 0.3;
+    const y1 = Math.random() * height;
+    const cx1 = Math.random() * width * 0.5 + width * 0.2;
+    const cy1 = Math.random() * height;
+    const cx2 = Math.random() * width * 0.5 + width * 0.4;
+    const cy2 = Math.random() * height;
+    const x2 = width - Math.random() * width * 0.3;
+    const y2 = Math.random() * height;
+    const r = Math.floor(Math.random() * 150 + 100);
+    const g = Math.floor(Math.random() * 150 + 100);
+    const b = Math.floor(Math.random() * 150 + 100);
+    return `<path d="M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}" stroke="rgba(${r},${g},${b},0.5)" stroke-width="1.5" fill="none"/>`;
+  }).join('');
+
+  // 生成直线干扰线
+  const lines = Array.from({ length: 3 }, () => {
     const x1 = Math.random() * width;
     const y1 = Math.random() * height;
     const x2 = Math.random() * width;
@@ -1838,17 +1855,32 @@ function generateCaptchaSvg(code) {
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(${r},${g},${b},0.4)" stroke-width="1"/>`;
   }).join('');
 
-  // 生成噪点
-  const dots = Array.from({ length: 30 }, () => {
+  // 生成圆形噪点
+  const dots = Array.from({ length: 80 }, () => {
     const x = Math.random() * width;
     const y = Math.random() * height;
     const r = Math.floor(Math.random() * 200);
     const g = Math.floor(Math.random() * 200);
     const b = Math.floor(Math.random() * 200);
-    return `<circle cx="${x}" cy="${y}" r="1" fill="rgba(${r},${g},${b},0.5)"/>`;
+    const radius = 0.5 + Math.random() * 1.5;
+    return `<circle cx="${x}" cy="${y}" r="${radius}" fill="rgba(${r},${g},${b},0.6)"/>`;
   }).join('');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="#f0f0f0" rx="4"/>${lines}${dots}${chars}</svg>`;
+  // 生成不规则色块噪点（小矩形 + 小线段，覆盖在字符上方）
+  const blocks = Array.from({ length: 30 }, () => {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    const w = 2 + Math.random() * 6;
+    const h = 1 + Math.random() * 3;
+    const rotate = Math.random() * 180;
+    const r = Math.floor(Math.random() * 200);
+    const g = Math.floor(Math.random() * 200);
+    const b = Math.floor(Math.random() * 200);
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgba(${r},${g},${b},0.35)" transform="rotate(${rotate},${x + w / 2},${y + h / 2})"/>`;
+  }).join('');
+
+  // 渲染顺序：背景 → 字符 → 干扰元素（字符被干扰覆盖，增加识别难度）
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="#f0f0f0" rx="4"/>${chars}${curves}${lines}${dots}${blocks}</svg>`;
 }
 
 module.exports = userController;
