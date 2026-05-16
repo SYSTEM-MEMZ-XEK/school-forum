@@ -176,7 +176,7 @@ const postsManager = {
     
     try {
       // 构建 URL，添加搜索、排序和分类参数
-      let url = '/posts';
+      let url = '/api/posts';
       const params = [];
       
       // 搜索关键词
@@ -327,7 +327,7 @@ const postsManager = {
   // 加载分类列表
   loadCategories: async function() {
     try {
-      const response = await fetch('/api/');
+      const response = await fetch('/api/categories');
       const data = await response.json();
       if (data.success && data.categories) {
         this.state.categories = data.categories;

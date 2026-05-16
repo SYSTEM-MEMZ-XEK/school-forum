@@ -1903,7 +1903,7 @@ const settingsManager = {
   loadSchoolsConfig: async function() {
     console.log('开始加载学校配置...');
     try {
-      const response = await fetch('/api/');
+      const response = await fetch('/api/schools');
       if (!response.ok) {
         throw new Error('加载学校配置失败');
       }

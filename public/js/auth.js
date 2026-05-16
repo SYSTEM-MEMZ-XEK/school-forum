@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadSchoolsConfig() {
   console.log('开始加载学校配置...');
   try {
-    const response = await fetch('/api/');
+    const response = await fetch('/api/schools');
     console.log('学校配置响应状态:', response.status);
     console.log('学校配置响应OK:', response.ok);
     

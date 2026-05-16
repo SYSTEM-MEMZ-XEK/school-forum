@@ -46,7 +46,7 @@ const simpleEditManager = {
   // 加载分类列表
   loadCategories: async function() {
     try {
-      const response = await fetch('/api/');
+      const response = await fetch('/api/categories');
       const data = await response.json();
       
       if (data.success && data.categories) {
@@ -84,7 +84,7 @@ const simpleEditManager = {
     
     // 获取公开配置
     try {
-      const response = await fetch('/api/');
+      const response = await fetch('/api/config/public');
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.config) {

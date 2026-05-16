@@ -16,7 +16,7 @@ const statsManager = {
   // 加载统计数据
   loadStats: async function() {
     try {
-      const response = await fetch('/api/');
+      const response = await fetch('/api/stats');
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
       }

@@ -17,7 +17,7 @@ const categoryManager = {
   // 加载所有已启用栏目
   loadCategories: async function() {
     try {
-      const response = await fetch('/api/');
+      const response = await fetch('/api/categories');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (data.success) {
@@ -33,7 +33,7 @@ const categoryManager = {
   // 获取单个栏目
   getCategory: async function(categoryId) {
     try {
-      const response = await fetch(`/api/`);
+      const response = await fetch(`/api/categories/${categoryId}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (data.success) {
