@@ -360,19 +360,19 @@ async function sendVerificationCode() {
   }
   
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/send-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ email })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || '发送验证码失败');
     }
-    
+
     const data = await response.json();
     if (data.success) {
       showNotification('验证码已发送到您的邮箱，请查收', 'success');
@@ -446,19 +446,19 @@ async function sendLoginVerificationCode() {
   }
   
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/send-login-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ email })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || '发送验证码失败');
     }
-    
+
     const data = await response.json();
     if (data.success) {
       showNotification('验证码已发送到您的邮箱，请查收', 'success');
@@ -532,19 +532,19 @@ async function sendAdminVerificationCode() {
   }
   
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/send-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ email })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || '发送验证码失败');
     }
-    
+
     const data = await response.json();
     if (data.success) {
       showNotification('验证码已发送到您的邮箱，请查收', 'success');
@@ -663,7 +663,7 @@ async function registerUser() {
   }
   
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -763,7 +763,7 @@ async function loginUser() {
   }
   
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -777,12 +777,12 @@ async function loginUser() {
         captchaCode
       })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || '登录失败');
     }
-    
+
     const data = await response.json();
     if (data.success) {
       // 添加管理员标记到用户信息
@@ -790,7 +790,7 @@ async function loginUser() {
       if (data.isAdmin) {
         userData.isAdmin = true;
       }
-      
+
       state.currentUser = userData;
       localStorage.setItem('forumUser', JSON.stringify(userData));
       // 保存 JWT Token（登录接口返回 token/refreshToken，管理员额外返回 adminToken）
@@ -870,7 +870,7 @@ async function loginAdmin() {
   }
   
   try {
-    const response = await fetch('/api/', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -884,19 +884,19 @@ async function loginAdmin() {
         captchaCode
       })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || '登录失败');
     }
-    
+
     const data = await response.json();
     if (data.success) {
       // 检查是否是管理员
       if (!data.isAdmin) {
         throw new Error('您不是管理员，无法访问后台管理');
       }
-      
+
       // 添加管理员标记到用户信息
       const userData = data.user;
       userData.isAdmin = true;
