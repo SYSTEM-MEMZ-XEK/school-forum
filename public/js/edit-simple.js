@@ -754,6 +754,7 @@ const simpleEditManager = {
       const token = localStorage.getItem('accessToken');
       const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch(`/api/posts/${this.state.editPostId}`, {
+        method: 'PUT',
         headers: authHeaders,
         body: formData
       });
@@ -891,6 +892,7 @@ const simpleEditManager = {
       const token = localStorage.getItem('accessToken');
       const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch('/api/posts', {
+        method: 'POST',
         headers: authHeaders,
         body: formData
       });

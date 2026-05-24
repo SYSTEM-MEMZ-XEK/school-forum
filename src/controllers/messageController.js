@@ -291,7 +291,8 @@ const messageController = {
    */
   async getUnreadCount(req, res) {
     try {
-      const { userId } = req.query;
+      // 优先从认证中间件获取userId，兼容query参数传入
+      const userId = req.user?.id || req.query.userId;
 
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
