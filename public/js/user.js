@@ -1054,6 +1054,9 @@ const userManager = {
     
     try {
       const response = await fetch(`/api/users/${currentUser.id}/settings`, {
+        method: 'PUT',
+        headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
       });
       
       if (!response.ok) {
@@ -1287,7 +1290,7 @@ const userManager = {
     }
     
     try {
-      const response = await fetch(`/api/messages/unread-count`, {
+      const response = await fetch(`/api/messages/unread`, {
         headers: this.getAuthHeaders()
       });
       if (!response.ok) {
