@@ -3,6 +3,7 @@
  * 使用Redis实现滑动窗口限流
  */
 const { rateLimiter } = require('../utils/redisUtils');
+const { getSecurityConfig } = require('../utils/configUtils');
 const logger = require('../utils/logger');
 
 /**
@@ -59,64 +60,75 @@ function createRateLimiter(options = {}) {
   };
 }
 
-// 预定义的限流配置
-const rateLimiters = {
-  // 通用API限流：每分钟100次
-  general: createRateLimiter({
-    limit: 100,
-    window: 60,
-    message: '请求过于频繁，请稍后再试'
-  }),
-  
-  // 严格限流：每分钟20次（用于敏感操作）
-  strict: createRateLimiter({
-    limit: 20,
-    window: 60,
-    message: '操作过于频繁，请稍后再试'
-  }),
-  
-  // 宽松限流：每分钟300次（用于浏览等非敏感操作）
-  loose: createRateLimiter({
-    limit: 300,
-    window: 60,
-    message: '请求过于频繁，请稍后再试'
-  }),
-  
-  // 登录限流：每分钟5次
-  login: createRateLimiter({
-    limit: 5,
-    window: 60,
-    message: '登录尝试过于频繁，请稍后再试'
-  }),
-  
-  // 发帖限流：每分钟10次
-  post: createRateLimiter({
-    limit: 10,
-    window: 60,
-    message: '发帖过于频繁，请稍后再试'
-  }),
-  
-  // 评论限流：每分钟30次
-  comment: createRateLimiter({
-    limit: 30,
-    window: 60,
-    message: '评论过于频繁，请稍后再试'
-  }),
-  
-  // 搜索限流：每分钟30次
-  search: createRateLimiter({
-    limit: 30,
-    window: 60,
-    message: '搜索过于频繁，请稍后再试'
-  }),
-  
-  // 验证码限流：每分钟1次
-  verificationCode: createRateLimiter({
-    limit: 1,
-    window: 60,
-    message: '验证码发送过于频繁，请稍后再试'
-  })
-};
+// 预定义的限流配置（从动态安全配置读取参数）
+function getDynamicRateLimiters() {
+  const sec = getSecurityConfig();
+  return {
+    // 通用API限流
+    general: createRateLimiter({
+      limit: sec.rateLimitGeneral || 100,
+      window: 60,
+      message: '请求过于频繁，请稍后再试'
+    }),
+    
+    // 严格限流：每分钟20次（用于敏感操作）
+    strict: createRateLimiter({
+      limit: 20,
+      window: 60,
+      message: '操作过于频繁，请稍后再试'
+    }),
+    
+    // 宽松限流：每分钟300次（用于浏览等非敏感操作）
+    loose: createRateLimiter({
+      limit: 300,
+      window: 60,
+      message: '请求过于频繁，请稍后再试'
+    }),
+    
+    // 登录限流
+    login: createRateLimiter({
+      limit: sec.rateLimitLogin || 5,
+      window: 60,
+      message: '登录尝试过于频繁，请稍后再试'
+    }),
+    
+    // 发帖限流
+    post: createRateLimiter({
+      limit: sec.rateLimitPost || 10,
+      window: 60,
+      message: '发帖过于频繁，请稍后再试'
+    }),
+    
+    // 评论限流
+    comment: createRateLimiter({
+      limit: sec.rateLimitComment || 30,
+      window: 60,
+      message: '评论过于频繁，请稍后再试'
+    }),
+    
+    // 搜索限流
+    search: createRateLimiter({
+      limit: sec.rateLimitSearch || 30,
+      window: 60,
+      message: '搜索过于频繁，请稍后再试'
+    }),
+    
+    // 验证码限流
+    verificationCode: createRateLimiter({
+      limit: sec.rateLimitVerify || 1,
+      window: 60,
+      message: '验证码发送过于频繁，请稍后再试'
+    })
+  };
+}
+
+// 向后兼容的静态导出（实际调用时动态读取）
+const rateLimiters = new Proxy({}, {
+  get(target, prop) {
+    const dynamic = getDynamicRateLimiters();
+    return dynamic[prop];
+  }
+});
 
 module.exports = {
   createRateLimiter,

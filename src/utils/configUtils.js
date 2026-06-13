@@ -84,7 +84,48 @@ const DEFAULT_CONFIG = {
     { id: 'school-3', name: '第一中学' },
     { id: 'school-4', name: '第二中学' },
     { id: 'school-5', name: '第三中学' }
-  ]
+  ],
+  
+  // 安全防护配置
+  security: {
+    // 网络连接
+    allowHTTP: true,                    // 允许HTTP连接（关闭则强制HTTPS）
+    hstsEnabled: false,                 // 启用HSTS
+    corsAllowAllDev: true,              // 开发模式放行所有CORS来源
+    corsExtraOrigins: [],               // 额外允许的CORS来源
+    
+    // 频率限制
+    rateLimitEnabled: true,             // 启用接口限流
+    rateLimitGeneral: 100,              // 通用API（次/分钟）
+    rateLimitLogin: 5,                  // 登录（次/分钟）
+    rateLimitPost: 10,                  // 发帖（次/分钟）
+    rateLimitComment: 30,               // 评论（次/分钟）
+    rateLimitSearch: 30,                // 搜索（次/分钟）
+    rateLimitVerify: 1,                 // 验证码（次/分钟）
+    
+    // 登录安全
+    loginMaxAttempts: 5,                // 最大登录尝试次数
+    loginLockTime: 30,                  // 锁定时间（分钟）
+    jwtExpiresDays: 7,                  // JWT过期时间（天）
+    
+    // 密码策略
+    passwordMinLength: 8,               // 最小长度
+    passwordRequireUppercase: true,      // 要求大写字母
+    passwordRequireLowercase: true,      // 要求小写字母
+    passwordRequireNumber: true,         // 要求数字
+    passwordRequireSpecial: false,       // 要求特殊字符
+    
+    // XSS与注入防护
+    xssFilterEnabled: true,             // XSS过滤
+    injectionGuardEnabled: true,        // SQL/NoSQL注入防护
+    mongoSanitizeEnabled: true,         // MongoDB注入清洗
+    hppGuardEnabled: true,              // HTTP参数污染防护
+    
+    // 安全响应头
+    helmetEnabled: true,                // Helmet安全头
+    cspEnabled: true,                   // 内容安全策略
+    frameGuard: true                    // 禁止iframe嵌入
+  }
 };
 
 /**
@@ -182,7 +223,35 @@ function mergeWithDefaults(config) {
         min: config.contentLimits?.password?.min || DEFAULT_CONFIG.contentLimits.password.min
       }
     },
-    schools: config.schools || []
+    schools: config.schools || [],
+    security: {
+      allowHTTP: config.security?.allowHTTP ?? DEFAULT_CONFIG.security.allowHTTP,
+      hstsEnabled: config.security?.hstsEnabled ?? DEFAULT_CONFIG.security.hstsEnabled,
+      corsAllowAllDev: config.security?.corsAllowAllDev ?? DEFAULT_CONFIG.security.corsAllowAllDev,
+      corsExtraOrigins: config.security?.corsExtraOrigins || DEFAULT_CONFIG.security.corsExtraOrigins,
+      rateLimitEnabled: config.security?.rateLimitEnabled ?? DEFAULT_CONFIG.security.rateLimitEnabled,
+      rateLimitGeneral: config.security?.rateLimitGeneral ?? DEFAULT_CONFIG.security.rateLimitGeneral,
+      rateLimitLogin: config.security?.rateLimitLogin ?? DEFAULT_CONFIG.security.rateLimitLogin,
+      rateLimitPost: config.security?.rateLimitPost ?? DEFAULT_CONFIG.security.rateLimitPost,
+      rateLimitComment: config.security?.rateLimitComment ?? DEFAULT_CONFIG.security.rateLimitComment,
+      rateLimitSearch: config.security?.rateLimitSearch ?? DEFAULT_CONFIG.security.rateLimitSearch,
+      rateLimitVerify: config.security?.rateLimitVerify ?? DEFAULT_CONFIG.security.rateLimitVerify,
+      loginMaxAttempts: config.security?.loginMaxAttempts ?? DEFAULT_CONFIG.security.loginMaxAttempts,
+      loginLockTime: config.security?.loginLockTime ?? DEFAULT_CONFIG.security.loginLockTime,
+      jwtExpiresDays: config.security?.jwtExpiresDays ?? DEFAULT_CONFIG.security.jwtExpiresDays,
+      passwordMinLength: config.security?.passwordMinLength ?? DEFAULT_CONFIG.security.passwordMinLength,
+      passwordRequireUppercase: config.security?.passwordRequireUppercase ?? DEFAULT_CONFIG.security.passwordRequireUppercase,
+      passwordRequireLowercase: config.security?.passwordRequireLowercase ?? DEFAULT_CONFIG.security.passwordRequireLowercase,
+      passwordRequireNumber: config.security?.passwordRequireNumber ?? DEFAULT_CONFIG.security.passwordRequireNumber,
+      passwordRequireSpecial: config.security?.passwordRequireSpecial ?? DEFAULT_CONFIG.security.passwordRequireSpecial,
+      xssFilterEnabled: config.security?.xssFilterEnabled ?? DEFAULT_CONFIG.security.xssFilterEnabled,
+      injectionGuardEnabled: config.security?.injectionGuardEnabled ?? DEFAULT_CONFIG.security.injectionGuardEnabled,
+      mongoSanitizeEnabled: config.security?.mongoSanitizeEnabled ?? DEFAULT_CONFIG.security.mongoSanitizeEnabled,
+      hppGuardEnabled: config.security?.hppGuardEnabled ?? DEFAULT_CONFIG.security.hppGuardEnabled,
+      helmetEnabled: config.security?.helmetEnabled ?? DEFAULT_CONFIG.security.helmetEnabled,
+      cspEnabled: config.security?.cspEnabled ?? DEFAULT_CONFIG.security.cspEnabled,
+      frameGuard: config.security?.frameGuard ?? DEFAULT_CONFIG.security.frameGuard
+    }
   };
 }
 
@@ -351,6 +420,15 @@ function getConfigFilePath() {
   return CONFIG_FILE;
 }
 
+/**
+ * 获取安全防护配置
+ * @returns {object} 安全配置对象
+ */
+function getSecurityConfig() {
+  const config = readConfig();
+  return config.security || DEFAULT_CONFIG.security;
+}
+
 module.exports = {
   initConfig,
   readConfig,
@@ -366,5 +444,6 @@ module.exports = {
   setRunMode,
   isMaintenanceMode,
   isDebugMode,
-  isSelfDestructMode
+  isSelfDestructMode,
+  getSecurityConfig
 };

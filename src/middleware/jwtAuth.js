@@ -3,7 +3,7 @@
  * 提供用户和管理员的 Token 认证
  */
 const jwt = require('jsonwebtoken');
-const { JWT_CONFIG, ADMIN_JWT_CONFIG, LOGIN_SECURITY } = require('../config/security');
+const { JWT_CONFIG, ADMIN_JWT_CONFIG, getDynamicLoginSecurity } = require('../config/security');
 const { getRedisClient } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
 const User = require('../models/User');
@@ -343,6 +343,7 @@ async function recordLoginAttempt(identifier, success, ip) {
   const redis = getRedisClient();
   if (!redis) return { allowed: true };
   
+  const LOGIN_SECURITY = getDynamicLoginSecurity();
   const key = `${LOGIN_SECURITY.redisPrefix}${identifier}`;
   
   try {
@@ -394,6 +395,8 @@ async function recordLoginAttempt(identifier, success, ip) {
 async function checkLoginLocked(identifier) {
   const redis = getRedisClient();
   if (!redis) return { locked: false };
+  
+  const LOGIN_SECURITY = getDynamicLoginSecurity();
   
   try {
     const key = `${LOGIN_SECURITY.redisPrefix}${identifier}`;

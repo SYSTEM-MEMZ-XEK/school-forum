@@ -1321,6 +1321,35 @@ loadBannedUsers: async function() {
                 document.getElementById('pagination-default-page').value = config.pagination.defaultPage;
                 document.getElementById('pagination-default-limit').value = config.pagination.defaultLimit;
                 
+                // 加载安全防护配置
+                const sec = config.security || {};
+                document.getElementById('security-allow-http').checked = sec.allowHTTP !== false;
+                document.getElementById('security-hsts-enabled').checked = sec.hstsEnabled === true;
+                document.getElementById('security-cors-allow-all-dev').checked = sec.corsAllowAllDev !== false;
+                document.getElementById('security-cors-origins').value = (sec.corsExtraOrigins || []).join('\n');
+                document.getElementById('security-rate-limit-enabled').checked = sec.rateLimitEnabled !== false;
+                document.getElementById('security-rate-limit-general').value = sec.rateLimitGeneral || 100;
+                document.getElementById('security-rate-limit-login').value = sec.rateLimitLogin || 5;
+                document.getElementById('security-rate-limit-post').value = sec.rateLimitPost || 10;
+                document.getElementById('security-rate-limit-comment').value = sec.rateLimitComment || 30;
+                document.getElementById('security-rate-limit-search').value = sec.rateLimitSearch || 30;
+                document.getElementById('security-rate-limit-verify').value = sec.rateLimitVerify || 1;
+                document.getElementById('security-login-max-attempts').value = sec.loginMaxAttempts || 5;
+                document.getElementById('security-login-lock-time').value = sec.loginLockTime || 30;
+                document.getElementById('security-jwt-expires').value = sec.jwtExpiresDays || 7;
+                document.getElementById('security-password-min-length').value = sec.passwordMinLength || 8;
+                document.getElementById('security-password-uppercase').checked = sec.passwordRequireUppercase !== false;
+                document.getElementById('security-password-lowercase').checked = sec.passwordRequireLowercase !== false;
+                document.getElementById('security-password-number').checked = sec.passwordRequireNumber !== false;
+                document.getElementById('security-password-special').checked = sec.passwordRequireSpecial === true;
+                document.getElementById('security-xss-filter').checked = sec.xssFilterEnabled !== false;
+                document.getElementById('security-injection-guard').checked = sec.injectionGuardEnabled !== false;
+                document.getElementById('security-mongo-sanitize').checked = sec.mongoSanitizeEnabled !== false;
+                document.getElementById('security-hpp-guard').checked = sec.hppGuardEnabled !== false;
+                document.getElementById('security-helmet-enabled').checked = sec.helmetEnabled !== false;
+                document.getElementById('security-csp-enabled').checked = sec.cspEnabled !== false;
+                document.getElementById('security-frame-guard').checked = sec.frameGuard !== false;
+                
                 // 加载学校列表
                 if (config.schools) {
                     this.renderSchoolsList(config.schools);
@@ -1725,6 +1754,34 @@ loadBannedUsers: async function() {
                 pagination: {
                     defaultPage: parseInt(document.getElementById('pagination-default-page').value),
                     defaultLimit: parseInt(document.getElementById('pagination-default-limit').value)
+                },
+                security: {
+                    allowHTTP: document.getElementById('security-allow-http').checked,
+                    hstsEnabled: document.getElementById('security-hsts-enabled').checked,
+                    corsAllowAllDev: document.getElementById('security-cors-allow-all-dev').checked,
+                    corsExtraOrigins: document.getElementById('security-cors-origins').value.split('\n').map(s => s.trim()).filter(s => s),
+                    rateLimitEnabled: document.getElementById('security-rate-limit-enabled').checked,
+                    rateLimitGeneral: parseInt(document.getElementById('security-rate-limit-general').value),
+                    rateLimitLogin: parseInt(document.getElementById('security-rate-limit-login').value),
+                    rateLimitPost: parseInt(document.getElementById('security-rate-limit-post').value),
+                    rateLimitComment: parseInt(document.getElementById('security-rate-limit-comment').value),
+                    rateLimitSearch: parseInt(document.getElementById('security-rate-limit-search').value),
+                    rateLimitVerify: parseInt(document.getElementById('security-rate-limit-verify').value),
+                    loginMaxAttempts: parseInt(document.getElementById('security-login-max-attempts').value),
+                    loginLockTime: parseInt(document.getElementById('security-login-lock-time').value),
+                    jwtExpiresDays: parseInt(document.getElementById('security-jwt-expires').value),
+                    passwordMinLength: parseInt(document.getElementById('security-password-min-length').value),
+                    passwordRequireUppercase: document.getElementById('security-password-uppercase').checked,
+                    passwordRequireLowercase: document.getElementById('security-password-lowercase').checked,
+                    passwordRequireNumber: document.getElementById('security-password-number').checked,
+                    passwordRequireSpecial: document.getElementById('security-password-special').checked,
+                    xssFilterEnabled: document.getElementById('security-xss-filter').checked,
+                    injectionGuardEnabled: document.getElementById('security-injection-guard').checked,
+                    mongoSanitizeEnabled: document.getElementById('security-mongo-sanitize').checked,
+                    hppGuardEnabled: document.getElementById('security-hpp-guard').checked,
+                    helmetEnabled: document.getElementById('security-helmet-enabled').checked,
+                    cspEnabled: document.getElementById('security-csp-enabled').checked,
+                    frameGuard: document.getElementById('security-frame-guard').checked
                 }
             };
 

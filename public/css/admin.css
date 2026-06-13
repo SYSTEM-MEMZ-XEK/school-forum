@@ -5027,3 +5027,194 @@
         gap: 15px;
     }
 }
+
+/* ==================== 安全防护配置样式 ==================== */
+.security-sub-section {
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: var(--radius-sm, 8px);
+    padding: 18px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.security-item-header h4 {
+    color: var(--primary-color);
+    margin: 0 0 15px 0;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.security-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.security-toggle-row:last-of-type {
+    border-bottom: none;
+}
+
+.toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.toggle-label span:first-child {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary, #333);
+}
+
+.toggle-hint {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+}
+
+/* 开关样式 */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.switch input:checked + .slider {
+    background-color: var(--primary-color, #4a90d9);
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(20px);
+}
+
+.switch input:focus + .slider {
+    box-shadow: 0 0 0 2px var(--primary-light, rgba(74,144,217,0.3));
+}
+
+/* 三列表单行 */
+.form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.form-row-3 .form-group {
+    margin-bottom: 0;
+}
+
+/* 配置提示文字 */
+.config-hint {
+    font-size: 11px;
+    color: var(--text-secondary, #999);
+    font-weight: normal;
+}
+
+/* 文本域 */
+.config-textarea {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 14px;
+    background: var(--background-card, white);
+    color: var(--text-primary, #333);
+    resize: vertical;
+    min-height: 60px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    transition: var(--transition, all 0.2s);
+}
+
+.config-textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--primary-light, rgba(74,144,217,0.3));
+}
+
+/* 危险徽章 */
+.danger-badge {
+    background: #e74c3c;
+    color: white;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: normal;
+    vertical-align: middle;
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .security-sub-section {
+    background: rgba(255,255,255,0.04);
+}
+
+[data-theme="dark"] .slider {
+    background-color: #555;
+}
+
+[data-theme="dark"] .switch input:checked + .slider {
+    background-color: var(--primary-color, #4a90d9);
+}
+
+[data-theme="dark"] .config-textarea {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-primary, #e0e0e0);
+}
+
+[data-theme="dark"] .toggle-label span:first-child {
+    color: var(--text-primary, #e0e0e0);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .form-row-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .security-toggle-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .switch {
+        align-self: flex-end;
+    }
+}

@@ -14,6 +14,9 @@ require('dotenv').config();
 // 导入安全配置
 const { CORS_CONFIG, HELMET_CONFIG, REQUEST_LIMITS } = require('./src/config/security');
 
+// 导入动态安全配置
+const { getSecurityConfig } = require('./src/utils/configUtils');
+
 // 导入安全中间件
 const { 
   xssFilter, 
@@ -90,29 +93,107 @@ const app = express();
 // 1. 请求 ID（便于追踪）
 app.use(requestIdMiddleware);
 
-// 2. Helmet 安全头
-app.use(helmet(HELMET_CONFIG));
-
-// 3. CORS 跨域配置（白名单机制）
-app.use(cors(CORS_CONFIG.options));
-
-// 4. HPP - 防止 HTTP 参数污染
-app.use(hpp({
-  checkQuery: true,
-  checkBody: true,
-  whitelist: ['tags', 'categories', 'ids'] // 允许数组参数
-}));
-
-// 5. MongoDB 注入防护
-app.use(mongoSanitize({
-  onSanitize: ({ req, key }) => {
-    logger.logSecurityEvent('mongodb_injection_blocked', {
-      key,
-      path: req.path,
-      ip: req.ip
-    });
+// 2. Helmet 安全头（动态配置）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  if (!sec.helmetEnabled) return next();
+  
+  const dynamicHelmetConfig = { ...HELMET_CONFIG };
+  
+  // CSP 开关
+  if (!sec.cspEnabled) {
+    dynamicHelmetConfig.contentSecurityPolicy = false;
+  } else if (!sec.allowHTTP) {
+    // 非 HTTP 模式下 CSP connectSrc 加上 https
+    dynamicHelmetConfig.contentSecurityPolicy = {
+      ...HELMET_CONFIG.contentSecurityPolicy,
+      directives: {
+        ...HELMET_CONFIG.contentSecurityPolicy.directives,
+        connectSrc: ["'self'", "https:"]
+      }
+    };
   }
-}));
+  
+  // iframe 嵌入防护开关
+  if (!sec.frameGuard) {
+    dynamicHelmetConfig.frameguard = false;
+  }
+  
+  // HSTS 开关
+  dynamicHelmetConfig.hsts = sec.hstsEnabled ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  } : false;
+  
+  helmet(dynamicHelmetConfig)(req, res, next);
+});
+
+// 3. CORS 跨域配置（动态白名单机制）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  const dynamicCorsOptions = { ...CORS_CONFIG.options };
+  
+  // 额外来源合并
+  if (sec.corsExtraOrigins && sec.corsExtraOrigins.length > 0) {
+    const baseOrigins = [...CORS_CONFIG.origins];
+    sec.corsExtraOrigins.forEach(origin => {
+      if (!baseOrigins.includes(origin)) baseOrigins.push(origin);
+    });
+    
+    dynamicCorsOptions.origin = function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (sec.corsAllowAllDev && process.env.NODE_ENV === 'development') return callback(null, true);
+      const isAllowed = baseOrigins.some(allowed => {
+        if (allowed instanceof RegExp) return allowed.test(origin);
+        return allowed === origin;
+      });
+      if (isAllowed) return callback(null, true);
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      callback(new Error('CORS policy: Origin not allowed'));
+    };
+  } else if (!sec.corsAllowAllDev) {
+    // 禁用开发模式放行
+    dynamicCorsOptions.origin = function (origin, callback) {
+      if (!origin) return callback(null, true);
+      const isAllowed = CORS_CONFIG.origins.some(allowed => {
+        if (allowed instanceof RegExp) return allowed.test(origin);
+        return allowed === origin;
+      });
+      if (isAllowed) return callback(null, true);
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      callback(new Error('CORS policy: Origin not allowed'));
+    };
+  }
+  
+  cors(dynamicCorsOptions)(req, res, next);
+});
+
+// 4. HPP - 防止 HTTP 参数污染（动态配置）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  if (!sec.hppGuardEnabled) return next();
+  hpp({
+    checkQuery: true,
+    checkBody: true,
+    whitelist: ['tags', 'categories', 'ids']
+  })(req, res, next);
+});
+
+// 5. MongoDB 注入防护（动态配置）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  if (!sec.mongoSanitizeEnabled) return next();
+  mongoSanitize({
+    onSanitize: ({ req, key }) => {
+      logger.logSecurityEvent('mongodb_injection_blocked', {
+        key,
+        path: req.path,
+        ip: req.ip
+      });
+    }
+  })(req, res, next);
+});
 
 // 6. 请求体大小限制（从 50MB 降低到可配置值）
 app.use(bodyParser.json({ limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
@@ -121,11 +202,19 @@ app.use(bodyParser.urlencoded({ extended: true, limit: `${REQUEST_LIMITS.maxBody
 // 7. 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 8. XSS 过滤
-app.use(xssFilter);
+// 8. XSS 过滤（动态配置）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  if (!sec.xssFilterEnabled) return next();
+  xssFilter(req, res, next);
+});
 
-// 9. 注入防护
-app.use(injectionGuard);
+// 9. 注入防护（动态配置）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  if (!sec.injectionGuardEnabled) return next();
+  injectionGuard(req, res, next);
+});
 
 // 10. 额外的安全头
 app.use(additionalSecurityHeaders);

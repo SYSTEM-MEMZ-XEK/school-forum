@@ -678,6 +678,244 @@
                     </div>
                 </div>
                 <div class="config-section">
+                    <h3><i class="fas fa-shield-alt"></i> 安全防护配置</h3>
+                    <div class="config-content">
+                        <!-- 允许HTTP连接 -->
+                        <div class="security-sub-section">
+                            <div class="security-item-header">
+                                <h4><i class="fas fa-globe"></i> 网络连接</h4>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>允许 HTTP 连接</span>
+                                    <span class="toggle-hint">关闭后将强制升级到 HTTPS（需服务器支持）</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-allow-http" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>启用 HSTS</span>
+                                    <span class="toggle-hint">告知浏览器始终使用 HTTPS 访问（仅 HTTPS 环境有效）</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-hsts-enabled">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>开发模式放行所有来源</span>
+                                    <span class="toggle-hint">开发环境下允许所有 CORS 来源（生产环境建议关闭）</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-cors-allow-all-dev" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>额外允许的 CORS 来源 <span class="config-hint">（每行一个，如 http://192.168.1.100:3000）</span></label>
+                                <textarea id="security-cors-origins" class="config-textarea" rows="3" placeholder="http://192.168.1.100:3000&#10;http://example.com"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 频率限制 -->
+                        <div class="security-sub-section">
+                            <div class="security-item-header">
+                                <h4><i class="fas fa-tachometer-alt"></i> 频率限制</h4>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>启用接口限流</span>
+                                    <span class="toggle-hint">防止恶意请求和 DDoS 攻击</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-rate-limit-enabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label>通用API <span class="config-hint">次/分钟</span></label>
+                                    <input type="number" id="security-rate-limit-general" min="10" max="1000" value="100" class="config-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>登录 <span class="config-hint">次/分钟</span></label>
+                                    <input type="number" id="security-rate-limit-login" min="1" max="30" value="5" class="config-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>发帖 <span class="config-hint">次/分钟</span></label>
+                                    <input type="number" id="security-rate-limit-post" min="1" max="60" value="10" class="config-input">
+                                </div>
+                            </div>
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label>评论 <span class="config-hint">次/分钟</span></label>
+                                    <input type="number" id="security-rate-limit-comment" min="5" max="100" value="30" class="config-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>搜索 <span class="config-hint">次/分钟</span></label>
+                                    <input type="number" id="security-rate-limit-search" min="5" max="100" value="30" class="config-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>验证码 <span class="config-hint">次/分钟</span></label>
+                                    <input type="number" id="security-rate-limit-verify" min="1" max="5" value="1" class="config-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 登录安全 -->
+                        <div class="security-sub-section">
+                            <div class="security-item-header">
+                                <h4><i class="fas fa-lock"></i> 登录安全</h4>
+                            </div>
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label>最大登录尝试 <span class="config-hint">次</span></label>
+                                    <input type="number" id="security-login-max-attempts" min="3" max="20" value="5" class="config-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>锁定时间 <span class="config-hint">分钟</span></label>
+                                    <input type="number" id="security-login-lock-time" min="5" max="120" value="30" class="config-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>JWT过期时间 <span class="config-hint">天</span></label>
+                                    <input type="number" id="security-jwt-expires" min="1" max="30" value="7" class="config-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 密码策略 -->
+                        <div class="security-sub-section">
+                            <div class="security-item-header">
+                                <h4><i class="fas fa-key"></i> 密码策略</h4>
+                            </div>
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label>最小长度 <span class="config-hint">位</span></label>
+                                    <input type="number" id="security-password-min-length" min="4" max="32" value="8" class="config-input">
+                                </div>
+                                <div class="form-group"></div>
+                                <div class="form-group"></div>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label"><span>要求大写字母</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-password-uppercase" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label"><span>要求小写字母</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-password-lowercase" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label"><span>要求数字</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-password-number" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label"><span>要求特殊字符</span></label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-password-special">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- XSS 与注入防护 -->
+                        <div class="security-sub-section">
+                            <div class="security-item-header">
+                                <h4><i class="fas fa-bug"></i> XSS 与注入防护</h4>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>XSS 过滤</span>
+                                    <span class="toggle-hint">过滤请求中的恶意脚本</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-xss-filter" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>SQL/NoSQL 注入防护</span>
+                                    <span class="toggle-hint">检测并阻止注入攻击</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-injection-guard" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>MongoDB 注入清洗</span>
+                                    <span class="toggle-hint">移除 $ 等操作符防止 NoSQL 注入</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-mongo-sanitize" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>HTTP 参数污染防护</span>
+                                    <span class="toggle-hint">防止 HPP 攻击</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-hpp-guard" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 安全头 -->
+                        <div class="security-sub-section">
+                            <div class="security-item-header">
+                                <h4><i class="fas fa-heading"></i> 安全响应头</h4>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>Helmet 安全头</span>
+                                    <span class="toggle-hint">设置 X-Frame-Options、CSP 等安全响应头</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-helmet-enabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>内容安全策略 (CSP)</span>
+                                    <span class="toggle-hint">限制页面可加载的资源来源</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-csp-enabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-toggle-row">
+                                <label class="toggle-label">
+                                    <span>禁止iframe嵌入</span>
+                                    <span class="toggle-hint">X-Frame-Options: DENY，防止点击劫持</span>
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="security-frame-guard" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="config-section">
                     <h3><i class="fas fa-text-width"></i> 内容长度限制</h3>
                     <div class="config-content">
                         <div class="form-group">

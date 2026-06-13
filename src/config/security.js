@@ -249,5 +249,45 @@ module.exports = {
   PASSWORD_POLICY,
   REQUEST_LIMITS,
   XSS_CONFIG,
-  SENSITIVE_FIELDS
+  SENSITIVE_FIELDS,
+  // 动态获取登录安全配置（优先使用管理员面板配置）
+  getDynamicLoginSecurity: function() {
+    try {
+      const { getSecurityConfig } = require('../utils/configUtils');
+      const sec = getSecurityConfig();
+      return {
+        maxAttempts: sec.loginMaxAttempts || LOGIN_SECURITY.maxAttempts,
+        lockTime: (sec.loginLockTime || 30) * 60 * 1000,
+        redisPrefix: LOGIN_SECURITY.redisPrefix
+      };
+    } catch (e) {
+      return LOGIN_SECURITY;
+    }
+  },
+  // 动态获取密码策略（优先使用管理员面板配置）
+  getDynamicPasswordPolicy: function() {
+    try {
+      const { getSecurityConfig } = require('../utils/configUtils');
+      const sec = getSecurityConfig();
+      const policy = {
+        minLength: sec.passwordMinLength || PASSWORD_POLICY.minLength,
+        requireUppercase: sec.passwordRequireUppercase ?? PASSWORD_POLICY.requireUppercase,
+        requireLowercase: sec.passwordRequireLowercase ?? PASSWORD_POLICY.requireLowercase,
+        requireNumber: sec.passwordRequireNumber ?? PASSWORD_POLICY.requireNumber,
+        requireSpecial: sec.passwordRequireSpecial ?? PASSWORD_POLICY.requireSpecial
+      };
+      // 生成正则
+      let pattern = '';
+      if (policy.requireLowercase) pattern += '(?=.*[a-z])';
+      if (policy.requireUppercase) pattern += '(?=.*[A-Z])';
+      if (policy.requireNumber) pattern += '(?=.*\\d)';
+      if (policy.requireSpecial) pattern += '(?=.*[!@#$%^&*(),.?":{}|<>])';
+      pattern += `.{${
+       policy.minLength},}`;
+      policy.pattern = new RegExp(`^${pattern}$`);
+      return policy;
+    } catch (e) {
+      return PASSWORD_POLICY;
+    }
+  }
 };

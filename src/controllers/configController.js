@@ -18,7 +18,8 @@ const configController = {
         upload: config.upload,
         pagination: config.pagination,
         contentLimits: config.contentLimits,
-        schools: config.schools || []
+        schools: config.schools || [],
+        security: config.security || {}
       };
       
       logger.logInfo('管理员获取配置', { adminId: req.query.adminId, ip: req.ip });
