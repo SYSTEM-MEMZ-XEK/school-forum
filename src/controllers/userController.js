@@ -228,6 +228,12 @@ const userController = {
       // 更新密码
       await updateUser(userId, { password: hashedPassword });
 
+      // 使当前 JWT 令牌失效（安全：防止密码修改后旧令牌仍可用）
+      const { invalidateToken } = require('../middleware/jwtAuth');
+      if (req.token) {
+        await invalidateToken(req.token);
+      }
+
       logger.logUserAction('密码修改成功', userId, user.username, { ip: req.ip });
 
       res.json(generateSuccessResponse({}, '密码修改成功'));

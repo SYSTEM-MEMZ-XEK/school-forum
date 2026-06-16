@@ -143,8 +143,15 @@ const configController = {
       if (success) {
         logger.logSystemEvent('管理员已删除', { adminId, targetAdminId });
         res.json(generateSuccessResponse({ targetAdminId }, '管理员已删除'));
-      } else if (!success && getAdminUsers().length <= 1) {
-        res.status(400).json(generateErrorResponse('不能删除最后一个管理员'));
+      } else if (getAdminUsers().length <= 1) {
+        // 先检查是否是唯一管理员，避免误报"管理员不存在"
+        const admins = getAdminUsers();
+        const exists = admins.some(a => a.id === targetAdminId || a.qq === targetAdminId);
+        if (exists) {
+          res.status(400).json(generateErrorResponse('不能删除最后一个管理员'));
+        } else {
+          res.status(404).json(generateErrorResponse('管理员不存在'));
+        }
       } else {
         res.status(404).json(generateErrorResponse('管理员不存在'));
       }

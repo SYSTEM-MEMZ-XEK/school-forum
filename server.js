@@ -25,6 +25,9 @@ const {
   additionalSecurityHeaders 
 } = require('./src/middleware/security');
 
+// 导入限流中间件
+const { createRateLimiter } = require('./src/middleware/rateLimitMiddleware');
+
 // 导入配置
 const {
   DATA_DIR,
@@ -198,6 +201,48 @@ app.use((req, res, next) => {
 // 6. 请求体大小限制（从 50MB 降低到可配置值）
 app.use(bodyParser.json({ limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
 app.use(bodyParser.urlencoded({ extended: true, limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
+
+// 6.5. API 限流中间件（动态配置，排除静态资源）
+app.use((req, res, next) => {
+  const sec = getSecurityConfig();
+  if (!sec.rateLimitEnabled) return next();
+
+  // 排除静态资源请求
+  if (req.path.startsWith('/css/') || req.path.startsWith('/js/') ||
+      req.path.startsWith('/images/') || req.path.startsWith('/libs/') ||
+      req.path.startsWith('/errors/') || req.path.endsWith('.ico') ||
+      req.path.endsWith('.html') || req.path.endsWith('.svg')) {
+    return next();
+  }
+
+  // 根据路径选择限流规则
+  let limit, windowMs, message;
+  const path = req.path.toLowerCase();
+
+  if (path.includes('/login') || path.includes('/register') || path.includes('/auth') || path.includes('/send-verification-code')) {
+    // 登录/注册/验证码：严格限流
+    limit = sec.rateLimitLogin || 5;
+    windowMs = (sec.rateLimitLoginWindow || 60) * 1000;
+    message = '登录尝试过于频繁，请60秒后再试';
+  } else if (path.includes('/posts') && req.method === 'POST') {
+    // 发帖：中等限流
+    limit = sec.rateLimitPost || 10;
+    windowMs = (sec.rateLimitPostWindow || 60) * 1000;
+    message = '发帖过于频繁，请稍后再试';
+  } else if (path.includes('/comments')) {
+    // 评论：中等限流
+    limit = sec.rateLimitComment || 20;
+    windowMs = (sec.rateLimitCommentWindow || 60) * 1000;
+    message = '评论过于频繁，请稍后再试';
+  } else {
+    // 通用 API 限流
+    limit = sec.rateLimitGeneral || 100;
+    windowMs = (sec.rateLimitGeneralWindow || 60) * 1000;
+    message = '请求过于频繁，请稍后再试';
+  }
+
+  createRateLimiter({ limit, window: Math.floor(windowMs / 1000), message })(req, res, next);
+});
 
 // 7. 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));

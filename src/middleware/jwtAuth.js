@@ -200,6 +200,31 @@ async function authenticateUser(req, res, next) {
 }
 
 /**
+ * 将令牌加入黑名单（密码修改/注销时调用）
+ */
+async function blacklistToken(token, ttlSeconds = null) {
+  try {
+    const redis = getRedisClient();
+    if (!redis) return;
+    let ttl = ttlSeconds;
+    if (!ttl) {
+      const result = verifyToken(token);
+      if (result.valid && result.decoded.exp) {
+        ttl = Math.max(0, result.decoded.exp - Math.floor(Date.now() / 1000));
+      } else {
+        ttl = JWT_CONFIG.refreshExpiresIn;
+      }
+    }
+    if (ttl > 0) {
+      await redis.set(`token_blacklist:${token}`, '1', 'EX', ttl);
+      logger.logInfo('令牌已加入黑名单', { ttl });
+    }
+  } catch (error) {
+    logger.logError('令牌黑名单操作失败', { error: error.message });
+  }
+}
+
+/**
  * 管理员认证中间件
  */
 async function authenticateAdmin(req, res, next) {

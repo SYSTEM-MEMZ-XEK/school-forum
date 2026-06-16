@@ -1,15 +1,27 @@
-// 评论管理模块
+// 评论管理模块（已废弃，仅保留兼容性）
+// 注：此模块依赖的 #comment-modal 等 DOM 元素已在当前版本移除。
+// 评论功能已迁移至 post-detail.js 和 posts.js 的内联评论。
 const commentsManager = {
-  // DOM元素
-  dom: {
-    commentModal: document.getElementById('comment-modal'),
-    commentContent: document.getElementById('comment-content'),
-    commentAnonymous: document.getElementById('comment-anonymous'),
-    submitCommentBtn: document.getElementById('submit-comment')
+  state: { initialized: false },
+
+  // DOM元素（懒加载）
+  dom: {},
+
+  _initDom: function() {
+    if (this.state.initialized) return;
+    this.dom = {
+      commentModal: document.getElementById('comment-modal'),
+      commentContent: document.getElementById('comment-content'),
+      commentAnonymous: document.getElementById('comment-anonymous'),
+      submitCommentBtn: document.getElementById('submit-comment')
+    };
+    this.state.initialized = true;
   },
 
-  // 初始化
+  // 初始化（无DOM时静默跳过）
   init: function() {
+    this._initDom();
+    if (!this.dom.commentModal) return; // DOM不存在，跳过初始化
     this.setupEventListeners();
   },
 
