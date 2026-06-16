@@ -194,9 +194,10 @@ const simpleEditManager = {
       previewItem.className = 'preview-item existing-image';
       previewItem.dataset.url = image.url;
       
+      // 使用 data 属性替代 onclick 避免 XSS
       previewItem.innerHTML = `
-        <img src="${image.url}" alt="${this.escapeHtml(image.originalname || '图片')}">
-        <button type="button" class="remove-btn" onclick="simpleEditManager.removeExistingImage('${image.url}')">
+        <img src="${this.escapeHtml(image.url)}" alt="${this.escapeHtml(image.originalname || '图片')}">
+        <button type="button" class="remove-btn" data-image-url="${this.escapeHtml(image.url)}">
           <i class="fas fa-times"></i>
         </button>
       `;
@@ -346,6 +347,25 @@ const simpleEditManager = {
           this.updatePost();
         } else {
           this.submitNewPost();
+        }
+      });
+    }
+
+    // 图片预览区域 - 移除按钮事件委托（避免 XSS）
+    if (this.dom.imagePreview) {
+      this.dom.imagePreview.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-btn');
+        if (!removeBtn) return;
+        
+        const imageUrl = removeBtn.dataset.imageUrl;
+        const imageId = removeBtn.dataset.imageId;
+        
+        if (imageUrl) {
+          // 已上传的图片：通过 URL 移除
+          this.removeExistingImage(imageUrl);
+        } else if (imageId) {
+          // 新上传的图片：通过 ID 移除
+          this.removeImage(imageId);
         }
       });
     }
@@ -534,10 +554,12 @@ const simpleEditManager = {
   handleImageSelection: function(files) {
     if (!files || files.length === 0) return;
     
+    const maxFiles = this.state.config?.upload?.maxFiles || 20;
+    const maxFileSize = this.state.config?.upload?.maxFileSize || 10 * 1024 * 1024;
     const totalImages = this.state.selectedImages.length + this.state.existingImages.length;
-    const remainingSlots = 20 - totalImages;
+    const remainingSlots = maxFiles - totalImages;
     if (remainingSlots <= 0) {
-      utils.showNotification('最多只能上传20张图片', 'error');
+      utils.showNotification(`最多只能上传${maxFiles}张图片`, 'error');
       return;
     }
     
@@ -550,8 +572,9 @@ const simpleEditManager = {
         return;
       }
       
-      if (file.size > 10 * 1024 * 1024) {
-        utils.showNotification(`图片 "${file.name}" 超过10MB限制`, 'error');
+      if (file.size > maxFileSize) {
+        const sizeMB = Math.round(maxFileSize / (1024 * 1024));
+        utils.showNotification(`图片 "${file.name}" 超过${sizeMB}MB限制`, 'error');
         return;
       }
       
@@ -583,7 +606,7 @@ const simpleEditManager = {
     
     previewItem.innerHTML = `
       <img src="${imageData.previewUrl}" alt="预览图片">
-      <button type="button" class="remove-btn" onclick="simpleEditManager.removeImage('${imageData.id}')">
+      <button type="button" class="remove-btn" data-image-id="${imageData.id}">
         <i class="fas fa-times"></i>
       </button>
     `;

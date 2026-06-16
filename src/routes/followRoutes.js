@@ -22,13 +22,13 @@ router.get('/follow/new-posts/:userId', followController.getNewPostsCount);
 // 标记用户查看了关注动态
 router.post('/follow/mark-viewed', authenticateUser, followController.markFollowingViewed);
 
+// 获取关注的人的帖子（必须在 /following/:userId 之前）
+router.get('/following/posts/:userId', followController.getFollowingPosts);
+
 // 获取用户关注的人列表
 router.get('/following/:userId', followController.getFollowingList);
 
 // 获取用户的粉丝列表
 router.get('/followers/:userId', followController.getFollowerList);
-
-// 获取关注的人的帖子
-router.get('/following/posts/:userId', followController.getFollowingPosts);
 
 module.exports = router;

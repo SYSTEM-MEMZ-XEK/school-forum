@@ -706,10 +706,10 @@ renderPostsList: function(posts) {
                 <td>
                     <div class="action-buttons">
                         ${user.isActive === false ? 
-                            `<button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${user.id}', '${user.username}')">
+                            `<button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${user.id}', '${this.escapeHtml(user.username)}')">
                                 <i class="fas fa-unlock"></i> 解封
                             </button>` :
-                            `<button class="action-btn btn-warning" onclick="adminManager.showBanModal('${user.id}', '${user.username}')">
+                            `<button class="action-btn btn-warning" onclick="adminManager.showBanModal('${user.id}', '${this.escapeHtml(user.username)}')">
                                 <i class="fas fa-ban"></i> 封禁
                             </button>`
                         }
@@ -772,7 +772,7 @@ loadBannedUsers: async function() {
                 <td>${user.bannedBy || '系统'}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${user.id}', '${user.username}')">
+                        <button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${user.id}', '${this.escapeHtml(user.username)}')">
                             <i class="fas fa-unlock"></i> 解封
                         </button>
                     </div>
@@ -1858,7 +1858,7 @@ loadBannedUsers: async function() {
                     </div>
                 </div>
                 <div class="admin-actions">
-                    <button onclick="adminManager.showDeleteAdminModal('${admin.id}', '${admin.username}')" 
+                    <button onclick="adminManager.showDeleteAdminModal('${admin.id}', '${this.escapeHtml(admin.username)}')" 
                             class="action-btn btn-danger"
                             title="删除管理员">
                         <i class="fas fa-trash"></i> 删除
