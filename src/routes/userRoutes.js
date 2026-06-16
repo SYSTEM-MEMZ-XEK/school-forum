@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const { upload } = require('../middleware/uploadMiddleware');
-const { authenticateUser } = require('../middleware/jwtAuth');
+const { authenticateUser, optionalAuth } = require('../middleware/jwtAuth');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
@@ -82,8 +82,8 @@ router.post('/logout', userController.logout);
 // 管理员登出
 router.post('/admin/logout', userController.adminLogout);
 
-// 验证用户登录状态
-router.post('/auth/verify', authenticateUser, userController.verifyAuth);
+// 验证用户登录状态（optionalAuth：有JWT时验证，无JWT时放行）
+router.post('/auth/verify', optionalAuth, userController.verifyAuth);
 
 // 获取用户个人资料
 router.get('/users/:id', userController.getUserProfile);

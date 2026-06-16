@@ -131,13 +131,11 @@ const userManager = {
     try {
       console.log('verifyUserWithServer: 正在验证用户状态，userId:', userId);
       
-      const token = localStorage.getItem('accessToken');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ userId })
       });
       

@@ -844,8 +844,8 @@ const userController = {
   // 验证用户登录状态
   async verifyAuth(req, res) {
     try {
-      // userId 来自已认证的 JWT（路由已配置 authenticateUser 中间件）
-      const userId = req.user.id;
+      // 优先使用 JWT 验证的用户 ID，次选 body 兼容旧客户端
+      const userId = req.user?.id || req.body.userId;
       
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
