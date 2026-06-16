@@ -9,7 +9,8 @@ const chatManager = {
     sendPermissionReason: '',
     initialized: false,
     hasMoreMessages: true,
-    oldestMessageDate: null
+    oldestMessageDate: null,
+    selectedImage: null // 选中的图片文件
   },
 
   dom: {},
@@ -46,6 +47,11 @@ const chatManager = {
       messageInput: document.getElementById('message-input'),
       messageInputContainer: document.getElementById('message-input-container'),
       sendBtn: document.getElementById('send-btn'),
+      imageUploadBtn: document.getElementById('image-upload-btn'),
+      imageInput: document.getElementById('image-input'),
+      imagePreview: document.getElementById('image-preview'),
+      imagePreviewImg: document.getElementById('image-preview-img'),
+      removeImageBtn: document.getElementById('remove-image-btn'),
       newChatBtn: document.getElementById('new-chat-btn'),
       backToList: document.getElementById('back-to-list'),
       viewProfileBtn: document.getElementById('view-profile-btn'),
@@ -67,20 +73,38 @@ const chatManager = {
     // 发送消息
     this.dom.sendBtn.addEventListener('click', () => this.sendMessage());
     
-    // 输入框事件
-    this.dom.messageInput.addEventListener('input', () => this.handleInputChange());
+    // 输入框事件（合并 input 处理）
+    this.dom.messageInput.addEventListener('input', () => {
+      this.handleInputChange();
+      // 自动调整输入框高度
+      this.dom.messageInput.style.height = 'auto';
+      this.dom.messageInput.style.height = Math.min(this.dom.messageInput.scrollHeight, 150) + 'px';
+    });
     this.dom.messageInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.sendMessage();
       }
     });
-    
-    // 自动调整输入框高度
-    this.dom.messageInput.addEventListener('input', () => {
-      this.dom.messageInput.style.height = 'auto';
-      this.dom.messageInput.style.height = Math.min(this.dom.messageInput.scrollHeight, 150) + 'px';
-    });
+
+    // 图片上传按钮
+    if (this.dom.imageUploadBtn) {
+      this.dom.imageUploadBtn.addEventListener('click', () => {
+        if (this.dom.imageInput) {
+          this.dom.imageInput.click();
+        }
+      });
+    }
+
+    // 图片选择事件
+    if (this.dom.imageInput) {
+      this.dom.imageInput.addEventListener('change', (e) => this.handleImageSelect(e));
+    }
+
+    // 移除已选图片
+    if (this.dom.removeImageBtn) {
+      this.dom.removeImageBtn.addEventListener('click', () => this.removeSelectedImage());
+    }
     
     // 新建会话
     this.dom.newChatBtn.addEventListener('click', () => this.toggleNewChatPanel());
@@ -100,6 +124,14 @@ const chatManager = {
     // 删除会话
     this.dom.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteModal());
     this.dom.confirmDeleteBtn.addEventListener('click', () => this.confirmDeleteConversation());
+
+    // 图片灯箱 - 点击消息中的图片放大查看
+    this.dom.messagesList.addEventListener('click', (e) => {
+      const img = e.target.closest('.message-image');
+      if (img) {
+        this.showImageLightbox(img.src || img.dataset.src);
+      }
+    });
   },
 
   getCurrentUser: function() {
@@ -112,7 +144,7 @@ const chatManager = {
     if (!currentUser) return;
     
     try {
-      const response = await fetch(`/api/messages`, {
+      const response = await fetch(`/api/conversations?userId=${currentUser.id}`, {
         headers: userManager.getAuthHeaders()
       });
       const data = await response.json();
@@ -164,7 +196,9 @@ const chatManager = {
           </div>
           <div class="conversation-preview">
             ${conv.lastMessage 
-              ? `<span class="${conv.lastMessage.senderId === this.getCurrentUser()?.id ? 'sent' : ''}">${this.escapeHtml(conv.lastMessage.content.substring(0, 30))}${conv.lastMessage.content.length > 30 ? '...' : ''}</span>`
+              ? `<span class="${conv.lastMessage.senderId === this.getCurrentUser()?.id ? 'sent' : ''}">${
+                  conv.lastMessage.type === 'image' ? '[图片]' : this.escapeHtml(conv.lastMessage.content.substring(0, 30)) + (conv.lastMessage.content.length > 30 ? '...' : '')
+                }</span>`
               : '<span class="no-message">暂无消息</span>'
             }
           </div>
@@ -394,6 +428,20 @@ const chatManager = {
       const isMine = msg.senderId === currentUser.id;
       const timeStr = this.formatTime(msg.createdAt);
       
+      // 构建消息气泡内容
+      let bubbleContent = '';
+      if (msg.type === 'image' && msg.imageUrl) {
+        // 图片消息
+        bubbleContent = `<img class="message-image" src="${this.escapeHtml(msg.imageUrl)}" alt="图片消息" loading="lazy" onclick="chatManager.showImageLightbox(this.src)">`;
+        // 图片消息附带文字
+        if (msg.content) {
+          bubbleContent += `<div class="message-image-text">${this.formatMessageContent(msg.content)}</div>`;
+        }
+      } else {
+        // 文本消息
+        bubbleContent = this.formatMessageContent(msg.content);
+      }
+      
       return `
         <div class="message ${isMine ? 'mine' : 'theirs'}" data-id="${msg.id}">
           ${!isMine ? `
@@ -404,15 +452,17 @@ const chatManager = {
               }
             </div>
           ` : ''}
-          <div class="message-content">
-            <div class="message-bubble">
-              ${this.formatMessageContent(msg.content)}
+            <div class="message-content">
+            <div class="message-bubble ${msg.type === 'image' ? 'image-bubble' : ''} ${msg.sending ? 'sending' : ''} ${msg.failed ? 'failed' : ''}">
+              ${bubbleContent}
             </div>
             <div class="message-meta">
               <span class="message-time">${timeStr}</span>
               ${isMine ? `
                 <span class="message-status">
-                  ${msg.read ? '<i class="fas fa-check-double" title="已读"></i>' : '<i class="fas fa-check" title="已发送"></i>'}
+                  ${msg.failed ? '<i class="fas fa-exclamation-circle" title="发送失败" style="color: var(--error-color)"></i>' : 
+                    msg.sending ? '<i class="fas fa-clock" title="发送中"></i>' :
+                    msg.read ? '<i class="fas fa-check-double" title="已读"></i>' : '<i class="fas fa-check" title="已发送"></i>'}
                 </span>
               ` : ''}
             </div>
@@ -457,29 +507,67 @@ const chatManager = {
   sendMessage: async function() {
     const currentUser = this.getCurrentUser();
     const content = this.dom.messageInput.value.trim();
+    const hasImage = this.state.selectedImage !== null;
     
-    if (!content || !this.state.canSendMessage) return;
+    // 至少要有文字或图片
+    if ((!content && !hasImage) || !this.state.canSendMessage) return;
     
     this.dom.sendBtn.disabled = true;
+    
+    // 乐观更新：立即显示"发送中"的消息
+    const tempId = 'temp_' + Date.now();
+    const optimisticMsg = {
+      id: tempId,
+      senderId: currentUser.id,
+      receiverId: this.state.currentOtherUser.id,
+      content: content || '',
+      type: hasImage ? 'image' : 'text',
+      imageUrl: hasImage ? URL.createObjectURL(this.state.selectedImage) : null,
+      read: false,
+      createdAt: new Date().toISOString(),
+      senderUsername: currentUser.username || '我',
+      senderAvatar: null,
+      sending: true // 标记为发送中
+    };
+    this.state.messages.push(optimisticMsg);
+    this.renderMessages();
+    this.scrollToBottom();
+    
+    // 清空输入框和图片预览
+    const sentContent = content;
+    const sentImage = this.state.selectedImage;
     this.dom.messageInput.value = '';
     this.dom.messageInput.style.height = 'auto';
+    this.removeSelectedImage();
     
     try {
+      // 构建 FormData（支持图片上传）
+      const formData = new FormData();
+      formData.append('senderId', currentUser.id);
+      formData.append('receiverId', this.state.currentOtherUser.id);
+      if (sentContent) {
+        formData.append('content', sentContent);
+      }
+      if (sentImage) {
+        formData.append('image', sentImage);
+      }
+      
       const response = await fetch('/api/messages', {
         method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          senderId: currentUser.id,
-          receiverId: this.state.currentOtherUser.id,
-          content: content
-        })
+        headers: userManager.getAuthHeaders(true),
+        body: formData
       });
       
       const data = await response.json();
       
       if (data.success) {
-        // 添加到消息列表
-        this.state.messages.push(data.message);
+        // 替换乐观消息为真实消息
+        const idx = this.state.messages.findIndex(m => m.id === tempId);
+        if (idx !== -1) {
+          this.state.messages[idx] = data.message;
+        } else {
+          this.state.messages.push(data.message);
+        }
         this.renderMessages();
         this.scrollToBottom();
         
@@ -493,16 +581,83 @@ const chatManager = {
       }
     } catch (error) {
       console.error('发送消息失败:', error);
+      // 标记乐观消息为失败
+      const idx = this.state.messages.findIndex(m => m.id === tempId);
+      if (idx !== -1) {
+        this.state.messages[idx].failed = true;
+      }
+      this.renderMessages();
       utils.showNotification(error.message || '发送失败', 'error');
     } finally {
       this.handleInputChange();
     }
   },
 
+  // 处理图片选择
+  handleImageSelect: function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      utils.showNotification('只支持 JPG、PNG、GIF、WebP 格式的图片', 'error');
+      e.target.value = '';
+      return;
+    }
+    
+    // 验证文件大小（最大 10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      utils.showNotification('图片大小不能超过 10MB', 'error');
+      e.target.value = '';
+      return;
+    }
+    
+    this.state.selectedImage = file;
+    
+    // 显示预览
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      if (this.dom.imagePreviewImg) {
+        this.dom.imagePreviewImg.src = evt.target.result;
+      }
+      if (this.dom.imagePreview) {
+        this.dom.imagePreview.style.display = 'flex';
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    // 启用发送按钮
+    this.handleInputChange();
+  },
+
+  // 移除已选图片
+  removeSelectedImage: function() {
+    this.state.selectedImage = null;
+    if (this.dom.imageInput) {
+      this.dom.imageInput.value = '';
+    }
+    if (this.dom.imagePreview) {
+      this.dom.imagePreview.style.display = 'none';
+    }
+    if (this.dom.imagePreviewImg) {
+      this.dom.imagePreviewImg.src = '';
+    }
+    this.handleInputChange();
+  },
+
+  // 显示图片灯箱（委托给 utils）
+  showImageLightbox: function(src) {
+    if (utils && utils.showImageLightbox) {
+      utils.showImageLightbox(src);
+    }
+  },
+
   // 处理输入变化
   handleInputChange: function() {
     const content = this.dom.messageInput.value.trim();
-    this.dom.sendBtn.disabled = !content || !this.state.canSendMessage;
+    const hasContent = content || this.state.selectedImage;
+    this.dom.sendBtn.disabled = !hasContent || !this.state.canSendMessage;
   },
 
   // 显示聊天面板

@@ -23,6 +23,11 @@ const ConversationSchema = new Schema({
   lastMessage: {
     content: String,
     senderId: String,
+    type: {
+      type: String,
+      enum: ['text', 'image'],
+      default: 'text'
+    },
     createdAt: Date
   },
   // 会话创建时间
@@ -88,6 +93,7 @@ ConversationSchema.statics.updateLastMessage = async function(conversationId, me
       lastMessage: {
         content: message.content,
         senderId: message.senderId,
+        type: message.type || 'text',
         createdAt: message.createdAt
       },
       updatedAt: new Date(),

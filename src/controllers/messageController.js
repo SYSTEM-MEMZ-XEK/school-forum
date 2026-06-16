@@ -89,15 +89,32 @@ const messageController = {
       // 从认证中间件注入的用户信息中获取 senderId，防止伪造
       const senderId = req.user?.id || req.body.senderId;
 
-      if (!senderId || !receiverId || !content) {
-        return res.status(400).json(generateErrorResponse('缺少必要参数'));
+      // 验证必要参数
+      if (!senderId || !receiverId) {
+        return res.status(400).json(generateErrorResponse('缺少发送者或接收者ID'));
       }
 
-      if (content.trim().length === 0) {
-        return res.status(400).json(generateErrorResponse('消息内容不能为空'));
+      // 判断消息类型：图片消息或文本消息
+      const isImageMessage = req.file != null;
+      let messageContent = content || '';
+      let messageType = 'text';
+      let imageUrl = null;
+
+      if (isImageMessage) {
+        // 图片消息
+        messageType = 'image';
+        imageUrl = `/images/${req.file.filename}`;
+        // 图片消息可以有可选的文本内容
+        messageContent = content ? content.trim() : '';
+      } else {
+        // 文本消息
+        if (!content || content.trim().length === 0) {
+          return res.status(400).json(generateErrorResponse('消息内容不能为空'));
+        }
+        messageContent = content.trim();
       }
 
-      if (content.length > 2000) {
+      if (messageContent.length > 2000) {
         return res.status(400).json(generateErrorResponse('消息内容不能超过2000字'));
       }
 
@@ -119,16 +136,19 @@ const messageController = {
         conversationId,
         senderId,
         receiverId,
-        content: content.trim(),
-        type: 'text',
+        content: messageContent,
+        type: messageType,
+        imageUrl: imageUrl,
         read: false
       });
 
-      // 更新会话
+      // 更新会话的最后消息信息
+      const lastMessageContent = isImageMessage ? '[图片]' : messageContent;
       const updateData = {
         lastMessage: {
-          content: content.trim(),
+          content: lastMessageContent.substring(0, 50),
           senderId,
+          type: messageType,
           createdAt: message.createdAt
         },
         updatedAt: new Date(),
@@ -156,7 +176,8 @@ const messageController = {
       logger.logInfo('私信发送成功', {
         senderId,
         receiverId,
-        messageId: message.id
+        messageId: message.id,
+        type: messageType
       });
 
       res.json(generateSuccessResponse({
@@ -167,6 +188,7 @@ const messageController = {
           receiverId: message.receiverId,
           content: message.content,
           type: message.type,
+          imageUrl: message.imageUrl,
           read: message.read,
           createdAt: message.createdAt,
           senderUsername: sender?.username || '未知用户',
@@ -272,6 +294,7 @@ const messageController = {
           receiverId: m.receiverId,
           content: m.content,
           type: m.type,
+          imageUrl: m.imageUrl || null,
           read: m.read,
           createdAt: m.createdAt,
           senderUsername: sender?.username || '未知用户',

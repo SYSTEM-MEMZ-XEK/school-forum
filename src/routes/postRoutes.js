@@ -30,11 +30,13 @@ router.post('/posts/delete', authenticateUser, postController.deletePost);
 // 用户编辑自己的帖子
 router.put('/posts/:id', authenticateUser, upload.array('images', 20), postController.updatePost);
 
-// 添加评论
-router.post('/posts/:id/comments', authenticateUser, postController.addComment);
+// 添加评论（支持图片上传）
+router.post('/posts/:id/comments', authenticateUser, upload.array('images', 5), postController.addComment);
 
-// 回复评论
-router.post('/posts/:id/comments/:commentId/replies', authenticateUser, postController.replyComment);
+// 回复评论（支持图片上传）
+router.post('/posts/:id/comments/:commentId/replies', authenticateUser, upload.array('images', 5), postController.replyComment);
+// 兼容前端使用 /reply（单数）路径
+router.post('/posts/:id/comments/:commentId/reply', authenticateUser, upload.array('images', 5), postController.replyComment);
 
 // 删除评论
 router.delete('/posts/:id/comments/:commentId', authenticateUser, postController.deleteComment);

@@ -6,6 +6,7 @@ const postDetailManager = {
   hljs: null,
   tags: [],
   justFavorited: false,
+  commentImages: [], // 评论图片列表
 
   // 初始化
   init: function() {
@@ -83,6 +84,9 @@ const postDetailManager = {
 
   // 加载帖子详情
   loadPostDetail: async function() {
+    // 重置评论图片（避免跨帖子图片残留）
+    this.clearCommentImages();
+    
     const loading = document.getElementById('loading');
     const postDetail = document.getElementById('post-detail');
     const commentsSection = document.getElementById('comments-section');
@@ -528,6 +532,7 @@ const postDetailManager = {
           </div>
           <div class="comment-body">
             ${this.renderMarkdownContent(comment.content)}
+            ${this.renderCommentImages(comment.images)}
           </div>
           <div class="comment-footer">
             <span class="comment-action like-comment-btn ${userManager.state.currentUser && comment.likedBy && comment.likedBy.includes(userManager.state.currentUser.id) ? 'liked' : ''}" data-comment-id="${comment.id}">
@@ -625,6 +630,7 @@ const postDetailManager = {
           </div>
           <div class="${level >= 3 ? 'nested-reply-body' : 'reply-body'}">
             ${replyToInfo}${this.renderMarkdownContent(reply.content)}
+            ${this.renderCommentImages(reply.images)}
           </div>
           <div class="reply-footer">
             <span class="${level >= 3 ? 'nested-reply-action' : 'reply-action'} like-comment-btn ${userManager.state.currentUser && reply.likedBy && reply.likedBy.includes(userManager.state.currentUser.id) ? 'liked' : ''}" data-comment-id="${reply.id}">
@@ -816,9 +822,10 @@ const postDetailManager = {
 
     const content = contentInput.value.trim();
     const isAnonymous = anonymousCheckbox.checked;
+    const hasImages = this.commentImages && this.commentImages.length > 0;
 
-    if (!content) {
-      utils.showNotification('请输入评论内容', 'warning');
+    if (!content && !hasImages) {
+      utils.showNotification('请输入评论内容或添加图片', 'warning');
       return;
     }
 
@@ -829,22 +836,31 @@ const postDetailManager = {
     }
 
     // 检测并转换 HTML 内容为 Markdown 代码块
-    const processedContent = typeof utils !== 'undefined' && utils.detectAndEscapeHtml 
+    const processedContent = content ? (typeof utils !== 'undefined' && utils.detectAndEscapeHtml 
       ? utils.detectAndEscapeHtml(content) 
-      : content;
+      : content) : '';
 
     // 禁用提交按钮
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发表中...';
 
     try {
+      // 使用 FormData 支持图片上传
+      const formData = new FormData();
+      if (processedContent) {
+        formData.append('content', processedContent);
+      }
+      formData.append('anonymous', isAnonymous);
+      if (hasImages) {
+        for (const file of this.commentImages) {
+          formData.append('images', file);
+        }
+      }
+
       const response = await fetch(`/api/posts/${this.postId}/comments`, {
         method: 'POST',
-        headers: userManager.getAuthHeaders(),
-        body: JSON.stringify({
-          content: processedContent,
-          anonymous: isAnonymous
-        })
+        headers: userManager.getAuthHeaders(true), // 不设置 Content-Type
+        body: formData
       });
 
       if (!response.ok) {
@@ -857,6 +873,7 @@ const postDetailManager = {
         utils.showNotification('评论发表成功', 'success');
         contentInput.value = '';
         anonymousCheckbox.checked = false;
+        this.clearCommentImages();
         
         // 重新加载帖子详情
         this.loadPostDetail();
@@ -1565,7 +1582,32 @@ const postDetailManager = {
           window.location.href = `profile.html?id=${userId}`;
         }
       }
+
+      // 评论图片上传按钮
+      if (e.target.closest('#comment-image-upload-btn')) {
+        const imageInput = document.getElementById('comment-image-input');
+        if (imageInput) imageInput.click();
+      }
+
+      // 移除评论预览图片
+      if (e.target.closest('.remove-comment-image')) {
+        const btn = e.target.closest('.remove-comment-image');
+        const index = parseInt(btn.dataset.index, 10);
+        this.removeCommentImage(index);
+      }
+
+      // 评论图片放大查看
+      if (e.target.closest('.comment-img')) {
+        const img = e.target.closest('.comment-img');
+        this.showImageLightbox(img.src || img.dataset.src);
+      }
     });
+
+    // 评论图片文件选择
+    const commentImageInput = document.getElementById('comment-image-input');
+    if (commentImageInput) {
+      commentImageInput.addEventListener('change', (e) => this.handleCommentImageSelect(e));
+    }
   },
 
   // HTML 转义函数
@@ -1837,6 +1879,94 @@ const postDetailManager = {
         submitBtn.textContent = '提交举报';
       }
     });
+  },
+
+  // 处理评论图片选择
+  handleCommentImageSelect: function(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const maxCount = 5;
+
+    for (const file of files) {
+      if (this.commentImages.length >= maxCount) {
+        utils.showNotification(`最多只能添加 ${maxCount} 张图片`, 'warning');
+        break;
+      }
+      if (!allowedTypes.includes(file.type)) {
+        utils.showNotification('只支持 JPG、PNG、GIF、WebP 格式的图片', 'error');
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        utils.showNotification(`${file.name} 大小超过 10MB 限制`, 'error');
+        continue;
+      }
+      this.commentImages.push(file);
+    }
+
+    this.renderCommentImagePreview();
+    // 清空 input 以便重复选择同一文件
+    e.target.value = '';
+  },
+
+  // 移除评论图片
+  removeCommentImage: function(index) {
+    this.commentImages.splice(index, 1);
+    this.renderCommentImagePreview();
+  },
+
+  // 清空评论图片
+  clearCommentImages: function() {
+    this.commentImages = [];
+    this.renderCommentImagePreview();
+  },
+
+  // 渲染评论图片预览
+  renderCommentImagePreview: function() {
+    const previewContainer = document.getElementById('comment-image-preview');
+    const previewList = document.getElementById('comment-image-preview-list');
+    if (!previewContainer || !previewList) return;
+
+    if (this.commentImages.length === 0) {
+      previewContainer.style.display = 'none';
+      previewList.innerHTML = '';
+      return;
+    }
+
+    previewContainer.style.display = 'block';
+    previewList.innerHTML = '';
+
+    this.commentImages.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const item = document.createElement('div');
+        item.className = 'comment-image-preview-item';
+        item.innerHTML = `
+          <img src="${evt.target.result}" alt="预览">
+          <button class="remove-comment-image" data-index="${index}" title="移除">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        previewList.appendChild(item);
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  // 显示图片灯箱（委托给 utils）
+  showImageLightbox: function(src) {
+    if (utils && utils.showImageLightbox) {
+      utils.showImageLightbox(src);
+    }
+  },
+
+  // 渲染评论图片HTML
+  renderCommentImages: function(images) {
+    if (!images || images.length === 0) return '';
+    return `<div class="comment-images">${
+      images.map(img => `<img class="comment-img" src="${this.escapeHtml(img.url)}" alt="评论图片" loading="lazy">`).join('')
+    }</div>`;
   }
 };
 

@@ -26,11 +26,12 @@ const MessageSchema = new Schema({
     required: true,
     index: true
   },
-  // 消息内容
+  // 消息内容（文本消息必填，图片消息可为空）
   content: {
     type: String,
-    required: true,
-    maxlength: 2000
+    required: function() { return this.type === 'text'; },
+    maxlength: 2000,
+    default: ''
   },
   // 消息类型
   type: {

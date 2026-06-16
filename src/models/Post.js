@@ -59,6 +59,12 @@ const ReplySchema = new Schema({
     type: String,
     default: null
   },
+  images: [{
+    id: { type: String, required: true },
+    url: { type: String, required: true },
+    filename: { type: String, required: true },
+    size: { type: Number, default: 0 }
+  }],
   timestamp: {
     type: Date,
     default: Date.now
@@ -88,6 +94,12 @@ const CommentSchema = new Schema({
     type: Boolean,
     default: false
   },
+  images: [{
+    id: { type: String, required: true },
+    url: { type: String, required: true },
+    filename: { type: String, required: true },
+    size: { type: Number, default: 0 }
+  }],
   timestamp: {
     type: Date,
     default: Date.now

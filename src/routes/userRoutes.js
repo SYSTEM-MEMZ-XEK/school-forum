@@ -83,7 +83,7 @@ router.post('/logout', userController.logout);
 router.post('/admin/logout', userController.adminLogout);
 
 // 验证用户登录状态
-router.post('/auth/verify', userController.verifyAuth);
+router.post('/auth/verify', authenticateUser, userController.verifyAuth);
 
 // 获取用户个人资料
 router.get('/users/:id', userController.getUserProfile);

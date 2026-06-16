@@ -676,7 +676,8 @@ const profileManager = {
     }
     
     try {
-      const response = await fetch(`/api/follow/check/${this.state.userId}`);
+      const currentUser = userManager.state.currentUser;
+      const response = await fetch(`/api/follow/status?followerId=${currentUser.id}&followingId=${this.state.userId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {

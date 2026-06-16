@@ -105,6 +105,55 @@ const blacklistController = {
     }
   },
 
+  // 检查发送私信权限（chat.js 专用）
+  async checkSendPermission(req, res) {
+    try {
+      const senderId = req.user?.id || req.query.senderId;
+      const receiverId = req.params.receiverId;
+
+      if (!senderId || !receiverId) {
+        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      // 检查双向拉黑状态
+      const isBlocked = await Blacklist.isBlocked(senderId, receiverId);
+      const isBlockedBy = await Blacklist.isBlocked(receiverId, senderId);
+
+      // 检查关注关系
+      const isFollowing = await Follow.exists({ followerId: senderId, followingId: receiverId });
+      const isFollower = await Follow.exists({ followerId: receiverId, followingId: senderId });
+
+      // 判断是否可以发送
+      let canSend = true;
+      let reason = null;
+
+      if (isBlocked) {
+        canSend = false;
+        reason = '你已拉黑对方，无法发送消息';
+      } else if (isBlockedBy) {
+        canSend = false;
+        reason = '对方已将你拉黑，无法发送消息';
+      }
+
+      res.json({
+        success: true,
+        canSend,
+        reason,
+        relation: {
+          isFollowing: !!isFollowing,
+          isFollower: !!isFollower
+        },
+        blockStatus: {
+          isBlocked,
+          isBlockedBy
+        }
+      });
+    } catch (error) {
+      logger.logError('检查发送权限失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
   // 检查拉黑状态
   async checkBlockStatus(req, res) {
     try {

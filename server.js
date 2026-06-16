@@ -348,21 +348,27 @@ async function startServer() {
   }
 }
 
-// 处理未捕获的异常
+// 处理未捕获的异常（记录后优雅退出，避免进程处于不可恢复状态）
 process.on('uncaughtException', (err) => {
-  logger.logError('未捕获的异常', { error: err.message, stack: err.stack });
+  logger.logError('未捕获的异常，进程即将退出', { error: err.message, stack: err.stack });
+  console.error('未捕获的异常:', err);
+  setTimeout(() => process.exit(1), 1000);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   logger.logError('未处理的 Promise 拒绝', { reason: reason, promise: promise });
 });
 
-// 处理进程退出
-process.on('SIGINT', async () => {
-  logger.logSystemEvent('收到 SIGINT 信号，正在关闭服务器...');
+// 处理进程退出（支持 SIGINT/Ctrl+C 和 SIGTERM/Docker）
+const gracefulShutdown = async (signal) => {
+  logger.logSystemEvent(`收到 ${signal} 信号，正在关闭服务器...`);
+  console.log(`\n收到 ${signal} 信号，正在优雅关闭...`);
   await closeRedis();
   process.exit(0);
-});
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // 启动服务器
 startServer();

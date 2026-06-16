@@ -126,11 +126,21 @@
       <!-- 评论输入框 -->
       <div id="comment-input-container" class="comment-input-container">
         <textarea id="new-comment-content" rows="3" placeholder="分享你的看法..."></textarea>
+        <!-- 评论图片预览区域 -->
+        <div class="comment-image-preview" id="comment-image-preview" style="display: none;">
+          <div class="comment-image-preview-list" id="comment-image-preview-list"></div>
+        </div>
         <div class="comment-input-actions">
-          <label class="anonymous-checkbox">
-            <input type="checkbox" id="new-comment-anonymous">
-            <span>匿名评论</span>
-          </label>
+          <div class="comment-input-left">
+            <label class="anonymous-checkbox">
+              <input type="checkbox" id="new-comment-anonymous">
+              <span>匿名评论</span>
+            </label>
+            <button type="button" class="comment-image-upload-btn" id="comment-image-upload-btn" title="添加图片">
+              <i class="fas fa-image"></i>
+            </button>
+            <input type="file" id="comment-image-input" accept="image/jpeg,image/png,image/gif,image/webp" multiple style="display: none;">
+          </div>
           <button id="submit-comment-btn" class="btn-primary">
             <i class="fas fa-paper-plane"></i> 发表评论
           </button>

@@ -9,6 +9,9 @@ router.post('/block', authenticateUser, blacklistController.blockUser);
 // 取消拉黑
 router.post('/unblock', authenticateUser, blacklistController.unblockUser);
 
+// 检查私信发送权限（chat.js 专用）
+router.get('/check/:receiverId', authenticateUser, blacklistController.checkSendPermission);
+
 // 检查拉黑状态
 router.get('/block/status', blacklistController.checkBlockStatus);
 

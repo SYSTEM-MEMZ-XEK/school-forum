@@ -675,6 +675,171 @@
   cursor: not-allowed;
 }
 
+/* 消息发送状态 */
+.message-bubble.sending {
+  opacity: 0.7;
+}
+
+.message-bubble.failed {
+  border: 1px solid var(--error-color) !important;
+  background: rgba(244, 67, 54, 0.05) !important;
+}
+
+/* 图片上传按钮 */
+.image-upload-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.image-upload-btn:hover {
+  color: var(--primary-color);
+  background: rgba(74, 144, 226, 0.1);
+}
+
+/* 图片预览区域 */
+.image-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--background-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.image-preview img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: var(--transition-fast);
+}
+
+.remove-image-btn:hover {
+  background: var(--error-color);
+}
+
+/* 消息中的图片 */
+.message-image {
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  display: block;
+}
+
+.message-image:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.image-bubble {
+  padding: 4px !important;
+  background: transparent !important;
+  max-width: 260px;
+}
+
+.image-bubble.mine {
+  background: transparent !important;
+}
+
+.message-image-text {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* 图片灯箱 */
+.image-lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-lightbox .lightbox-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+}
+
+.image-lightbox .lightbox-content {
+  position: relative;
+  z-index: 1;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.image-lightbox .lightbox-content img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.image-lightbox .lightbox-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: var(--transition-fast);
+}
+
+.image-lightbox .lightbox-close:hover {
+  background: var(--error-color);
+}
+
 /* 空状态 */
 .empty-state {
   text-align: center;
@@ -841,4 +1006,17 @@
 .conversations-list::-webkit-scrollbar-thumb:hover,
 .contactable-users::-webkit-scrollbar-thumb:hover {
   background: var(--text-light);
+}
+
+/* 深色模式图片样式调整 */
+[data-theme="dark"] .image-preview {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .image-upload-btn:hover {
+  background: rgba(67, 97, 238, 0.2);
+}
+
+[data-theme="dark"] .image-bubble.mine {
+  background: transparent !important;
 }

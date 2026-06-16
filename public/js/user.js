@@ -29,11 +29,12 @@ const userManager = {
   },
 
   // 获取携带 JWT Token 的请求头（所有需要认证的 fetch 调用必须使用此函数）
-  getAuthHeaders: function(extra) {
+  getAuthHeaders: function(skipContentType) {
     const token = localStorage.getItem('accessToken');
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {};
+    if (!skipContentType) headers['Content-Type'] = 'application/json';
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return Object.assign(headers, extra);
+    return headers;
   },
 
   // 初始化（同步版本，用于快速设置事件监听器等）

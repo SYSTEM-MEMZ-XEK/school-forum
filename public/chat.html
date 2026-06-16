@@ -172,7 +172,18 @@
             <i class="fas fa-info-circle"></i>
             <span id="permission-text"></span>
           </div>
+          <!-- 图片预览区域 -->
+          <div class="image-preview" id="image-preview" style="display: none;">
+            <img id="image-preview-img" src="" alt="预览">
+            <button class="remove-image-btn" id="remove-image-btn" title="移除图片">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
           <div class="message-input-wrapper">
+            <button class="image-upload-btn" id="image-upload-btn" title="发送图片">
+              <i class="fas fa-image"></i>
+            </button>
+            <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
             <textarea id="message-input" placeholder="输入消息..." rows="1" maxlength="2000"></textarea>
             <button class="send-btn" id="send-btn" disabled>
               <i class="fas fa-paper-plane"></i>

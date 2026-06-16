@@ -187,6 +187,35 @@ const utils = {
 
     const years = Math.floor(days / 365);
     return `${years}年前`;
+  },
+
+  // 显示图片灯箱（统一使用）
+  showImageLightbox: function(src) {
+    const lightbox = document.createElement('div');
+    lightbox.className = 'image-lightbox';
+    lightbox.innerHTML = `
+      <div class="lightbox-overlay"></div>
+      <div class="lightbox-content">
+        <img src="${this.escapeHtml(src)}" alt="大图">
+        <button class="lightbox-close"><i class="fas fa-times"></i></button>
+      </div>
+    `;
+    document.body.appendChild(lightbox);
+
+    const close = () => {
+      if (document.body.contains(lightbox)) {
+        document.body.removeChild(lightbox);
+      }
+      document.removeEventListener('keydown', escHandler);
+    };
+
+    lightbox.querySelector('.lightbox-overlay').addEventListener('click', close);
+    lightbox.querySelector('.lightbox-close').addEventListener('click', close);
+
+    const escHandler = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', escHandler);
   }
 };
 

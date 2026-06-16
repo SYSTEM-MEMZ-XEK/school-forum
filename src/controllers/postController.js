@@ -332,7 +332,7 @@ const postController = {
         // 仅粉丝可见
         if (visibility === 'followers') {
           if (post.userId !== viewerId) {
-            const followDoc = await Follow.findOne({ follower: viewerId, following: post.userId });
+            const followDoc = await Follow.findOne({ followerId: viewerId, followingId: post.userId });
             if (!followDoc) {
               return res.status(403).json(generateErrorResponse('该帖子仅粉丝可见，请先关注作者'));
             }
@@ -703,16 +703,20 @@ const postController = {
       const userId = req.user.id;
       const { username, content, anonymous } = req.body;
 
-      if (!username || !content) {
+      // 允许纯图片评论（无文字），但至少要有图片或文字
+      const hasImages = req.files && req.files.length > 0;
+      if (!username || (!content && !hasImages)) {
         logger.logWarn('添加评论失败：缺少必要参数', { postId, userId });
-        return res.status(400).json(generateErrorResponse('用户名和评论内容不能为空'));
+        return res.status(400).json(generateErrorResponse('用户名和评论内容不能同时为空'));
       }
 
-      // 验证评论内容
-      const contentErrors = validateCommentContent(content);
-      if (contentErrors.length > 0) {
-        logger.logWarn('添加评论失败：内容验证失败', { postId, userId, error: contentErrors[0] });
-        return res.status(400).json(generateErrorResponse(contentErrors[0]));
+      // 有文字内容时验证
+      if (content) {
+        const contentErrors = validateCommentContent(content);
+        if (contentErrors.length > 0) {
+          logger.logWarn('添加评论失败：内容验证失败', { postId, userId, error: contentErrors[0] });
+          return res.status(400).json(generateErrorResponse(contentErrors[0]));
+        }
       }
 
       // 验证用户是否存在且活跃
@@ -740,12 +744,26 @@ const postController = {
 
       const isAnonymous = anonymous === true || anonymous === 'true';
 
+      // 处理上传的图片
+      const commentImages = [];
+      if (hasImages) {
+        for (const file of req.files) {
+          commentImages.push({
+            id: uuidv4(),
+            url: `/images/${file.filename}`,
+            filename: file.filename,
+            size: file.size
+          });
+        }
+      }
+
       const newComment = {
         id: uuidv4(),
         userId,
         username: isAnonymous ? '匿名同学' : username,
-        content,
+        content: content || '',
         anonymous: isAnonymous,
+        images: commentImages,
         timestamp: new Date().toISOString()
       };
 
@@ -770,11 +788,12 @@ const postController = {
         postId,
         commentId: newComment.id,
         anonymous: isAnonymous,
-        contentLength: content.length
+        contentLength: (content || '').length,
+        imageCount: commentImages.length
       });
       
       // 创建评论通知
-      notificationController.createCommentNotification(postId, userId, content, post.userId);
+      notificationController.createCommentNotification(postId, userId, content || '[图片]', post.userId);
       
       res.status(201).json(generateSuccessResponse({ comment: newComment }, '评论添加成功'));
     } catch (error) {
@@ -1053,16 +1072,20 @@ const postController = {
       const userId = req.user.id;
       const { username, content, anonymous, replyToId } = req.body;
 
-      if (!username || !content) {
+      // 允许纯图片回复（无文字），但至少要有图片或文字
+      const hasImages = req.files && req.files.length > 0;
+      if (!username || (!content && !hasImages)) {
         logger.logWarn('回复评论失败：缺少必要参数', { postId, commentId, userId });
-        return res.status(400).json(generateErrorResponse('用户名和回复内容不能为空'));
+        return res.status(400).json(generateErrorResponse('用户名和回复内容不能同时为空'));
       }
 
-      // 验证评论内容
-      const contentErrors = validateCommentContent(content);
-      if (contentErrors.length > 0) {
-        logger.logWarn('回复评论失败：内容验证失败', { postId, commentId, userId, error: contentErrors[0] });
-        return res.status(400).json(generateErrorResponse(contentErrors[0]));
+      // 有文字内容时验证
+      if (content) {
+        const contentErrors = validateCommentContent(content);
+        if (contentErrors.length > 0) {
+          logger.logWarn('回复评论失败：内容验证失败', { postId, commentId, userId, error: contentErrors[0] });
+          return res.status(400).json(generateErrorResponse(contentErrors[0]));
+        }
       }
 
       // 验证用户是否存在且活跃
@@ -1098,36 +1121,27 @@ const postController = {
       const comment = comments[commentIndex];
       const isAnonymous = anonymous === true || anonymous === 'true';
       
-      // 辅助函数：获取回复的层级（用于调试，不限制层级）
-      const getReplyLevel = (replies, targetId, level = 0) => {
-        if (!replies || replies.length === 0) {
-          return level;
+      // 处理上传的图片
+      const replyImages = [];
+      if (hasImages) {
+        for (const file of req.files) {
+          replyImages.push({
+            id: uuidv4(),
+            url: `/images/${file.filename}`,
+            filename: file.filename,
+            size: file.size
+          });
         }
-        
-        for (let reply of replies) {
-          if (reply.id === targetId) {
-            return level + 1;
-          }
-          if (reply.replies && reply.replies.length > 0) {
-            const foundLevel = getReplyLevel(reply.replies, targetId, level + 1);
-            if (foundLevel > 0) {
-              return foundLevel;
-            }
-          }
-        }
-        
-        return level;
-      };
-      
-      // 允许无限嵌套回复
+      }
       
       // 创建回复
       const newReply = {
         id: uuidv4(),
         userId,
         username: isAnonymous ? '匿名同学' : username,
-        content,
+        content: content || '',
         anonymous: isAnonymous,
+        images: replyImages,
         replyTo: replyToId || null, // 回复的目标ID
         timestamp: new Date().toISOString()
       };

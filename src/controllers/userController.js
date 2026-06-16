@@ -557,7 +557,7 @@ const userController = {
       
       if (viewerId && !isSelf) {
         // 检查是否是粉丝
-        const followStatus = await Follow.findOne({ follower: viewerId, following: userId });
+        const followStatus = await Follow.findOne({ followerId: viewerId, followingId: userId });
         isFollower = !!followStatus;
       }
       
@@ -600,7 +600,8 @@ const userController = {
   // 修改用户资料
   async updateUserProfile(req, res) {
     try {
-      const userId = req.params.id || req.body.userId || (req.user && req.user.id);
+      // 安全：仅使用 JWT 认证的用户 ID，防止通过 URL/body 伪造
+      const userId = req.user ? req.user.id : (req.params.id || req.body.userId);
       const { currentPassword, newPassword, username, settings, school, enrollmentYear, className, birthday, gender, signature } = req.body;
       
       const user = await getUserById(userId);
@@ -837,9 +838,8 @@ const userController = {
   // 验证用户登录状态
   async verifyAuth(req, res) {
     try {
-      // userId 来自已认证的 JWT（verifyAuth 路由应配置 authenticateUser 中间件）
-      // 若 req.user 已由中间件注入，直接使用；否则尝试从 body 兼容旧客户端
-      const userId = req.user?.id || req.body.userId;
+      // userId 来自已认证的 JWT（路由已配置 authenticateUser 中间件）
+      const userId = req.user.id;
       
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
@@ -1227,7 +1227,7 @@ const userController = {
       }
       
       // 删除关注关系
-      await Follow.deleteMany({ $or: [{ follower: userId }, { following: userId }] });
+      await Follow.deleteMany({ $or: [{ followerId: userId }, { followingId: userId }] });
       
       // 删除通知
       await Notification.deleteMany({ $or: [{ recipientId: userId }, { senderId: userId }] });
@@ -1295,9 +1295,18 @@ const userController = {
     try {
       // userId 来自已认证的 JWT，防止操作他人设置
       const userId = req.user.id;
-      const { type, enabled } = req.body;
+      const { type, enabled, ...batchSettings } = req.body;
       
-      if (!type) {
+      // 支持逐个更新（旧API）和批量更新（新API）
+      const settings = {};
+      
+      if (type) {
+        // 旧API：{ type: 'like', enabled: true }
+        settings[type] = enabled === 'true' || enabled === true;
+      } else if (Object.keys(batchSettings).length > 0) {
+        // 新API：{ like: true, comment: true, ... }
+        Object.assign(settings, batchSettings);
+      } else {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
       
@@ -1321,7 +1330,8 @@ const userController = {
         };
       }
       
-      user.settings.notifications[type] = enabled === 'true' || enabled === true;
+      // 合并新设置
+      Object.assign(user.settings.notifications, settings);
       await updateUser(userId, { 'settings.notifications': user.settings.notifications });
       
       res.json(generateSuccessResponse({}, '设置已更新'));
@@ -1336,9 +1346,18 @@ const userController = {
     try {
       // userId 来自已认证的 JWT，防止操作他人设置
       const userId = req.user.id;
-      const { field, value } = req.body;
+      const { field, value, ...batchSettings } = req.body;
       
-      if (!field || !value) {
+      // 支持逐个更新（旧API）和批量更新（新API）
+      const settings = {};
+      
+      if (field) {
+        // 旧API：{ field: 'hideBlockedPosts', value: true }
+        settings[field] = value;
+      } else if (Object.keys(batchSettings).length > 0) {
+        // 新API：{ hideBlockedPosts: true, hideBlockedComments: false, ... }
+        Object.assign(settings, batchSettings);
+      } else {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
       }
       
@@ -1348,19 +1367,26 @@ const userController = {
         return res.status(404).json(generateErrorResponse('用户不存在'));
       }
       
+      // 批量更新：直接保存整个隐私设置对象
+      // 前端发送 { hideBlockedPosts, hideBlockedComments, postDisplayRange, profileVisibility, ... }
+      // 保存到 settings.privacy 路径下
+      if (!user.settings) {
+        user.settings = {};
+      }
+      user.settings.privacy = { ...(user.settings.privacy || {}), ...settings };
+      await updateUser(userId, { 'settings.privacy': user.settings.privacy });
+      
+      // 兼容旧 API：同步更新 top-level privacySettings
       if (!user.privacySettings) {
         user.privacySettings = {
-          gender: 'public',
-          birthday: 'public',
-          school: 'public',
-          signature: 'public',
-          joinDate: 'public',
-          lastLogin: 'public'
+          gender: 'public', birthday: 'public', school: 'public',
+          signature: 'public', joinDate: 'public', lastLogin: 'public'
         };
       }
-      
-      user.privacySettings[field] = value;
-      await updateUser(userId, { privacySettings: user.privacySettings });
+      if (field) {
+        user.privacySettings[field] = value;
+        await updateUser(userId, { privacySettings: user.privacySettings });
+      }
       
       res.json(generateSuccessResponse({}, '设置已更新'));
     } catch (error) {

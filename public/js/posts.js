@@ -814,6 +814,11 @@ const postsManager = {
             <div class="comment-time">${utils.formatDate(comment.timestamp)}</div>
           </div>
           <div class="comment-content">${this.renderMarkdownContent(comment.content)}</div>
+          ${comment.images && comment.images.length > 0 ? `
+            <div class="comment-images">${comment.images.map(img =>
+              `<img class="comment-img" src="${this.escapeHtml(img.url)}" alt="评论图片" loading="lazy">`
+            ).join('')}</div>
+          ` : ''}
         </div>
       `;
     });
@@ -850,6 +855,11 @@ const postsManager = {
             <div class="comment-time">${utils.formatDate(comment.timestamp)}</div>
           </div>
           <div class="comment-content">${this.renderMarkdownContent(comment.content)}</div>
+          ${comment.images && comment.images.length > 0 ? `
+            <div class="comment-images">${comment.images.map(img =>
+              `<img class="comment-img" src="${this.escapeHtml(img.url)}" alt="评论图片" loading="lazy">`
+            ).join('')}</div>
+          ` : ''}
         </div>
       `;
     });
