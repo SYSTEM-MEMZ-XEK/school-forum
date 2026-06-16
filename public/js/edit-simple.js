@@ -375,11 +375,14 @@ const simpleEditManager = {
   setupEditor: function() {
     if (!this.dom.contentInput) return;
     
+    // Markdown 工具栏
+    this.setupMarkdownToolbar();
+    
     // 输入事件监听
     this.dom.contentInput.addEventListener('input', () => {
       this.updateCharCount();
       this.updatePreview();
-      this.autoSaveDraft(); // 自动保存草稿
+      this.autoSaveDraft();
     });
     
     // 恢复草稿
@@ -388,7 +391,37 @@ const simpleEditManager = {
     // 初始字符计数
     this.updateCharCount();
   },
-  
+
+  // Markdown 快捷工具栏
+  setupMarkdownToolbar: function() {
+    const textarea = this.dom.contentInput;
+    document.querySelectorAll('.md-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const md = btn.dataset.md;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const sel = textarea.value.substring(start, end);
+        
+        let insertion;
+        if (md === '```') {
+          insertion = sel ? `\n\`\`\`\n${sel}\n\`\`\`\n` : '\n```\n\n```\n';
+        } else if (md.includes('text') && md.includes('url')) {
+          insertion = sel ? `[${sel}](url)` : md;
+        } else if (md.includes('alt') && md.includes('url')) {
+          insertion = sel ? `![${sel}](url)` : md;
+        } else if (md === '---') {
+          insertion = '\n---\n';
+        } else {
+          insertion = sel ? `${md}${sel}${md}` : md;
+        }
+        
+        textarea.setRangeText(insertion, start, end, 'end');
+        textarea.focus();
+        textarea.dispatchEvent(new Event('input'));
+      });
+    });
+  },
+
   // 更新字符计数
   updateCharCount: function() {
     if (!this.dom.contentInput || !this.dom.charCount) return;
