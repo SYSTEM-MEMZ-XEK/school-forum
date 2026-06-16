@@ -132,6 +132,42 @@ const chatManager = {
         this.showImageLightbox(img.src || img.dataset.src);
       }
     });
+
+    // Emoji 按钮
+    const emojiBtn = document.getElementById('emoji-btn');
+    if (emojiBtn) {
+      emojiBtn.addEventListener('click', () => {
+        if (utils && utils.openEmojiPicker) {
+          utils.openEmojiPicker(this.dom.messageInput, emojiBtn);
+        }
+      });
+    }
+
+    // 粘贴图片支持
+    this.dom.messageInput.addEventListener('paste', async (e) => {
+      const items = e.clipboardData.files;
+      if (items && items.length > 0) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.startsWith('image/')) {
+            e.preventDefault();
+            const compressed = await utils.compressImage(items[i]);
+            this.state.selectedImage = compressed;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              if (this.dom.imagePreviewImg) {
+                this.dom.imagePreviewImg.src = evt.target.result;
+              }
+              if (this.dom.imagePreview) {
+                this.dom.imagePreview.style.display = 'flex';
+              }
+            };
+            reader.readAsDataURL(compressed);
+            this.handleInputChange();
+            return;
+          }
+        }
+      }
+    });
   },
 
   getCurrentUser: function() {
@@ -594,7 +630,7 @@ const chatManager = {
   },
 
   // 处理图片选择
-  handleImageSelect: function(e) {
+  handleImageSelect: async function(e) {
     const file = e.target.files[0];
     if (!file) return;
     
@@ -606,14 +642,10 @@ const chatManager = {
       return;
     }
     
-    // 验证文件大小（最大 10MB）
-    if (file.size > 10 * 1024 * 1024) {
-      utils.showNotification('图片大小不能超过 10MB', 'error');
-      e.target.value = '';
-      return;
-    }
+    // 压缩图片
+    const compressed = await utils.compressImage(file);
     
-    this.state.selectedImage = file;
+    this.state.selectedImage = compressed;
     
     // 显示预览
     const reader = new FileReader();
@@ -625,7 +657,7 @@ const chatManager = {
         this.dom.imagePreview.style.display = 'flex';
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
     
     // 启用发送按钮
     this.handleInputChange();

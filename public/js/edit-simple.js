@@ -379,7 +379,11 @@ const simpleEditManager = {
     this.dom.contentInput.addEventListener('input', () => {
       this.updateCharCount();
       this.updatePreview();
+      this.autoSaveDraft(); // 自动保存草稿
     });
+    
+    // 恢复草稿
+    this.restoreDraft();
     
     // 初始字符计数
     this.updateCharCount();
@@ -936,6 +940,7 @@ const simpleEditManager = {
         this.state.selectedImages = [];
         if (this.dom.imagePreview) this.dom.imagePreview.innerHTML = '';
         this.removeTextFile();
+        this.clearDraft(); // 清除草稿
         this.updateCharCount();
         this.updatePreview();
         
@@ -959,6 +964,53 @@ const simpleEditManager = {
       }
     }
   },
+
+  // ==================== 草稿自动保存 ====================
+  draftKey: 'post_draft_' + (new URLSearchParams(window.location.search).get('edit') || 'new'),
+
+  autoSaveDraft: function() {
+    try {
+      const content = this.dom.contentInput?.value || '';
+      if (content.trim().length > 10) {
+        const draft = {
+          content,
+          anonymous: this.dom.anonymousCheckbox?.checked || false,
+          visibility: this.dom.visibilitySelect?.value || 'public',
+          categoryId: this.dom.categorySelect?.value || '',
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(this.draftKey, JSON.stringify(draft));
+      }
+    } catch(e) { /* 静默失败 */ }
+  },
+
+  restoreDraft: function() {
+    try {
+      const draft = JSON.parse(localStorage.getItem(this.draftKey));
+      if (draft && draft.content && !this.state.isEditMode) {
+        // 草稿超过7天则清除
+        if (Date.now() - new Date(draft.savedAt).getTime() > 7 * 86400000) {
+          localStorage.removeItem(this.draftKey);
+          return;
+        }
+        if (confirm('发现未发布的草稿，是否恢复？')) {
+          if (this.dom.contentInput) this.dom.contentInput.value = draft.content;
+          if (this.dom.anonymousCheckbox) this.dom.anonymousCheckbox.checked = draft.anonymous;
+          if (draft.categoryId && this.dom.categorySelect) {
+            this.dom.categorySelect.value = draft.categoryId;
+          }
+          this.updateCharCount();
+          this.updatePreview();
+        } else {
+          localStorage.removeItem(this.draftKey);
+        }
+      }
+    } catch(e) { /* 静默失败 */ }
+  },
+
+  clearDraft: function() {
+    localStorage.removeItem(this.draftKey);
+  }
 };
 
 // 当DOM加载完成后初始化

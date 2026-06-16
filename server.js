@@ -365,13 +365,16 @@ async function startServer() {
     await connectDB(MONGODB_URI, MONGODB_OPTIONS);
     logger.logSuccess('MongoDB 连接成功');
 
-    // 初始化 Redis（可选，失败时不影响服务启动）
+    // 初始化 Redis（带超时，失败时不影响服务启动）
     logger.logSystemEvent('正在连接 Redis...');
     try {
-      await initRedis();
+      await Promise.race([
+        initRedis(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Redis 连接超时')), 8000))
+      ]);
       logger.logSuccess('Redis 连接成功');
     } catch (redisError) {
-      logger.logError('Redis 连接失败，将使用内存存储', { error: redisError.message });
+      logger.logError('Redis 连接失败，将使用内存存储（限流等功能将不可用）', { error: redisError.message });
     }
 
     // 启动 Express 服务器

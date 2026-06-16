@@ -1522,3 +1522,14 @@
 [data-theme="dark"] .comment-image-upload-btn:hover {
   background: rgba(67, 97, 238, 0.2);
 }
+
+/* ==================== 评论 Emoji 按钮样式 ==================== */
+.comment-emoji-btn {
+  width: 36px; height: 36px;
+  border: none; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-light);
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 16px; transition: var(--transition-fast);
+}
+.comment-emoji-btn:hover { color: var(--warning-color); background: rgba(255,152,0,0.1); }

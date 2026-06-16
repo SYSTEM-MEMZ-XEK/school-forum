@@ -5252,3 +5252,26 @@ mjx-container svg {
   border-radius: 10px;
   padding: 1px 6px;
 }
+
+/* ==================== Emoji 面板样式 ==================== */
+.emoji-picker-popup {
+  background: var(--background-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  box-shadow: var(--shadow-lg);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.emoji-item {
+  width: 36px; height: 36px;
+  border: none; background: transparent;
+  cursor: pointer; font-size: 20px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  display: flex; align-items: center; justify-content: center;
+}
+.emoji-item:hover { background: var(--background-hover); transform: scale(1.2); }

@@ -216,11 +216,61 @@ const utils = {
       if (e.key === 'Escape') close();
     };
     document.addEventListener('keydown', escHandler);
+  },
+
+  // 图片压缩函数
+  compressImage: function(file, maxWidth = 1920, quality = 0.8) {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      return Promise.resolve(file);
+    }
+
+    if (file.size < 500 * 1024) {
+      return Promise.resolve(file);
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width));
+            width = maxWidth;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(function(blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          }, file.type, quality);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 };
 
 // 确保 utils 对象在全局作用域中可用
 window.utils = utils;
+
+// 注册 Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 
 console.log('utils.js 加载完成，utils 对象:', utils);
 console.log('window.utils:', window.utils);

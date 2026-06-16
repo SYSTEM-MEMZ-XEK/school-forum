@@ -1601,6 +1601,15 @@ const postDetailManager = {
         const img = e.target.closest('.comment-img');
         this.showImageLightbox(img.src || img.dataset.src);
       }
+
+      // Emoji 按钮
+      if (e.target.closest('#comment-emoji-btn')) {
+        const btn = e.target.closest('#comment-emoji-btn');
+        const textarea = document.getElementById('new-comment-content');
+        if (textarea && utils && utils.openEmojiPicker) {
+          utils.openEmojiPicker(textarea, btn);
+        }
+      }
     });
 
     // 评论图片文件选择
@@ -1608,6 +1617,25 @@ const postDetailManager = {
     if (commentImageInput) {
       commentImageInput.addEventListener('change', (e) => this.handleCommentImageSelect(e));
     }
+
+    // 粘贴图片到评论
+    document.addEventListener('paste', async (e) => {
+      const textarea = document.getElementById('new-comment-content');
+      if (!textarea || document.activeElement !== textarea) return;
+
+      const items = e.clipboardData.files;
+      if (items && items.length > 0) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.startsWith('image/')) {
+            e.preventDefault();
+            const compressed = await utils.compressImage(items[i]);
+            this.commentImages.push(compressed);
+            this.renderCommentImagePreview();
+            return;
+          }
+        }
+      }
+    });
   },
 
   // HTML 转义函数
@@ -1882,7 +1910,7 @@ const postDetailManager = {
   },
 
   // 处理评论图片选择
-  handleCommentImageSelect: function(e) {
+  handleCommentImageSelect: async function(e) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
@@ -1898,11 +1926,8 @@ const postDetailManager = {
         utils.showNotification('只支持 JPG、PNG、GIF、WebP 格式的图片', 'error');
         continue;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        utils.showNotification(`${file.name} 大小超过 10MB 限制`, 'error');
-        continue;
-      }
-      this.commentImages.push(file);
+      const compressed = await utils.compressImage(file);
+      this.commentImages.push(compressed);
     }
 
     this.renderCommentImagePreview();

@@ -1020,3 +1020,15 @@
 [data-theme="dark"] .image-bubble.mine {
   background: transparent !important;
 }
+
+/* ==================== Emoji 按钮样式 ==================== */
+.emoji-btn {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-full);
+  border: none; background: transparent;
+  color: var(--text-light); cursor: pointer;
+  transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 18px;
+}
+.emoji-btn:hover { color: var(--warning-color); background: rgba(255,152,0,0.1); }
