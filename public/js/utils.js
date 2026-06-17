@@ -259,6 +259,49 @@ const utils = {
       };
       reader.readAsDataURL(file);
     });
+  },
+
+  // Emoji 列表（常用表情）
+  emojiList: ['😀','😂','🤣','😊','😍','🥰','😎','🤔','😅','😢','😡','👍','👎','👏','🙌','💪','🤝','❤️','🔥','⭐','🎉','💯','✅','❌','🎵','📚','💡','🎓','🏫','☕','🍕','✨','🙏','🤗','😇','💀','👀','🫡','🤯','💩'],
+
+  // 打开 Emoji 面板
+  openEmojiPicker: function(targetInput, buttonEl) {
+    // 切换：已打开则关闭
+    const existing = document.querySelector('.emoji-picker-popup');
+    if (existing) { existing.remove(); return; }
+
+    const popup = document.createElement('div');
+    popup.className = 'emoji-picker-popup';
+    popup.innerHTML = this.emojiList.map(e =>
+      `<button class="emoji-item" data-emoji="${e}" title="${e}">${e}</button>`
+    ).join('');
+
+    // 定位在按钮附近
+    const rect = buttonEl.getBoundingClientRect();
+    popup.style.cssText = `position:fixed;top:${rect.top - 280}px;left:${rect.left}px;z-index:9999;`;
+
+    popup.addEventListener('click', (e) => {
+      const btn = e.target.closest('.emoji-item');
+      if (!btn) return;
+      const emoji = btn.dataset.emoji;
+      const start = targetInput.selectionStart;
+      const end = targetInput.selectionEnd;
+      targetInput.value = targetInput.value.substring(0, start) + emoji + targetInput.value.substring(end);
+      targetInput.focus();
+      targetInput.selectionStart = targetInput.selectionEnd = start + emoji.length;
+      popup.remove();
+      targetInput.dispatchEvent(new Event('input'));
+    });
+
+    document.body.appendChild(popup);
+    setTimeout(() => {
+      document.addEventListener('click', function close(e) {
+        if (!popup.contains(e.target) && e.target !== buttonEl) {
+          popup.remove();
+          document.removeEventListener('click', close);
+        }
+      });
+    }, 100);
   }
 };
 

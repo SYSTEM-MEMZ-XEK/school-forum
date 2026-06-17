@@ -701,13 +701,16 @@ const postController = {
       const postId = req.params.id;
       // userId 来自已认证的 JWT，防止客户端伪造
       const userId = req.user.id;
-      const { username, content, anonymous } = req.body;
+      const { content, anonymous } = req.body;
+      
+      // 从 JWT 获取用户名（不再信任客户端传入的 username）
+      const username = req.user.username || '用户';
 
       // 允许纯图片评论（无文字），但至少要有图片或文字
       const hasImages = req.files && req.files.length > 0;
-      if (!username || (!content && !hasImages)) {
-        logger.logWarn('添加评论失败：缺少必要参数', { postId, userId });
-        return res.status(400).json(generateErrorResponse('用户名和评论内容不能同时为空'));
+      if (!content && !hasImages) {
+        logger.logWarn('添加评论失败：缺少内容或图片', { postId, userId });
+        return res.status(400).json(generateErrorResponse('评论内容和图片不能同时为空'));
       }
 
       // 有文字内容时验证
@@ -1070,13 +1073,16 @@ const postController = {
       const { id: postId, commentId } = req.params;
       // userId 来自已认证的 JWT，防止客户端伪造
       const userId = req.user.id;
-      const { username, content, anonymous, replyToId } = req.body;
+      const { content, anonymous, replyToId } = req.body;
+
+      // 从 JWT 获取用户名
+      const username = req.user.username || '用户';
 
       // 允许纯图片回复（无文字），但至少要有图片或文字
       const hasImages = req.files && req.files.length > 0;
-      if (!username || (!content && !hasImages)) {
-        logger.logWarn('回复评论失败：缺少必要参数', { postId, commentId, userId });
-        return res.status(400).json(generateErrorResponse('用户名和回复内容不能同时为空'));
+      if (!content && !hasImages) {
+        logger.logWarn('回复评论失败：缺少内容或图片', { postId, commentId, userId });
+        return res.status(400).json(generateErrorResponse('回复内容和图片不能同时为空'));
       }
 
       // 有文字内容时验证
