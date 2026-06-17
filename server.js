@@ -244,8 +244,21 @@ app.use((req, res, next) => {
   createRateLimiter({ limit, window: Math.floor(windowMs / 1000), message })(req, res, next);
 });
 
-// 7. 静态文件服务
-app.use(express.static(path.join(__dirname, 'public')));
+// 7. 静态文件服务（带缓存控制）
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    // 带哈希的文件（构建产物）缓存1年
+    if (filePath.match(/\.([a-f0-9]{8,})\.(js|css|woff2?|png|jpg|svg)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (filePath.match(/\.(js|css|woff2?|png|jpg|svg|ico)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+    // 设置正确的 MIME charset
+    if (filePath.endsWith('.css') || filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', res.getHeader('Content-Type')?.replace('charset=utf-8', 'charset=utf-8') || '');
+    }
+  }
+}));
 
 // 8. XSS 过滤（动态配置）
 app.use((req, res, next) => {

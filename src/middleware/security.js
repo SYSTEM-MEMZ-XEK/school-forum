@@ -250,9 +250,6 @@ function additionalSecurityHeaders(req, res, next) {
   res.setHeader('X-Download-Options', 'noopen');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
   
-  // 禁用 IE 的 XSS 过滤器（可能被滥用）
-  res.setHeader('X-XSS-Protection', '0');
-  
   next();
 }
 

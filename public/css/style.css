@@ -2606,6 +2606,7 @@ textarea {
   padding-right: 0.5em;
   color: #6a9955;
   opacity: 0.5;
+  -webkit-user-select: none;
   user-select: none;
 }
 
