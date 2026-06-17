@@ -731,6 +731,10 @@ const chatManager = {
   // 加载可联系的用户
   loadContactableUsers: async function(searchTerm = '') {
     const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      this.renderContactableUsers([], []);
+      return;
+    }
 
     try {
       const response = await fetch(`/api/following/${currentUser.id}`, {
@@ -739,7 +743,7 @@ const chatManager = {
       const data = await response.json();
       
       if (data.success) {
-        let users = data.users;
+        let users = data.users || [];
         
         // 搜索过滤
         if (searchTerm) {
@@ -751,6 +755,9 @@ const chatManager = {
         const conversationUserIds = this.state.conversations.map(c => c.otherUser.id);
         
         this.renderContactableUsers(users, conversationUserIds);
+      } else {
+        // API 返回失败时也显示空状态
+        this.renderContactableUsers([], []);
       }
     } catch (error) {
       console.error('加载用户列表失败:', error);
