@@ -229,7 +229,6 @@ const userManager = {
         const user = JSON.parse(savedUser);
         if (user.settings && user.settings.theme) {
           this.applyTheme(user.settings.theme);
-          this.updateThemeIcon(user.settings.theme);
           return;
         }
       }
@@ -240,26 +239,6 @@ const userManager = {
       }
     } catch (error) {
       console.error('applySavedTheme: 应用主题失败:', error);
-    }
-  },
-
-  // 切换暗色模式
-  toggleDarkMode: function() {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    this.updateThemeIcon(next);
-    // 更新 PWA theme-color
-    const meta = document.getElementById('theme-color-meta');
-    if (meta) meta.content = next === 'dark' ? '#1a1a2e' : '#4361ee';
-  },
-
-  // 更新主题图标
-  updateThemeIcon: function(theme) {
-    const icon = document.getElementById('theme-toggle-icon');
-    if (icon) {
-      icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
   },
 
