@@ -732,6 +732,7 @@ input[type="file"] {
   border-bottom: none;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   flex-wrap: wrap;
+  margin-bottom: -1px;
 }
 
 .md-btn {
@@ -759,10 +760,6 @@ input[type="file"] {
   height: 20px;
   background: var(--border-color);
   margin: 0 4px;
-}
-
-.editor-area .editor-textarea {
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 /* 深色模式工具栏 */
