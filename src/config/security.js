@@ -87,26 +87,6 @@ const CORS_CONFIG = {
       // 拒绝不在白名单中的来源
       callback(new Error('CORS policy: Origin not allowed'));
     },
-      
-      // 检查是否在白名单中
-      const isAllowed = CORS_CONFIG.origins.some(allowed => {
-        if (allowed instanceof RegExp) {
-          return allowed.test(origin);
-        }
-        return allowed === origin;
-      });
-      
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        // 非生产环境放行警告
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn(`[CORS] Origin ${origin} not in whitelist, allowing anyway in non-production`);
-          return callback(null, true);
-        }
-        callback(new Error('CORS policy: Origin not allowed'));
-      }
-    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID'],
