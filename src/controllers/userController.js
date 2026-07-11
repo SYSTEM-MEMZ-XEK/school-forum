@@ -62,7 +62,7 @@ const userController = {
   // 发送验证码
   async sendVerificationCode(req, res) {
     try {
-      const { email } = req.body;
+      const { email, captchaId, captchaCode } = req.body;
 
       if (!email) {
         return res.status(400).json(generateErrorResponse('邮箱不能为空'));
@@ -71,6 +71,12 @@ const userController = {
       // 验证邮箱格式
       if (!emailRegex.test(email)) {
         return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
+      }
+
+      // 验证图形验证码（防止匿名滥用邮件发送）
+      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
+      if (!captchaResult.valid) {
+        return res.status(400).json(generateErrorResponse(captchaResult.message));
       }
 
       // 发送验证码邮件
@@ -86,7 +92,7 @@ const userController = {
   // 发送登录验证码
   async sendLoginVerificationCode(req, res) {
     try {
-      const { email } = req.body;
+      const { email, captchaId, captchaCode } = req.body;
 
       if (!email) {
         return res.status(400).json(generateErrorResponse('邮箱不能为空'));
@@ -95,6 +101,12 @@ const userController = {
       // 验证邮箱格式
       if (!emailRegex.test(email)) {
         return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
+      }
+
+      // 验证图形验证码
+      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
+      if (!captchaResult.valid) {
+        return res.status(400).json(generateErrorResponse(captchaResult.message));
       }
 
       // 发送验证码邮件（登录场景）
@@ -547,7 +559,8 @@ const userController = {
   async getUserProfile(req, res) {
     try {
       const userId = req.params.id;
-      const viewerId = req.query.viewerId; // 当前查看者的用户ID
+      // viewerId 来自已认证 JWT，防止客户端伪造
+      const viewerId = req.user.id;
       const { getPostsByUserId } = require('../utils/dataUtils');
       const Follow = require('../models/Follow');
       
@@ -1834,6 +1847,10 @@ function filterUserInfoByPrivacy(user, isSelf, isFollower) {
   if (!isFieldVisible('lastLogin')) {
     filteredUser.lastLogin = null;
   }
+  
+  // 敏感标识字段：仅自己可见（不可通过设置公开）
+  filteredUser.qq = isSelf ? filteredUser.qq : '';
+  filteredUser.email = isSelf ? filteredUser.email : '';
   
   return filteredUser;
 }

@@ -2548,7 +2548,7 @@ confirmDeletePost: async function() {
             const { protectedText, placeholders } = this.protectMathFormulas(text);
             
             const md = markdownItGlobal({
-                html: true,
+                html: false,
                 linkify: true,
                 typographer: true
             });

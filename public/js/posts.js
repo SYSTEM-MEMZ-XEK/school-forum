@@ -137,7 +137,7 @@ const postsManager = {
       
       // 创建 markdown-it 实例并配置
       this.state.md = markdownItGlobal({
-        html: true, // 允许 HTML 标签
+        html: false, // 禁用原始 HTML 防 XSS（XSS 净化由服务端 sanitizeHtml 保证）
         linkify: true, // 自动将 URL 转换为链接
         typographer: true, // 启用 typographer 扩展
         // 配置代码高亮

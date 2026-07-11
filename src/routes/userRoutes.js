@@ -86,10 +86,10 @@ router.post('/admin/logout', userController.adminLogout);
 router.post('/auth/verify', optionalAuth, userController.verifyAuth);
 
 // 获取用户个人资料
-router.get('/users/:id', userController.getUserProfile);
+router.get('/users/:id', authenticateUser, userController.getUserProfile);
 
 // 用户资料路由别名（兼容 Android）
-router.get('/user/profile/:id', userController.getUserProfile);
+router.get('/user/profile/:id', authenticateUser, userController.getUserProfile);
 
 // 修改用户资料
 router.put('/users/:id', authenticateUser, userController.updateUserProfile);

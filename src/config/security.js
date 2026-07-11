@@ -84,8 +84,8 @@ const CORS_CONFIG = {
       
       if (isAllowed) return callback(null, true);
       
-      // 拒绝不在白名单中的来源
-      callback(new Error('CORS policy: Origin not allowed'));
+      // 拒绝未授权来源：不设置 CORS 头（浏览器将阻止请求）
+      callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

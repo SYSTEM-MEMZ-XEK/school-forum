@@ -373,12 +373,17 @@ async function sendVerificationCode() {
   }
   
   try {
+    // 附带图形验证码防止滥用
+    const captchaType = document.querySelector('.tab-btn.active')?.dataset?.form || 'register';
+    const captchaId = state.captchaKeys[captchaType];
+    const captchaCode = document.getElementById(`captcha-code-${captchaType}`)?.value.trim() || '';
+
     const response = await fetch('/api/send-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, captchaId, captchaCode })
     });
 
     if (!response.ok) {
@@ -545,12 +550,17 @@ async function sendAdminVerificationCode() {
   }
   
   try {
+    // 附带图形验证码防止滥用
+    const captchaType = document.querySelector('.tab-btn.active')?.dataset?.form || 'register';
+    const captchaId = state.captchaKeys[captchaType];
+    const captchaCode = document.getElementById(`captcha-code-${captchaType}`)?.value.trim() || '';
+
     const response = await fetch('/api/send-verification-code', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, captchaId, captchaCode })
     });
 
     if (!response.ok) {

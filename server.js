@@ -155,7 +155,8 @@ app.use((req, res, next) => {
       return allowed === origin;
     });
     if (isAllowed) return callback(null, true);
-    callback(new Error('CORS policy: Origin not allowed'));
+    // 拒绝：不设置 CORS 头，浏览器将阻止
+    callback(null, false);
   };
   
   cors(dynamicCorsOptions)(req, res, next);

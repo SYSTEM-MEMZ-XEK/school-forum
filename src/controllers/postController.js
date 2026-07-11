@@ -14,6 +14,7 @@ const {
   validatePostContent,
   validateCommentContent
 } = require('../utils/authUtils');
+const { sanitizeHtml } = require('../utils/sanitize');
 const {
   userExists,
   isUserActive,
@@ -515,14 +516,20 @@ const postController = {
       // 创建新帖子
       const isAnonymous = anonymous === 'true';
 
+      // 净化输入内容（防 XSS）
+      const safeContent = sanitizeHtml(content || '');
+      const safeSchool = sanitizeHtml(school || '');
+      const safeGrade = sanitizeHtml(grade || '');
+      const safeClassName = sanitizeHtml(className || '');
+
       const newPost = {
         id: uuidv4(),
         userId,
         username: isAnonymous ? '匿名用户' : username,
-        school: isAnonymous ? '' : school,
-        grade: isAnonymous ? '' : grade,
-        className: isAnonymous ? '' : className,
-        content,
+        school: isAnonymous ? '' : safeSchool,
+        grade: isAnonymous ? '' : safeGrade,
+        className: isAnonymous ? '' : safeClassName,
+        content: safeContent,
         anonymous: isAnonymous,
         images: images,
         timestamp: new Date().toISOString(),
@@ -778,7 +785,7 @@ const postController = {
         id: uuidv4(),
         userId,
         username: isAnonymous ? '匿名同学' : username,
-        content: content || '',
+        content: sanitizeHtml(content || ''),
         anonymous: isAnonymous,
         images: commentImages,
         timestamp: new Date().toISOString()
@@ -1159,10 +1166,10 @@ const postController = {
         id: uuidv4(),
         userId,
         username: isAnonymous ? '匿名同学' : username,
-        content: content || '',
+        content: sanitizeHtml(content || ''),
         anonymous: isAnonymous,
         images: replyImages,
-        replyTo: replyToId || null, // 回复的目标ID
+        replyTo: replyToId || null,
         timestamp: new Date().toISOString()
       };
       

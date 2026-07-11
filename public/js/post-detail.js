@@ -57,7 +57,7 @@ const postDetailManager = {
       }
 
       this.md = markdownItGlobal({
-        html: true,
+        html: false,
         linkify: true,
         typographer: true,
         highlight: this.hljs ? function(str, lang) {

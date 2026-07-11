@@ -45,7 +45,7 @@ const followingManager = {
 
     try {
       this.state.md = markdownItGlobal({
-        html: true,
+        html: false,
         linkify: true,
         typographer: true
       });
