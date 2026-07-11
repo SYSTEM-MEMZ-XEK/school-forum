@@ -1,0 +1,92 @@
+name: Build Linux Deploy Package
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies (production only)
+        run: npm ci --omit=dev
+
+      - name: Create deploy directory
+        run: |
+          mkdir -p deploy-package
+
+      - name: Copy Linux deployment files
+        run: |
+          # 核心服务文件
+          cp server.js deploy-package/
+          cp package.json deploy-package/
+          cp package-lock.json deploy-package/
+          cp .env.example deploy-package/ 2>/dev/null || true
+          cp API.md deploy-package/ 2>/dev/null || true
+          cp DeploymentGuide.md deploy-package/ 2>/dev/null || true
+          cp README.md deploy-package/ 2>/dev/null || true
+
+          # Linux 部署脚本
+          cp deploy.sh deploy-package/
+          cp setup.sh deploy-package/
+          cp start.sh deploy-package/
+
+          # 源码目录
+          cp -r src deploy-package/
+
+          # 前端静态文件
+          cp -r public deploy-package/
+
+          # 数据目录（空模板）
+          mkdir -p deploy-package/data
+
+          # node_modules（生产依赖）
+          cp -r node_modules deploy-package/
+
+          chmod +x deploy-package/*.sh
+
+      - name: Exclude non-Linux files
+        run: |
+          # 删除 Windows 脚本
+          rm -f deploy-package/*.bat
+
+          # 删除 Android 目录
+          rm -rf deploy-package/android
+
+          # 删除 Redis Windows 可执行文件
+          rm -rf deploy-package/Redis
+
+          # 删除开发/测试文件
+          rm -rf deploy-package/node_modules/.cache
+          rm -rf deploy-package/.github
+
+          # 删除 .workbuddy 项目数据
+          rm -rf deploy-package/.workbuddy
+
+      - name: Generate version info
+        run: |
+          echo "VERSION=$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)" > deploy-package/VERSION
+          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deploy-package/VERSION
+          echo "NODE_VERSION=$(node -v)" >> deploy-package/VERSION
+
+      - name: Create tar.gz archive
+        run: |
+          cd deploy-package
+          tar -czf ../school-forum-linux-deploy.tar.gz .
+          cd ..
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: school-forum-linux-deploy
+          path: school-forum-linux-deploy.tar.gz
+          retention-days: 30
