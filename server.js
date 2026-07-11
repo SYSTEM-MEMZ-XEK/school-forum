@@ -129,45 +129,34 @@ app.use((req, res, next) => {
     preload: true
   } : false;
   
+  // 限制跨源资源读取（防止 CORS 配置错误时的数据泄露）
+  dynamicHelmetConfig.crossOriginResourcePolicy = { policy: 'same-origin' };
+  
   helmet(dynamicHelmetConfig)(req, res, next);
 });
 
-// 3. CORS 跨域配置（动态白名单机制）
+// 3. CORS 跨域配置（严格白名单，不反射任意 Origin）
 app.use((req, res, next) => {
   const sec = getSecurityConfig();
   const dynamicCorsOptions = { ...CORS_CONFIG.options };
   
   // 额外来源合并
+  let baseOrigins = [...CORS_CONFIG.origins];
   if (sec.corsExtraOrigins && sec.corsExtraOrigins.length > 0) {
-    const baseOrigins = [...CORS_CONFIG.origins];
     sec.corsExtraOrigins.forEach(origin => {
       if (!baseOrigins.includes(origin)) baseOrigins.push(origin);
     });
-    
-    dynamicCorsOptions.origin = function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (sec.corsAllowAllDev && process.env.NODE_ENV === 'development') return callback(null, true);
-      const isAllowed = baseOrigins.some(allowed => {
-        if (allowed instanceof RegExp) return allowed.test(origin);
-        return allowed === origin;
-      });
-      if (isAllowed) return callback(null, true);
-      if (process.env.NODE_ENV !== 'production') return callback(null, true);
-      callback(new Error('CORS policy: Origin not allowed'));
-    };
-  } else if (!sec.corsAllowAllDev) {
-    // 禁用开发模式放行
-    dynamicCorsOptions.origin = function (origin, callback) {
-      if (!origin) return callback(null, true);
-      const isAllowed = CORS_CONFIG.origins.some(allowed => {
-        if (allowed instanceof RegExp) return allowed.test(origin);
-        return allowed === origin;
-      });
-      if (isAllowed) return callback(null, true);
-      if (process.env.NODE_ENV !== 'production') return callback(null, true);
-      callback(new Error('CORS policy: Origin not allowed'));
-    };
   }
+  
+  dynamicCorsOptions.origin = function (origin, callback) {
+    if (!origin) return callback(null, true);
+    const isAllowed = baseOrigins.some(allowed => {
+      if (allowed instanceof RegExp) return allowed.test(origin);
+      return allowed === origin;
+    });
+    if (isAllowed) return callback(null, true);
+    callback(new Error('CORS policy: Origin not allowed'));
+  };
   
   cors(dynamicCorsOptions)(req, res, next);
 });
@@ -201,6 +190,17 @@ app.use((req, res, next) => {
 // 6. 请求体大小限制（从 50MB 降低到可配置值）
 app.use(bodyParser.json({ limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
 app.use(bodyParser.urlencoded({ extended: true, limit: `${REQUEST_LIMITS.maxBodySize}mb` }));
+
+// 6.1. JSON 解析错误统一处理（避免泄露解析器内部细节）
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      message: '请求格式错误，请检查提交的数据格式'
+    });
+  }
+  next(err);
+});
 
 // 6.5. API 限流中间件（动态配置，排除静态资源）
 app.use((req, res, next) => {
@@ -244,7 +244,14 @@ app.use((req, res, next) => {
   createRateLimiter({ limit, window: Math.floor(windowMs / 1000), message })(req, res, next);
 });
 
-// 7. 静态文件服务（带缓存控制）
+// 7. 静态文件服务（带缓存控制 + 路径防护）
+app.use((req, res, next) => {
+  // 阻止包含 .. 的路径遍历请求
+  if (decodeURIComponent(req.path).includes('..')) {
+    return res.status(403).json({ success: false, message: '禁止访问' });
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     // 带哈希的文件（构建产物）缓存1年

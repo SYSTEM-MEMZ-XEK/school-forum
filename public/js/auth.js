@@ -222,17 +222,30 @@ async function loadCaptcha(type) {
   try {
     const response = await fetch('/api/captcha');
     if (!response.ok) throw new Error('加载验证码失败');
-    const data = await response.json();
-    if (data.success) {
-      state.captchaKeys[type] = data.captchaId;
-      const imgEl = document.getElementById(`captcha-img-${type}`);
-      if (imgEl) {
-        imgEl.innerHTML = data.svg;
+
+    // 从响应头获取 captchaId（不再从 JSON body 获取，防止 SVG 文本被解析）
+    const captchaId = response.headers.get('X-Captcha-Id');
+    if (!captchaId) throw new Error('验证码ID缺失');
+    state.captchaKeys[type] = captchaId;
+
+    // 将 SVG 响应转为 blob URL，以图片形式显示（避免 innerHTML 注入风险）
+    const svgText = await response.text();
+    const blob = new Blob([svgText], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+
+    const imgEl = document.getElementById(`captcha-img-${type}`);
+    if (imgEl) {
+      // 回收旧 blob URL
+      const oldImg = imgEl.querySelector('img');
+      if (oldImg && oldImg.src.startsWith('blob:')) {
+        URL.revokeObjectURL(oldImg.src);
       }
-      // 清空输入框
-      const inputEl = document.getElementById(`captcha-code-${type}`);
-      if (inputEl) inputEl.value = '';
+      imgEl.innerHTML = `<img src="${url}" alt="验证码" style="width:150px;height:52px;cursor:pointer;" title="点击刷新验证码">`;
     }
+
+    // 清空输入框
+    const inputEl = document.getElementById(`captcha-code-${type}`);
+    if (inputEl) inputEl.value = '';
   } catch (error) {
     console.error('加载验证码失败:', error);
   }

@@ -68,16 +68,25 @@ const getAllowedOrigins = () => {
 const CORS_CONFIG = {
   // 允许的域名列表
   origins: getAllowedOrigins(),
-  // 开发模式下是否允许所有来源
-  allowAllInDev: process.env.NODE_ENV === 'development',
+  // 开发模式下是否允许所有来源（已废弃：安全风险，CORS 凭据 + 任意 Origin 可导致 CSRF）
+  allowAllInDev: false,
   // CORS 选项
   options: {
     origin: function (origin, callback) {
-      // 允许无 origin 的请求（如移动应用、Postman）
+      // 允许无 origin 的请求（如移动应用、Postman、服务器间调用）
       if (!origin) return callback(null, true);
       
-      // 开发模式允许所有来源
-      if (CORS_CONFIG.allowAllInDev) return callback(null, true);
+      // 开发/生产统一白名单验证
+      const isAllowed = CORS_CONFIG.origins.some(allowed => {
+        if (allowed instanceof RegExp) return allowed.test(origin);
+        return allowed === origin;
+      });
+      
+      if (isAllowed) return callback(null, true);
+      
+      // 拒绝不在白名单中的来源
+      callback(new Error('CORS policy: Origin not allowed'));
+    },
       
       // 检查是否在白名单中
       const isAllowed = CORS_CONFIG.origins.some(allowed => {
@@ -128,7 +137,7 @@ contentSecurityPolicy: {
   },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false, // 禁用，避免 HTTP 环境下警告
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginResourcePolicy: { policy: 'same-origin' }, // 限制跨源资源读取
   dnsPrefetchControl: { allow: false },
   frameguard: { action: 'deny' },
   hidePoweredBy: true,

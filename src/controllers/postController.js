@@ -247,8 +247,22 @@ const postController = {
       const endIndex = startIndex + parseInt(limit);
       const paginatedPosts = postsWithAvatar.slice(startIndex, endIndex);
 
+      // PII 脱敏：未登录用户隐藏真实信息
+      const safePosts = paginatedPosts.map(post => {
+        if (!viewerId) {
+          return {
+            ...post,
+            school: '',
+            grade: '',
+            className: '',
+            likedBy: []
+          };
+        }
+        return post;
+      });
+
       res.json(generateSuccessResponse({
-        posts: paginatedPosts,
+        posts: safePosts,
         categories: allCategories.map(c => ({
           id: c.id,
           name: c.name,

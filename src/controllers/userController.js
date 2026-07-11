@@ -34,17 +34,17 @@ const userController = {
       const code = String(Math.floor(1000 + Math.random() * 9000));
       const captchaId = uuidv4();
 
-      // 存储到 Redis（5分钟过期）
+      // 存储到 Redis（5分钟过期，验证后立即失效）
       await captchaCache.set(captchaId, code);
 
       // 生成 SVG 图片
       const svg = generateCaptchaSvg(code);
 
-      res.json({
-        success: true,
-        captchaId,
-        svg
-      });
+      // 以图片形式返回（避免 JSON 中的文本可被脚本解析）
+      res.setHeader('X-Captcha-Id', captchaId);
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.send(svg);
     } catch (error) {
       logger.logError('生成验证码失败', { error: error.message });
       res.status(500).json(generateErrorResponse('生成验证码失败', 500));
