@@ -619,8 +619,8 @@ const userController = {
   // 修改用户资料
   async updateUserProfile(req, res) {
     try {
-      // 安全：仅使用 JWT 认证的用户 ID，防止通过 URL/body 伪造
-      const userId = req.user ? req.user.id : (req.params.id || req.body.userId);
+      // 安全：仅允许修改自己的资料
+      const userId = req.user.id;
       const { currentPassword, newPassword, username, settings, school, enrollmentYear, className, birthday, gender, signature } = req.body;
       
       const user = await getUserById(userId);
@@ -721,7 +721,8 @@ const userController = {
   // 更新用户设置
   async updateUserSettings(req, res) {
     try {
-      const userId = req.params.id;
+      // 安全：仅允许修改自己的设置
+      const userId = req.user.id;
       // 支持两种格式：直接发送设置对象，或发送 { settings: {...} }
       const settings = req.body.settings || req.body;
       
@@ -783,7 +784,8 @@ const userController = {
   // 上传用户头像
   async uploadAvatar(req, res) {
     try {
-      const userId = req.params.id;
+      // 安全：仅允许上传到自己的账户
+      const userId = req.user.id;
       
       if (!req.file) {
         return res.status(400).json(generateErrorResponse('请选择要上传的头像图片'));
@@ -829,7 +831,8 @@ const userController = {
   // 删除用户头像
   async removeAvatar(req, res) {
     try {
-      const userId = req.params.id;
+      // 安全：仅允许删除自己的头像
+      const userId = req.user.id;
       
       const user = await getUserById(userId);
       
