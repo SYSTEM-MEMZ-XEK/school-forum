@@ -1,15 +1,20 @@
-name: Build Linux Deploy Package
+name: Build & Release Linux Deploy Package
 
 on:
   push:
     branches: [main, master]
   workflow_dispatch: # 允许手动触发
 
+permissions:
+  contents: write # 发布 Release 需要写权限
+
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要完整历史以生成版本号
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,9 +25,24 @@ jobs:
       - name: Install dependencies (production only)
         run: npm ci --omit=dev
 
-      - name: Create deploy directory
+      - name: Generate version number
+        id: ver
         run: |
-          mkdir -p deploy-package
+          # 版本号 = package.json 版本 + 构建序号 + 短 commit
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +%Y%m%d)
+          TAG="v${PKG_VERSION}-build.${GITHUB_RUN_NUMBER}"
+          FULL_VERSION="${PKG_VERSION}-build.${GITHUB_RUN_NUMBER}+${SHORT_SHA}"
+          echo "tag=${TAG}"                 >> "$GITHUB_OUTPUT"
+          echo "full_version=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "pkg_version=${PKG_VERSION}"  >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}"      >> "$GITHUB_OUTPUT"
+          echo "build_date=${BUILD_DATE}"    >> "$GITHUB_OUTPUT"
+          echo "构建版本: ${TAG} (${FULL_VERSION})"
+
+      - name: Create deploy directory
+        run: mkdir -p deploy-package
 
       - name: Copy Linux deployment files
         run: |
@@ -35,10 +55,12 @@ jobs:
           cp DeploymentGuide.md deploy-package/ 2>/dev/null || true
           cp README.md deploy-package/ 2>/dev/null || true
 
-          # Linux 部署脚本
+          # Linux 部署脚本与容器编排
           cp deploy.sh deploy-package/
           cp setup.sh deploy-package/
           cp start.sh deploy-package/
+          cp uninstall.sh deploy-package/ 2>/dev/null || true
+          cp docker-compose.yml deploy-package/ 2>/dev/null || true
 
           # 源码目录
           cp -r src deploy-package/
@@ -56,37 +78,77 @@ jobs:
 
       - name: Exclude non-Linux files
         run: |
-          # 删除 Windows 脚本
           rm -f deploy-package/*.bat
-
-          # 删除 Android 目录
           rm -rf deploy-package/android
-
-          # 删除 Redis Windows 可执行文件
           rm -rf deploy-package/Redis
-
-          # 删除开发/测试文件
           rm -rf deploy-package/node_modules/.cache
           rm -rf deploy-package/.github
-
-          # 删除 .workbuddy 项目数据
           rm -rf deploy-package/.workbuddy
 
-      - name: Generate version info
+      - name: Write VERSION file
         run: |
-          echo "VERSION=$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)" > deploy-package/VERSION
-          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deploy-package/VERSION
-          echo "NODE_VERSION=$(node -v)" >> deploy-package/VERSION
+          cat > deploy-package/VERSION <<EOF
+          VERSION=${{ steps.ver.outputs.full_version }}
+          TAG=${{ steps.ver.outputs.tag }}
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          COMMIT=${{ steps.ver.outputs.short_sha }}
+          NODE_VERSION=$(node -v)
+          EOF
+          echo "----- VERSION -----"
+          cat deploy-package/VERSION
 
       - name: Create tar.gz archive
         run: |
           cd deploy-package
+          # 归档名固定，便于 install.sh 用 releases/latest/download 直接拿最新包
           tar -czf ../school-forum-linux-deploy.tar.gz .
           cd ..
+          ls -lh school-forum-linux-deploy.tar.gz
 
-      - name: Upload artifact
+      - name: Compute checksum
+        run: |
+          sha256sum school-forum-linux-deploy.tar.gz > school-forum-linux-deploy.tar.gz.sha256
+          cat school-forum-linux-deploy.tar.gz.sha256
+
+      - name: Upload build artifact (备份，30 天)
         uses: actions/upload-artifact@v4
         with:
-          name: school-forum-linux-deploy
-          path: school-forum-linux-deploy.tar.gz
+          name: school-forum-linux-deploy-${{ steps.ver.outputs.tag }}
+          path: |
+            school-forum-linux-deploy.tar.gz
+            school-forum-linux-deploy.tar.gz.sha256
           retention-days: 30
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: 校园论坛部署包 ${{ steps.ver.outputs.tag }}
+          body: |
+            ## 校园论坛系统 - Linux 部署包
+
+            | 项 | 值 |
+            |---|---|
+            | 构建版本 | `${{ steps.ver.outputs.full_version }}` |
+            | 基础版本 | `${{ steps.ver.outputs.pkg_version }}` |
+            | 构建序号 | `${{ github.run_number }}` |
+            | Commit | `${{ steps.ver.outputs.short_sha }}` |
+            | 构建时间 | `${{ steps.ver.outputs.build_date }}` |
+
+            ### 一键部署（推荐）
+            在目标 Linux 服务器上执行：
+            ```bash
+            curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/install.sh -o install.sh
+            bash install.sh
+            ```
+
+            ### 手动部署
+            下载下方 `school-forum-linux-deploy.tar.gz`，解压后运行 `./deploy.sh`。
+
+            > 产物已包含生产依赖（node_modules）、部署脚本与 docker-compose.yml，开箱即用。
+          files: |
+            school-forum-linux-deploy.tar.gz
+            school-forum-linux-deploy.tar.gz.sha256
+            install.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

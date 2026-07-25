@@ -184,10 +184,11 @@ install_tools() {
                 log_error "apt update 失败，请检查网络或手动修复软件源"
                 exit 1
             fi
-            $SUDO apt install -y curl git unzip lsb-release gnupg jq
+            # netcat-openbsd 提供 nc，用于等待 MongoDB 端口就绪；ca-certificates 供 https 下载
+            $SUDO apt install -y curl git unzip lsb-release gnupg jq netcat-openbsd ca-certificates
             ;;
         yum|dnf)
-            $SUDO $PKG_MANAGER install -y curl git unzip jq
+            $SUDO $PKG_MANAGER install -y curl git unzip jq nmap-ncat ca-certificates
             if ! command -v lsb_release &> /dev/null; then
                 $SUDO $PKG_MANAGER install -y redhat-lsb-core || true
             fi
@@ -306,6 +307,108 @@ EOF
     log_warn "MongoDB 启动超时，请手动检查"
 }
 
+# 启动 Docker 守护进程（兼容 systemd 与无 systemd 的 WSL）
+start_docker_daemon() {
+    if docker info >/dev/null 2>&1; then
+        return 0
+    fi
+    log_info "Docker 守护进程未运行，尝试启动..."
+    if command -v systemctl &> /dev/null && systemctl --no-pager status >/dev/null 2>&1; then
+        $SUDO systemctl start docker >/dev/null 2>&1 || true
+        $SUDO systemctl enable docker >/dev/null 2>&1 || true
+    else
+        $SUDO service docker start >/dev/null 2>&1 || true
+    fi
+    for i in $(seq 1 15); do
+        docker info >/dev/null 2>&1 && return 0
+        sleep 1
+    done
+    return 1
+}
+
+# 配置 Docker 国内镜像加速（避免拉取 mongo:4.4 被墙）
+configure_docker_mirror() {
+    local daemon_json="/etc/docker/daemon.json"
+    if [[ -f "$daemon_json" ]] && grep -q "registry-mirrors" "$daemon_json" 2>/dev/null; then
+        return 0
+    fi
+    log_info "配置 Docker 国内镜像加速..."
+    $SUDO mkdir -p /etc/docker
+    $SUDO tee "$daemon_json" >/dev/null <<'DOCKEOF'
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.m.daocloud.io",
+    "https://hub-mirror.c.163.com"
+  ]
+}
+DOCKEOF
+    # 重启守护进程使镜像加速生效
+    if command -v systemctl &> /dev/null && systemctl --no-pager status >/dev/null 2>&1; then
+        $SUDO systemctl restart docker >/dev/null 2>&1 || true
+    else
+        $SUDO service docker restart >/dev/null 2>&1 || true
+    fi
+    sleep 2
+}
+
+# 安装 Docker（纯净系统必备）：优先 apt/yum 的发行版包，配国内镜像加速
+install_docker() {
+    if command -v docker &> /dev/null; then
+        log_info "Docker 已安装: $(docker --version 2>/dev/null)"
+        configure_docker_mirror
+        start_docker_daemon || log_warn "Docker 守护进程启动失败，请手动检查"
+        return 0
+    fi
+
+    log_step "安装 Docker"
+    case $PKG_MANAGER in
+        apt)
+            $SUDO apt update -qq || true
+            # docker.io 是 Ubuntu/Debian 官方仓库自带的 Docker 引擎，无需额外加源，最省事最稳
+            if $SUDO apt install -y docker.io docker-compose-v2; then
+                log_success "Docker 安装完成（docker.io）"
+            elif $SUDO apt install -y docker.io; then
+                log_warn "已安装 docker.io，但 docker-compose-v2 不可用，将回退 docker run"
+            else
+                log_error "Docker 安装失败，请手动安装后重试"
+                add_missing "Docker 安装失败：请手动安装 docker.io 后重新运行部署"
+                return 1
+            fi
+            ;;
+        yum|dnf)
+            $SUDO $PKG_MANAGER install -y yum-utils || true
+            $SUDO $PKG_MANAGER-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo 2>/dev/null || true
+            if $SUDO $PKG_MANAGER install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin; then
+                log_success "Docker 安装完成（docker-ce）"
+            else
+                log_error "Docker 安装失败，请手动安装后重试"
+                add_missing "Docker 安装失败：请手动安装 docker-ce 后重新运行部署"
+                return 1
+            fi
+            ;;
+        *)
+            log_error "未知包管理器，无法自动安装 Docker"
+            add_missing "Docker 未安装：请手动安装后重新运行部署"
+            return 1
+            ;;
+    esac
+
+    # 把当前用户加入 docker 组（非 root 时免 sudo 用 docker，需重新登录生效）
+    if [[ -n "$SUDO" ]] && getent group docker >/dev/null 2>&1; then
+        $SUDO usermod -aG docker "$USER" 2>/dev/null || true
+        log_info "已将 $USER 加入 docker 组（需重新登录后免 sudo 使用 docker）"
+    fi
+
+    configure_docker_mirror
+    if ! start_docker_daemon; then
+        log_warn "Docker 守护进程启动失败，请手动执行: sudo service docker start"
+        return 1
+    fi
+    log_success "Docker 守护进程已就绪"
+    return 0
+}
+
 # 通过 Docker 安装并启动 MongoDB
 # 适用场景：CPU 不支持 AVX2（锁定 4.4），或 Ubuntu 22.04+ 官方无 4.4 apt 包（缺 libssl1.1）无法原生安装
 install_mongodb_docker() {
@@ -321,27 +424,33 @@ install_mongodb_docker() {
         fi
     done
 
+    # 纯净系统没有 Docker：自动安装（这是无 AVX2 机器跑 4.4 的必经之路）
     if ! command -v docker &> /dev/null; then
-        log_error "未检测到 Docker，无法以容器方式运行 MongoDB"
-        log_info "请先安装 Docker，或回到项目根目录手动执行: docker compose up -d"
-        add_missing "MongoDB 未安装：请安装 Docker 后运行 'docker compose up -d'"
-        return 1
+        log_warn "未检测到 Docker，MongoDB 4.4 需以容器运行，开始自动安装 Docker..."
+        if ! install_docker; then
+            log_error "Docker 自动安装失败，无法以容器方式运行 MongoDB"
+            add_missing "MongoDB 未安装：请手动安装 Docker 后运行 'docker compose up -d'"
+            return 1
+        fi
     fi
 
     # 确保 docker 守护进程已启动（WSL 下常需手动拉起）
     if ! docker info >/dev/null 2>&1; then
-        log_info "Docker 守护进程未运行，尝试启动..."
-        $SUDO service docker start >/dev/null 2>&1 || $SUDO systemctl start docker >/dev/null 2>&1 || true
-        sleep 3
+        start_docker_daemon || log_warn "Docker 守护进程启动失败，请手动检查"
     fi
 
-    if [[ ! -f "docker-compose.yml" ]]; then
-        log_warn "未找到项目 docker-compose.yml，直接拉取并运行 mongo:$version ..."
-        docker run -d --name "mongodb${version//.}" -p 27017:27017 \
-            -v "mongodb${version//.}-data:/data/db" "mongo:$version"
-    else
+    if [[ -f "docker-compose.yml" ]] && docker compose version >/dev/null 2>&1; then
         log_info "使用项目自带 docker-compose.yml 启动 MongoDB ..."
-        docker compose up -d mongodb
+        $SUDO docker compose up -d mongodb 2>/dev/null || docker compose up -d mongodb
+    else
+        [[ -f "docker-compose.yml" ]] || log_warn "未找到项目 docker-compose.yml"
+        docker compose version >/dev/null 2>&1 || log_warn "无 compose 插件，改用 docker run"
+        log_info "直接拉取并运行 mongo:$version ..."
+        $SUDO docker rm -f "mongodb${version//.}" >/dev/null 2>&1 || true
+        $SUDO docker run -d --name "mongodb${version//.}" -p 27017:27017 \
+            -v "mongodb${version//.}-data:/data/db" --restart unless-stopped "mongo:$version" 2>/dev/null || \
+        docker run -d --name "mongodb${version//.}" -p 27017:27017 \
+            -v "mongodb${version//.}-data:/data/db" --restart unless-stopped "mongo:$version"
     fi
 
     log_info "等待 MongoDB 启动..."
