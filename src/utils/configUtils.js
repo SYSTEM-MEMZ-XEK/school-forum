@@ -79,11 +79,11 @@ const DEFAULT_CONFIG = {
   
   // 学校列表配置
   schools: [
-    { id: 'school-1', name: '示例中学' },
-    { id: 'school-2', name: '示范高级中学' },
-    { id: 'school-3', name: '第一中学' },
-    { id: 'school-4', name: '第二中学' },
-    { id: 'school-5', name: '第三中学' }
+    { id: 'school-1', name: 'XX学校' },
+    { id: 'school-2', name: 'XX学校' },
+    { id: 'school-3', name: 'XX学校' },
+    { id: 'school-4', name: 'XX学校' },
+    { id: 'school-5', name: 'XX学校' }
   ],
   
   // 安全防护配置
