@@ -125,8 +125,41 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: 校园论坛部署包 ${{ steps.ver.outputs.tag }}
           body: |
-            ## 校园论坛系统 - Linux 部署包
+            ## 🎓 校园论坛系统 · Linux 部署包 `${{ steps.ver.outputs.tag }}`
 
+            > 📌 **本包为最新构建版本**，`releases/latest` 始终指向这里。老用户可直接用下方 `update` 命令一键升级（自动保留 `.env` 与 `data/config.json`）。
+
+            ---
+
+            ### 🚀 一键安装（推荐）
+            在目标 Linux 服务器上直接执行：
+            ```bash
+            curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/install.sh | bash
+            ```
+            > ⚠️ 前置依赖：该命令需要系统已安装 **curl**。最小化系统 / 容器 / Alpine 可能没有，请先安装：
+            > `sudo apt install -y curl`（Debian/Ubuntu）· `sudo yum install -y curl`（CentOS/RHEL）· `apk add curl`（Alpine）
+
+            ### 🔄 检查更新 / 升级到本版本
+            ```bash
+            bash install.sh check     # 检查是否有新版本
+            bash install.sh update    # 升级并保留现有配置（.env / data/config.json）
+            ```
+
+            ### 📦 手动部署
+            下载下方 `school-forum-linux-deploy.tar.gz`，解压后运行 `./deploy.sh`：
+            ```bash
+            curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/school-forum-linux-deploy.tar.gz -o school-forum.tar.gz
+            tar -xzf school-forum.tar.gz && ./deploy.sh
+            ```
+
+            ### 🔐 校验完整性（可选）
+            ```bash
+            sha256sum -c school-forum-linux-deploy.tar.gz.sha256
+            ```
+
+            ---
+
+            ### 📋 构建信息
             | 项 | 值 |
             |---|---|
             | 构建版本 | `${{ steps.ver.outputs.full_version }}` |
@@ -135,17 +168,7 @@ jobs:
             | Commit | `${{ steps.ver.outputs.short_sha }}` |
             | 构建时间 | `${{ steps.ver.outputs.build_date }}` |
 
-            ### 一键部署（推荐）
-            在目标 Linux 服务器上执行：
-            ```bash
-            curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/install.sh -o install.sh
-            bash install.sh
-            ```
-
-            ### 手动部署
-            下载下方 `school-forum-linux-deploy.tar.gz`，解压后运行 `./deploy.sh`。
-
-            > 产物已包含生产依赖（node_modules）、部署脚本与 docker-compose.yml，开箱即用。
+            > 产物已包含生产依赖（node_modules）、部署脚本与 docker-compose.yml，开箱即用；CPU 无 AVX2 时自动走 Docker 跑 MongoDB 4.4。
           files: |
             school-forum-linux-deploy.tar.gz
             school-forum-linux-deploy.tar.gz.sha256
