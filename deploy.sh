@@ -288,11 +288,16 @@ EOF
             $SUDO yum install -y mongodb-org
             ;;
     esac
-    $SUDO systemctl start mongod
-    $SUDO systemctl enable mongod
+    if command -v systemctl &> /dev/null && systemctl --no-pager status >/dev/null 2>&1; then
+        $SUDO systemctl start mongod
+        $SUDO systemctl enable mongod
+    else
+        # WSL 等无 systemd 环境：用 service 兜底
+        $SUDO service mongod start >/dev/null 2>&1 || true
+    fi
     log_info "等待 MongoDB 启动..."
     for i in {1..30}; do
-        if $SUDO systemctl is-active --quiet mongod && nc -z localhost 27017 2>/dev/null; then
+        if nc -z localhost 27017 2>/dev/null; then
             log_success "MongoDB 已就绪"
             return
         fi
@@ -306,6 +311,15 @@ EOF
 install_mongodb_docker() {
     local version="$1"
     log_step "通过 Docker 安装 MongoDB $version"
+
+    # 清理可能残留的官方 mongo apt 源（如之前失败安装留下的 mongodb-org-4.4.list），
+    # 否则每次 apt update 都会被它毒到而失败。
+    for f in /etc/apt/sources.list.d/mongodb-org-*.list; do
+        if [[ -f "$f" ]]; then
+            log_warn "发现残留 mongo apt 源 $f，已清除（改用 Docker，不需要它）"
+            $SUDO rm -f "$f"
+        fi
+    done
 
     if ! command -v docker &> /dev/null; then
         log_error "未检测到 Docker，无法以容器方式运行 MongoDB"
@@ -353,8 +367,12 @@ install_redis() {
             apt) $SUDO apt install -y redis-server ;;
             yum|dnf) $SUDO $PKG_MANAGER install -y redis ;;
         esac
-        $SUDO systemctl start redis
-        $SUDO systemctl enable redis
+        if command -v systemctl &> /dev/null && systemctl --no-pager status >/dev/null 2>&1; then
+            $SUDO systemctl start redis
+            $SUDO systemctl enable redis
+        else
+            $SUDO service redis-server start >/dev/null 2>&1 || $SUDO service redis start >/dev/null 2>&1 || true
+        fi
         log_success "Redis 安装完成"
     fi
 }
