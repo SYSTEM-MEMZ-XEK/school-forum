@@ -16,7 +16,7 @@
 #   bash install.sh install         # 同默认，安装最新版本
 #   bash install.sh -v <tag>        # 安装指定版本，如 -v v1.0.0-build.12
 #   bash install.sh -d <dir>        # 指定安装目录（默认 ~/school-forum）
-#   bash install.sh --proxy <url>   # 强制使用指定下载代理前缀
+#   bash install.sh --proxy <url>   # 强制指定镜像源/代理前缀（--mirror 同义）
 #   bash install.sh --no-deploy     # 只下载解压，不自动跑 deploy.sh
 #   bash install.sh -h              # 帮助
 # =======================================================
@@ -28,7 +28,7 @@ REPO="XEKernel/school-forum"
 ASSET="school-forum-linux-deploy.tar.gz"
 INSTALL_DIR_DEFAULT="$HOME/school-forum"
 
-# 国内下载代理前缀（直连 GitHub 失败时依次尝试，直接拼在完整 github URL 前面）
+# 国内下载镜像源/代理前缀（直连 GitHub 失败时依次尝试，直接拼在完整 github URL 前面）
 GH_PROXIES=(
     ""                              # 先尝试直连
     "https://ghproxy.net/"
@@ -69,7 +69,7 @@ parse_args() {
             install|update|check) ACTION="$1"; shift ;;
             -v|--version) TARGET_TAG="${2:-}"; shift 2 ;;
             -d|--dir)     INSTALL_DIR="${2:-}"; shift 2 ;;
-            --proxy)      FORCE_PROXY="${2:-}"; shift 2 ;;
+            --proxy|--mirror) FORCE_PROXY="${2:-}"; shift 2 ;;
             --no-deploy)  DO_DEPLOY=false; shift ;;
             -h|--help)    show_help; exit 0 ;;
             *) log_error "未知参数: $1"; show_help; exit 1 ;;
@@ -141,26 +141,32 @@ get_local_tag() {
 }
 
 # ---------------- 下载 ----------------
-# 依次尝试代理前缀下载指定 URL 到目标文件；成功返回 0
+# 依次尝试镜像源/代理前缀下载指定 URL 到目标文件；成功返回 0
+# 直连过慢（连续 speed-time 秒低于 speed-limit）时自动切换到下一个镜像源
 download_with_proxies() {
     local url="$1" out="$2"
     local proxies=("${GH_PROXIES[@]}")
     [[ -n "$FORCE_PROXY" ]] && proxies=("$FORCE_PROXY")
     for p in "${proxies[@]}"; do
         local full="${p}${url}"
-        [[ -z "$p" ]] && log_info "尝试直连下载: $url" || log_info "尝试代理下载: ${p} ..."
-        # --speed-limit/--speed-time: 连续 20s 低于 10KB/s 判定为假连通，放弃换源
-        # --max-time: 单源总时长上限 5 分钟，防止无限挂起
-        if curl -fL --connect-timeout 15 --retry 2 \
+        [[ -z "$p" ]] && log_info "📥 尝试直连下载..." || log_info "📥 尝试镜像源: ${p%/}"
+        # 进度条：--progress-bar 实时显示下载进度（演示更直观）
+        # 过慢保护：连续 20s 低于 10KB/s 视为过慢 -> 放弃当前源、自动切下一个镜像源
+        # 单源总时长上限 5 分钟，防止无限挂起
+        if curl -fL --progress-bar \
+                --connect-timeout 15 --retry 1 \
                 --speed-limit 10240 --speed-time 20 --max-time 300 \
-                -o "$out" "$full" 2>/dev/null; then
+                -o "$out" "$full"; then
             # 校验是有效 gzip 包（避免把 404 的 html 当成包）
             if gzip -t "$out" >/dev/null 2>&1; then
                 return 0
             else
-                log_warn "下载内容不是有效压缩包（可能被墙/代理返回错误页），换下一个源"
+                log_warn "下载内容不是有效压缩包（可能被墙/镜像返回错误页），换下一个镜像源"
                 rm -f "$out"
             fi
+        else
+            log_warn "该源下载失败或过慢，自动切换镜像源..."
+            rm -f "$out"
         fi
     done
     return 1
