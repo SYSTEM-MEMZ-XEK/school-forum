@@ -157,6 +157,29 @@ jobs:
             sha256sum -c school-forum-linux-deploy.tar.gz.sha256
             ```
 
+            ### 🛠 安装常见问题（Troubleshooting）
+            若安装命令报 `curl: (60) SSL certificate problem: unable to get local issuer certificate`：
+            极简/精简 Linux 镜像（如部分 WSL rootfs、Docker 基础镜像）可能未预装 CA 证书包，导致 curl 无法校验 GitHub 的 TLS 证书。正常完整版 Ubuntu Server 默认已含该包，生产环境一般不会遇到。
+
+            **解决办法（在目标机器执行）：**
+            ```bash
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates
+            ```
+            安装后重新运行原安装命令即可。
+
+            **备用方案：**
+            - 若 `apt-get update` 本身也报 SSL 错误（源被切成 HTTPS 镜像），先临时切回 HTTP 再安装：
+              ```bash
+              sudo sed -i 's|https://|http://|g' /etc/apt/sources.list /etc/apt/sources.list.d/*
+              sudo apt-get update && sudo apt-get install -y ca-certificates
+              ```
+            - 若系统时间明显错误（如 1970 年）：TLS 会因时钟漂移失败，先校正时间：
+              ```bash
+              sudo hwclock -s
+              date   # 应显示正确年份，如 2026
+              ```
+
             ---
 
             ### 📋 构建信息
