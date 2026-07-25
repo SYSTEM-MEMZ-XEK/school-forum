@@ -157,6 +157,47 @@ jobs:
             sha256sum -c school-forum-linux-deploy.tar.gz.sha256
             ```
 
+            ### 🛠 安装常见问题（Troubleshooting）
+
+            若安装命令报 `curl: (60) SSL certificate problem: unable to get local issuer certificate`，常见两类原因：
+
+            **情况 A：精简 Linux 镜像未预装 CA 证书包**（如部分 WSL rootfs、Docker 基础镜像）
+            普通完整版 Ubuntu Server 默认已含该包，一般无需处理：
+            ```bash
+            sudo apt-get update && sudo apt-get install -y ca-certificates
+            ```
+
+            **情况 B（更常见）：本机存在 TLS 拦截代理 / 加速器（如 SteamTools、各类游戏加速器、公司网关）**
+            这类软件会把 `github.com` 的证书用**自己的根 CA 重新签名**，而该根 CA 通常只装进了 Windows 证书库、未装进 WSL / 容器的独立证书库，于是 curl 报 "unknown CA"。
+            先用下面命令确认（看 `issuer` 是否为你本机软件的 CA，而非 DigiCert / GlobalSign 等正规 CA）：
+            ```bash
+            echo | openssl s_client -connect github.com:443 2>/dev/null | openssl x509 -noout -issuer
+            ```
+            **一次性修复：把该代理根 CA 加入 WSL 信任库**（抓取并信任，以 SteamTools 为例）：
+            ```bash
+            sudo mkdir -p /usr/local/share/ca-certificates
+            echo | openssl s_client -showcerts -connect github.com:443 2>/dev/null \
+              | sed -n '/BEGIN CERTIFICATE/,/END CERTIFICATE/p' \
+              | awk 'BEGIN{c=0} /BEGIN CERTIFICATE/{c++} c>=2{print}' \
+              > /usr/local/share/ca-certificates/local-proxy-ca.crt
+            sudo update-ca-certificates
+            # 之后无需 -k 即可正常安装：
+            curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/install.sh | bash
+            ```
+            **临时绕过（仅在你信任当前网络时）：** `curl -k ... | bash` 跳过证书校验，但每次都需加 `-k`，不建议长期使用。
+
+            **通用备用方案：**
+            - 若 `apt-get update` 本身也报 SSL 错误（软件源被切成 HTTPS 镜像），先临时切回 HTTP 再装证书：
+              ```bash
+              sudo sed -i 's|https://|http://|g' /etc/apt/sources.list /etc/apt/sources.list.d/*
+              sudo apt-get update && sudo apt-get install -y ca-certificates
+              ```
+            - 若系统时间明显错误（如 1970 年）：TLS 会因时钟漂移失败，先校时：
+              ```bash
+              sudo ntpdate -u time.windows.com   # 或 sudo hwclock -s
+              date   # 应显示正确年份，如 2026
+              ```
+
             ---
 
             ### 📋 构建信息
