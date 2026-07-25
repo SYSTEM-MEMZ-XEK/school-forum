@@ -17,6 +17,28 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# 通过 Docker 拉起依赖服务（仅当端口空闲且存在对应容器/compose 时）
+# 用法: start_dep_via_docker <容器名> <端口>
+start_dep_via_docker() {
+    local svc="$1" port="$2"
+    # 端口已被占用（可能是本机原生服务），不抢占端口
+    if command -v nc &> /dev/null && nc -z "localhost" "$port" 2>/dev/null; then
+        return 0
+    fi
+    if ! command -v docker &> /dev/null; then
+        return 1
+    fi
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$svc"; then
+        return 0
+    fi
+    if [[ -f "docker-compose.yml" ]]; then
+        log_info "通过 docker compose 启动 $svc ..."
+        docker compose up -d 2>/dev/null && return 0
+    fi
+    docker start "$svc" 2>/dev/null && return 0
+    return 1
+}
+
 # 检测是否为交互式终端
 is_interactive() {
     [ -t 0 ] && [ -t 1 ]
@@ -77,6 +99,9 @@ fi
 log_info "检查 MongoDB 状态..."
 MONGODB_OK=false
 
+# 若未运行，优先尝试用 Docker 拉起（本项目 MongoDB 由 docker-compose 提供）
+start_dep_via_docker mongodb44 27017 || true
+
 # 方法1：检查进程
 if pgrep -x "mongod" >/dev/null; then
     log_success "MongoDB 进程正在运行"
@@ -101,6 +126,9 @@ fi
 # ==================== 6. 检查 Redis（可选，交互式启动）====================
 log_info "检查 Redis 状态..."
 REDIS_OK=false
+
+# 若未运行，尝试用 Docker 拉起 Redis（如 docker-compose 中包含 redis 服务）
+start_dep_via_docker forum-redis 6379 || true
 
 # 检测 Redis 客户端是否存在
 if command -v redis-cli &> /dev/null; then
@@ -144,7 +172,13 @@ if command -v redis-cli &> /dev/null; then
         fi
     fi
 else
-    log_warn "未找到 redis-cli，Redis 可能未安装，缓存功能将不可用"
+    # 没有 redis-cli：若 6379 端口已通（可能由 Docker 提供），视为可用
+    if command -v nc &> /dev/null && nc -z localhost 6379 2>/dev/null; then
+        log_success "Redis 端口 6379 已监听（可能由 Docker 提供）"
+        REDIS_OK=true
+    else
+        log_warn "未找到 redis-cli，Redis 可能未安装，缓存功能将不可用"
+    fi
 fi
 
 if [ "$REDIS_OK" = false ]; then

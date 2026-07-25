@@ -1,0 +1,30 @@
+# 校园论坛 school-forum 的 MongoDB 4.4 服务
+# 背景：CPU 不支持 AVX2，且 Ubuntu 24.04 无法原生安装 4.4，
+#       因此用容器跑官方 mongo:4.4 镜像（基于 Debian，自带 libssl1.1，无需 AVX2）。
+# 项目连接串保持 mongodb://localhost:27017 不变即可，零代码改动。
+#
+# 启动：在 WSL 里  cd ~/project/school-forum  &&  docker compose up -d
+# 停止：docker compose down            （数据保留在命名卷 mongodb44-data 中）
+# 查看日志：docker compose logs -f mongodb
+
+services:
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb44
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      # 用命名卷而非绑定目录，规避 WSL 权限/9P 性能问题，数据持久化且高性能
+      - mongodb44-data:/data/db
+    # 限制 WiredTiger 内存占用，避免在你 8GB 的 WSL 里吃满内存
+    command: ["mongod", "--wiredTigerCacheSizeGB", "1.5"]
+    # 可选：如需账号密码鉴权，取消下面注释并改成你自己的密码，
+    #       之后项目连接串需带上账号，如 mongodb://root:密码@localhost:27017
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: root
+    #   MONGO_INITDB_ROOT_PASSWORD: 你的密码
+
+volumes:
+  mongodb44-data:
+    driver: local

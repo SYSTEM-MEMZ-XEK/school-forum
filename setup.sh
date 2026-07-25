@@ -354,3 +354,8 @@ echo "备份文件（可删除旧备份）："
 ls -t .env.bak.* 2>/dev/null | head -3 | sed 's/^/  /'
 echo ""
 echo "如需完整配置（JWT密钥等），请运行 ./deploy.sh 进行初始化部署"
+echo ""
+echo "数据库说明："
+echo "  本项目 MongoDB 由 docker-compose.yml（mongo:4.4 容器）提供。"
+echo "  启动前请确认 Docker 已运行，然后执行：  docker compose up -d"
+echo "  连接串 MONGODB_URI 已指向 mongodb://localhost:27017/school-forum，无需修改。"

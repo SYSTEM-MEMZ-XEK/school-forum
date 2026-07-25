@@ -247,10 +247,13 @@ install_mongodb() {
         1)
             if check_avx2; then
                 MONGODB_VERSION="7.0"
+                install_mongodb_local "$MONGODB_VERSION"
             else
-                MONGODB_VERSION="4.4"
+                # 不支持 AVX2：锁定 4.4。Ubuntu 22.04+ 官方无 4.4 的 apt 包且缺 libssl1.1，
+                # 无法原生安装，改用 Docker 容器运行 mongo:4.4。
+                log_warn "CPU 不支持 AVX2，MongoDB 锁定 4.4，将通过 Docker 安装"
+                install_mongodb_docker "4.4"
             fi
-            install_mongodb_local "$MONGODB_VERSION"
             ;;
         2) log_info "请访问 https://www.mongodb.com/atlas/database 创建免费集群";;
         3) log_info "跳过 MongoDB 安装";;
@@ -296,6 +299,46 @@ EOF
         sleep 2
     done
     log_warn "MongoDB 启动超时，请手动检查"
+}
+
+# 通过 Docker 安装并启动 MongoDB
+# 适用场景：CPU 不支持 AVX2（锁定 4.4），或 Ubuntu 22.04+ 官方无 4.4 apt 包（缺 libssl1.1）无法原生安装
+install_mongodb_docker() {
+    local version="$1"
+    log_step "通过 Docker 安装 MongoDB $version"
+
+    if ! command -v docker &> /dev/null; then
+        log_error "未检测到 Docker，无法以容器方式运行 MongoDB"
+        log_info "请先安装 Docker，或回到项目根目录手动执行: docker compose up -d"
+        add_missing "MongoDB 未安装：请安装 Docker 后运行 'docker compose up -d'"
+        return 1
+    fi
+
+    # 确保 docker 守护进程已启动（WSL 下常需手动拉起）
+    if ! docker info >/dev/null 2>&1; then
+        log_info "Docker 守护进程未运行，尝试启动..."
+        $SUDO service docker start >/dev/null 2>&1 || $SUDO systemctl start docker >/dev/null 2>&1 || true
+        sleep 3
+    fi
+
+    if [[ ! -f "docker-compose.yml" ]]; then
+        log_warn "未找到项目 docker-compose.yml，直接拉取并运行 mongo:$version ..."
+        docker run -d --name "mongodb${version//.}" -p 27017:27017 \
+            -v "mongodb${version//.}-data:/data/db" "mongo:$version"
+    else
+        log_info "使用项目自带 docker-compose.yml 启动 MongoDB ..."
+        docker compose up -d mongodb
+    fi
+
+    log_info "等待 MongoDB 启动..."
+    for i in $(seq 1 30); do
+        if command -v nc &> /dev/null && nc -z localhost 27017 2>/dev/null; then
+            log_success "MongoDB (Docker) 已就绪"
+            return 0
+        fi
+        sleep 2
+    done
+    log_warn "MongoDB 启动超时，请手动检查: docker logs mongodb${version//.}"
 }
 
 # 安装 Redis
