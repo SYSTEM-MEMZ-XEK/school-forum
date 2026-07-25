@@ -149,7 +149,11 @@ download_with_proxies() {
     for p in "${proxies[@]}"; do
         local full="${p}${url}"
         [[ -z "$p" ]] && log_info "尝试直连下载: $url" || log_info "尝试代理下载: ${p} ..."
-        if curl -fL --connect-timeout 15 --retry 2 -o "$out" "$full" 2>/dev/null; then
+        # --speed-limit/--speed-time: 连续 20s 低于 10KB/s 判定为假连通，放弃换源
+        # --max-time: 单源总时长上限 5 分钟，防止无限挂起
+        if curl -fL --connect-timeout 15 --retry 2 \
+                --speed-limit 10240 --speed-time 20 --max-time 300 \
+                -o "$out" "$full" 2>/dev/null; then
             # 校验是有效 gzip 包（避免把 404 的 html 当成包）
             if gzip -t "$out" >/dev/null 2>&1; then
                 return 0
