@@ -29,12 +29,13 @@ ASSET="school-forum-linux-deploy.tar.gz"
 INSTALL_DIR_DEFAULT="$HOME/school-forum"
 
 # 国内下载镜像源/代理前缀（直连 GitHub 失败时依次尝试，直接拼在完整 github URL 前面）
+# 注：mirror.ghproxy.com 与 gh.ddlc.top 已失效，已移除；如你的网络有可用镜像，用 --mirror <url> 指定
 GH_PROXIES=(
-    ""                              # 先尝试直连
-    "https://ghproxy.net/"
-    "https://mirror.ghproxy.com/"
-    "https://gh.ddlc.top/"
-    "https://ghfast.top/"
+    "https://v4.gh-proxy.org/"      # 优先：gh-proxy v4 镜像
+    "https://gh-proxy.org/"         # 优先：gh-proxy 官方镜像
+    ""                              # 次选：直连
+    "https://ghproxy.net/"          # 镜像源
+    "https://ghfast.top/"           # 镜像源（最后）
 )
 
 # ---------------- 颜色与日志 ----------------
