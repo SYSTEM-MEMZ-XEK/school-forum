@@ -24,7 +24,7 @@
     "mathjax": "^3.2.2",
     "mongoose": "^9.2.1",
     "multer": "^2.0.2",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^9.0.3",
     "redis": "^4.7.1",
     "uuid": "^11.1.0",
     "xss": "^1.0.15"

@@ -11,10 +11,6 @@ data/server-*.log
 .env
 .env.local
 
-# Redis
-Redis/
-*.rdb
-dump.rdb
 
 # OS files
 .DS_Store
@@ -41,3 +37,4 @@ data/config.json
 start.bat
 android/
 .workbuddy/
+package-lock.json
