@@ -175,6 +175,38 @@ smart_switch_mirror() {
     esac
 }
 
+# 更新系统与软件包（一键脚本可选步骤）
+update_system() {
+    log_step "更新系统与软件包"
+    case $PKG_MANAGER in
+        apt)
+            log_info "刷新软件源并升级已安装的软件包..."
+            $SUDO apt update -qq || log_warn "apt update 失败，继续尝试升级"
+            # 无交互升级：自动保留已有配置文件，避免升级时卡在 dpkg 交互
+            if $SUDO DEBIAN_FRONTEND=noninteractive apt upgrade -y \
+                    -o Dpkg::Options::="--force-confdef" \
+                    -o Dpkg::Options::="--force-confold"; then
+                log_success "系统软件包已更新到最新"
+            else
+                log_warn "部分软件包升级失败，可稍后手动执行: sudo apt upgrade"
+            fi
+            # 清理已不需要的依赖
+            $SUDO apt autoremove -y >/dev/null 2>&1 || true
+            ;;
+        yum)
+            log_info "升级已安装软件包 (yum update -y)..."
+            $SUDO yum update -y || log_warn "yum update 失败，可稍后手动执行"
+            ;;
+        dnf)
+            log_info "升级已安装软件包 (dnf upgrade -y)..."
+            $SUDO dnf upgrade -y || log_warn "dnf upgrade 失败，可稍后手动执行"
+            ;;
+        *)
+            log_warn "未知包管理器 $PKG_MANAGER，跳过系统更新"
+            ;;
+    esac
+}
+
 # 安装基础工具
 install_tools() {
     log_step "安装基础工具"
@@ -206,31 +238,82 @@ install_nodejs() {
         NODE_MAJOR=$(echo $NODE_VERSION | cut -d'v' -f2 | cut -d'.' -f1)
         if [[ $NODE_MAJOR -lt 18 ]]; then
             log_warn "Node.js 版本过低，正在升级到 20 LTS..."
-            install_nodejs_from_source
+            install_nodejs_from_source || add_missing "Node.js 升级失败，请手动升级到 20 LTS"
         fi
     else
         log_info "未安装 Node.js，正在安装..."
-        install_nodejs_from_source
+        install_nodejs_from_source || add_missing "Node.js 未安装：请手动安装 Node 20 LTS 后重新运行部署"
     fi
 }
 
 install_nodejs_from_source() {
-    log_info "安装 nvm (Node Version Manager)..."
-    export NVM_NODEJS_ORG_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/nodejs-release
-    if [ ! -d "$HOME/.nvm" ]; then
-        curl -o- https://gitee.com/mirrors/nvm/raw/master/install.sh | bash
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    else
-        export NVM_DIR="$HOME/.nvm"
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    log_info "安装 Node.js 20 LTS（从清华镜像下载二进制包，免 nvm，更稳定）..."
+    local ver="20.18.1"
+    # 尝试从清华镜像索引动态获取最新的 v20 版本号（不易过期）；失败则回退到默认值
+    local idx
+    idx="$(curl -fsSL --connect-timeout 15 "https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/" 2>/dev/null)"
+    if [[ -n "$idx" ]]; then
+        local found
+        found="$(echo "$idx" | grep -oE 'v20\.[0-9]+\.[0-9]+' | sort -V | tail -1)"
+        [[ -n "$found" ]] && ver="${found#v}"
     fi
-    log_info "安装 Node.js 20 LTS（这可能需要几分钟）..."
-    export NVM_NODEJS_ORG_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/nodejs-release
-    nvm install 20
-    nvm alias default 20
-    npm config set registry https://registry.npmmirror.com
-    log_success "Node.js 安装完成: $(node -v)"
+    log_info "目标版本: Node.js v${ver}"
+
+    local arch
+    arch="$(uname -m)"
+    case "$arch" in
+        x86_64) arch="x64" ;;
+        aarch64) arch="arm64" ;;
+        armv7l) arch="armv7l" ;;
+        *) log_warn "未知架构 $arch，将按 x64 尝试"; arch="x64" ;;
+    esac
+
+    local base="https://mirrors.tuna.tsinghua.edu.cn/nodejs-release"
+    local pkg="node-v${ver}-linux-${arch}.tar.gz"
+    local tmp
+    tmp="$(mktemp -d)"
+    local dest="$tmp/$pkg"
+
+    log_info "下载 Node.js 二进制包: $base/v${ver}/$pkg"
+    if ! curl -fL --progress-bar --connect-timeout 20 --max-time 600 -o "$dest" "$base/v${ver}/$pkg"; then
+        log_error "Node.js 二进制包下载失败（网络受限或被拦截）"
+        rm -rf "$tmp"
+        add_missing "Node.js 未安装：请手动安装 Node 20 LTS 后重新运行部署"
+        return 1
+    fi
+
+    log_info "解压并安装到 /usr/local ..."
+    if ! tar -xzf "$dest" -C "$tmp"; then
+        log_error "解压 Node.js 包失败，可能下载不完整"
+        rm -rf "$tmp"
+        add_missing "Node.js 未安装：解压失败"
+        return 1
+    fi
+    local node_dir
+    node_dir="$(find "$tmp" -maxdepth 1 -type d -name 'node-v*' | head -1)"
+    if [[ -z "$node_dir" ]]; then
+        log_error "未找到解压后的 Node 目录"
+        rm -rf "$tmp"
+        add_missing "Node.js 未安装"
+        return 1
+    fi
+    if ! $SUDO cp -r "$node_dir"/. /usr/local/ 2>/dev/null; then
+        log_error "复制到 /usr/local 失败（权限不足？）"
+        rm -rf "$tmp"
+        add_missing "Node.js 未安装：写入 /usr/local 失败"
+        return 1
+    fi
+    rm -rf "$tmp"
+    hash -r 2>/dev/null || true
+
+    if command -v node &> /dev/null; then
+        npm config set registry https://registry.npmmirror.com 2>/dev/null || true
+        log_success "Node.js 安装完成: $(node -v)  npm $(npm -v 2>/dev/null)"
+    else
+        log_error "安装后未找到 node 命令，可能 /usr/local/bin 不在 PATH 中"
+        add_missing "Node.js 未安装：请确认 /usr/local/bin 在 PATH 后重新运行部署"
+        return 1
+    fi
 }
 
 # 安装 MongoDB
@@ -505,7 +588,10 @@ configure_project() {
     fi
 
     log_info "安装项目依赖..."
-    npm install
+    if ! npm install; then
+        log_warn "npm install 失败，请检查 Node 是否安装正确或网络是否通畅"
+        add_missing "项目依赖(npm install)安装失败，请手动执行 npm install 后重新部署"
+    fi
     mkdir -p data
 
     # 询问是否覆盖已有配置
@@ -943,16 +1029,21 @@ main() {
     detect_os
 
     if ask_yes_no "是否配置清华镜像加速下载？(推荐) [Y/n]: " "Y"; then
-        smart_switch_mirror
+        smart_switch_mirror || true
     fi
 
-    install_tools
-    install_nodejs
-    install_mongodb
-    install_redis
+    if ask_yes_no "是否更新系统与已有软件包（apt upgrade / dnf upgrade）？(推荐) [Y/n]: " "Y"; then
+        update_system || true
+    fi
+
+    # 各安装步骤尽量容错：即使某项失败也不阻断后续（尤其保证 configure_project 一定会执行，让用户完成配置）
+    install_tools || { log_error "基础工具安装失败，无法继续"; exit 1; }
+    install_nodejs || add_missing "Node.js 安装失败，论坛将无法启动"
+    install_mongodb || add_missing "MongoDB 安装失败，请手动处理"
+    install_redis || true
     configure_project
-    install_pm2
-    start_service
+    install_pm2 || add_missing "PM2 安装失败，可用 'npm start' 启动"
+    start_service || true
     show_complete
 }
 

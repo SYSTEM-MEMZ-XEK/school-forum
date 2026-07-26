@@ -144,10 +144,17 @@ get_local_tag() {
 # ---------------- 下载 ----------------
 # 依次尝试镜像源/代理前缀下载指定 URL 到目标文件；成功返回 0
 # 直连过慢（连续 speed-time 秒低于 speed-limit）时自动切换到下一个镜像源
+# 参数: <url> <out> [check_type: gzip|raw, 默认 gzip] [prefer: 优先尝试的镜像源]
+#   gzip -> 校验为有效 gzip 压缩包（用于部署包）；raw -> 仅校验文件非空（用于 sha256 等文本文件）
+#   prefer -> 把已知可用的镜像源放最前，避免再次轮询全部镜像（用户要求：下载完就别换源）
+LAST_OK_PROXY=""
 download_with_proxies() {
-    local url="$1" out="$2"
+    local url="$1" out="$2" check_type="${3:-gzip}" prefer="${4:-}"
     local proxies=("${GH_PROXIES[@]}")
     [[ -n "$FORCE_PROXY" ]] && proxies=("$FORCE_PROXY")
+    if [[ -n "$prefer" ]]; then
+        proxies=("$prefer" "${proxies[@]}")
+    fi
     for p in "${proxies[@]}"; do
         local full="${p}${url}"
         [[ -z "$p" ]] && log_info "📥 尝试直连下载..." || log_info "📥 尝试镜像源: ${p%/}"
@@ -158,11 +165,21 @@ download_with_proxies() {
                 --connect-timeout 15 --retry 1 \
                 --speed-limit 10240 --speed-time 20 --max-time 300 \
                 -o "$out" "$full"; then
-            # 校验是有效 gzip 包（避免把 404 的 html 当成包）
-            if gzip -t "$out" >/dev/null 2>&1; then
-                return 0
-            else
+            if [[ "$check_type" == "gzip" ]]; then
+                # 校验是有效 gzip 包（避免把 404 的 html 当成包）
+                if gzip -t "$out" >/dev/null 2>&1; then
+                    LAST_OK_PROXY="$p"
+                    return 0
+                fi
                 log_warn "下载内容不是有效压缩包（可能被墙/镜像返回错误页），换下一个镜像源"
+                rm -f "$out"
+            else
+                # raw：非压缩文本（如 sha256），仅校验非空即可
+                if [[ -s "$out" ]]; then
+                    LAST_OK_PROXY="$p"
+                    return 0
+                fi
+                log_warn "下载内容为空，换下一个镜像源"
                 rm -f "$out"
             fi
         else
@@ -258,7 +275,8 @@ download_and_extract() {
     local sha_url sha_file
     sha_url="${url}.sha256"
     sha_file="$tmp/${ASSET}.sha256"
-    if download_with_proxies "$sha_url" "$sha_file" 2>/dev/null; then :; fi
+    # 复用刚下载 tar 包成功的镜像源，避免再次轮询所有镜像（用户要求：下载完就别换源）
+    if download_with_proxies "$sha_url" "$sha_file" raw "$LAST_OK_PROXY" 2>/dev/null; then :; fi
     if [[ -f "$sha_file" ]] && need_cmd sha256sum; then
         local expect actual
         expect=$(awk '{print $1}' "$sha_file" 2>/dev/null)
