@@ -38,14 +38,45 @@ print_section() {
     echo -e "${MAGENTA}========================================================${NC}"
 }
 
-is_interactive() { [[ -t 0 ]] && [[ -t 1 ]]; }
+# 判断是否可交互：stdin 是终端，或存在可用控制终端 /dev/tty
+# 这样即使通过 `curl ... | bash` 管道执行，只要运行环境有真实终端，也能向用户提问
+is_interactive() { [[ -t 0 ]] || [[ -c /dev/tty ]]; }
+
+# 从真实终端(/dev/tty)或 stdin 读取一行输入，兼容管道(curl|bash)场景
+# 用法: prompt_read <变量名> "<提示>" [默认值] [silent]
+prompt_read() {
+    local __var="$1" __text="$2" __default="${3:-}" __silent="${4:-}" __val=""
+    if [[ -c /dev/tty ]] && { [[ -t 1 ]] || [[ -t 2 ]]; }; then
+        if [[ "$__silent" == "silent" ]]; then
+            read -r -s -p "$__text" __val < /dev/tty
+            echo >&2
+        else
+            read -r -p "$__text" __val < /dev/tty
+        fi
+    else
+        if [[ "$__silent" == "silent" ]]; then
+            read -r -s -p "$__text" __val
+            echo
+        else
+            read -r -p "$__text" __val
+        fi
+    fi
+    __val="${__val:-$__default}"
+    printf -v "$__var" '%s' "$__val"
+}
 
 ask_yes_no() {
     local prompt="$1" default="$2"
     if is_interactive; then
-        echo -en "${CYAN}[?] $prompt ${NC}"
-        read answer
-        case "$answer" in [Yy]) return 0;; [Nn]) return 1;; *) [[ "$default" == "Y" ]] && return 0 || return 1;; esac
+        while true; do
+            prompt_read answer "${CYAN}[?] $prompt ${NC}" "$default"
+            case "$answer" in
+                [Yy]) return 0 ;;
+                [Nn]) return 1 ;;
+                "") [[ "$default" == "Y" ]] && return 0 || return 1 ;;
+                *) echo -e "${YELLOW}请输入 Y 或 N${NC}" ;;
+            esac
+        done
     else
         [[ "$default" == "Y" ]] && return 0 || return 1
     fi
@@ -54,8 +85,7 @@ ask_yes_no() {
 ask_option() {
     local prompt="$1" default="$2"
     if is_interactive; then
-        echo -en "${CYAN}[?] $prompt ${NC}"
-        read answer
+        prompt_read answer "${CYAN}[?] $prompt ${NC}" "$default"
         echo "${answer:-$default}"
     else
         echo "$default"
@@ -637,6 +667,15 @@ configure_project() {
         overwrite_config=true
     fi
 
+    # 让用户选择是否现在填写管理员/学校信息（可跳过，稍后手动配置）
+    local do_interactive_config=true
+    if is_interactive && [[ "$overwrite_config" == "true" ]]; then
+        if ! ask_yes_no "是否现在配置管理员与学校信息（可跳过，稍后手动编辑 data/config.json）？ [Y/n]: " "Y"; then
+            do_interactive_config=false
+            log_info "已跳过管理员/学校配置，安装完成后可手动编辑 data/config.json"
+        fi
+    fi
+
     # --- 收集 .env 配置 ---
     local port="3000"
     local node_env="production"
@@ -659,33 +698,30 @@ configure_project() {
     if [[ "$overwrite_env" == "true" ]] && is_interactive; then
         print_section "基础配置"
         while true; do
-            read -p "服务端口 (默认: 3000): " port
-            port=${port:-3000}
+            prompt_read port "服务端口 (默认: 3000): " "3000"
             if validate_positive_int "$port"; then
                 break
             else
                 log_warn "端口必须是正整数，请重新输入"
             fi
         done
-        read -p "运行环境 (development/production, 默认: production): " node_env
-        node_env=${node_env:-production}
+        prompt_read node_env "运行环境 (development/production, 默认: production): " "production"
 
         print_section "MongoDB 配置"
-        read -p "MongoDB 连接字符串 (默认: mongodb://localhost:27017/school-forum): " input_uri
+        prompt_read input_uri "MongoDB 连接字符串 (默认: mongodb://localhost:27017/school-forum): " "$mongodb_uri"
         mongodb_uri=${input_uri:-$mongodb_uri}
-        read -p "MongoDB 用户名 (若无需认证请留空): " mongodb_username
+        prompt_read mongodb_username "MongoDB 用户名 (若无需认证请留空): " ""
         if [[ -n "$mongodb_username" ]]; then
-            read -sp "MongoDB 密码: " mongodb_password
-            echo
-            read -p "认证数据库 (默认: admin): " mongodb_authsource
+            prompt_read mongodb_password "MongoDB 密码: " "" "silent"
+            prompt_read mongodb_authsource "认证数据库 (默认: admin): " "admin"
             mongodb_authsource=${mongodb_authsource:-admin}
         fi
 
         print_section "Redis 配置"
-        read -p "Redis 主机 (默认: localhost): " input_host
+        prompt_read input_host "Redis 主机 (默认: localhost): " "$redis_host"
         redis_host=${input_host:-$redis_host}
         while true; do
-            read -p "Redis 端口 (默认: 6379): " input_port
+            prompt_read input_port "Redis 端口 (默认: 6379): " "6379"
             redis_port=${input_port:-6379}
             if validate_positive_int "$redis_port"; then
                 break
@@ -693,23 +729,22 @@ configure_project() {
                 log_warn "端口必须是正整数"
             fi
         done
-        read -sp "Redis 密码 (若无请留空): " redis_password
-        echo
+        prompt_read redis_password "Redis 密码 (若无请留空): " "" "silent"
 
         print_section "JWT 安全配置"
         jwt_secret=$(generate_secret)
         admin_jwt_secret=$(generate_secret)
-        read -p "是否手动指定 JWT_SECRET？(强烈建议使用自动生成) [y/N]: " manual_jwt
+        prompt_read manual_jwt "是否手动指定 JWT_SECRET？(强烈建议使用自动生成) [y/N]: " "N"
         if [[ "$manual_jwt" =~ ^[Yy]$ ]]; then
-            read -p "请输入 JWT_SECRET (至少32字符): " jwt_secret
-            read -p "请输入 ADMIN_JWT_SECRET: " admin_jwt_secret
+            prompt_read jwt_secret "请输入 JWT_SECRET (至少32字符): " ""
+            prompt_read admin_jwt_secret "请输入 ADMIN_JWT_SECRET: " ""
         fi
 
         print_section "邮件服务配置（可选）"
-        read -p "SMTP 服务器 (例如 smtp.163.com): " smtp_host
+        prompt_read smtp_host "SMTP 服务器 (例如 smtp.163.com, 留空跳过): " ""
         if [[ -n "$smtp_host" ]]; then
             while true; do
-                read -p "SMTP 端口 (465/587, 默认: 465): " smtp_port
+                prompt_read smtp_port "SMTP 端口 (465/587, 默认: 465): " "465"
                 smtp_port=${smtp_port:-465}
                 if validate_positive_int "$smtp_port"; then
                     break
@@ -717,21 +752,19 @@ configure_project() {
                     log_warn "端口必须是数字"
                 fi
             done
-            read -p "是否使用 SSL/TLS? (true/false, 默认 true): " smtp_secure
+            prompt_read smtp_secure "是否使用 SSL/TLS? (true/false, 默认 true): " "true"
             smtp_secure=${smtp_secure:-true}
-            read -p "邮箱账号: " smtp_user
-            read -sp "邮箱授权码/密码: " smtp_pass
-            echo
+            prompt_read smtp_user "邮箱账号: " ""
+            prompt_read smtp_pass "邮箱授权码/密码: " "" "silent"
         else
             add_missing "邮件服务 (SMTP) 未配置，如需发送邮件请编辑 .env 中的 SMTP_* 配置"
         fi
 
         print_section "CORS 白名单"
-        read -p "CORS 白名单 (多个用逗号分隔, 默认 http://localhost:3000): " cors_origin
-        cors_origin=${cors_origin:-"http://localhost:3000"}
+        prompt_read cors_origin "CORS 白名单 (多个用逗号分隔, 默认 http://localhost:3000): " "http://localhost:3000"
 
         print_section "服务器 IP"
-        read -p "服务器内网IP (例如192.168.2.4, 留空自动检测): " server_ip
+        prompt_read server_ip "服务器内网IP (例如192.168.2.4, 留空自动检测): " ""
         if [[ -z "$server_ip" ]]; then
             server_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
             [[ -n "$server_ip" ]] && log_info "自动检测到服务器 IP: $server_ip"
@@ -807,12 +840,12 @@ EOF
     local admin_users_json="[]"
     local schools_json="[]"
 
-    if [[ "$overwrite_config" == "true" ]] && is_interactive; then
+    if [[ "$overwrite_config" == "true" ]] && is_interactive && [[ "$do_interactive_config" == "true" ]]; then
         print_section "管理员配置"
         echo "请输入管理员 QQ 号（每行一个，输入空行结束）："
         local admin_users=()
         while true; do
-            read -p "QQ号: " qq
+            prompt_read qq "QQ号: " ""
             if [[ -z "$qq" ]]; then
                 break
             elif validate_qq "$qq"; then
@@ -830,22 +863,22 @@ EOF
         print_section "学校配置"
         local schools=()
         while true; do
-            read -p "是否添加/编辑学校信息？ [y/N]: " add_school
+            prompt_read add_school "是否添加/编辑学校信息？ [y/N]: " "N"
             if [[ ! "$add_school" =~ ^[Yy]$ ]]; then
                 break
             fi
-            read -p "学校 ID (例如 XXXX): " school_id
-            read -p "学校名称 (例如 XX学校): " school_name
+            prompt_read school_id "学校 ID (例如 XXXX): " ""
+            prompt_read school_name "学校名称 (例如 XX学校): " ""
             local class_info=()
             echo "现在为该学校添加年级班级信息 (例如: 2020年级有18个班)"
             while true; do
-                read -p "添加年级班级？ [y/N]: " add_class
+                prompt_read add_class "添加年级班级？ [y/N]: " "N"
                 if [[ ! "$add_class" =~ ^[Yy]$ ]]; then
                     break
                 fi
                 local year=""
                 while true; do
-                    read -p "年份 (例如 2020): " year
+                    prompt_read year "年份 (例如 2020): " ""
                     if validate_year "$year"; then
                         break
                     else
@@ -854,7 +887,7 @@ EOF
                 done
                 local class_count=""
                 while true; do
-                    read -p "班级数量: " class_count
+                    prompt_read class_count "班级数量: " ""
                     if validate_positive_int "$class_count"; then
                         break
                     else
@@ -874,10 +907,30 @@ EOF
         else
             schools_json=$(IFS=,; echo "[${schools[*]}]")
         fi
-    elif [[ "$overwrite_config" == "true" ]] && ! is_interactive; then
+    elif [[ "$overwrite_config" == "true" ]]; then
+        # 非交互模式，或用户在交互模式下主动选择跳过配置
         admin_users_json="[]"
         schools_json="[]"
-        add_missing "非交互模式未配置管理员和学校信息，请手动编辑 data/config.json"
+        if [[ -n "${SCHOOL_FORUM_ADMIN_QQ:-}" ]]; then
+            # 非交互模式下通过环境变量预填管理员（逗号分隔多个 QQ）
+            local qq_list qq_clean valid_qqs=()
+            IFS=',' read -ra qq_list <<< "$SCHOOL_FORUM_ADMIN_QQ"
+            for q in "${qq_list[@]}"; do
+                qq_clean="$(echo "$q" | tr -d '[:space:]')"
+                if validate_qq "$qq_clean"; then
+                    valid_qqs+=("$qq_clean")
+                fi
+            done
+            if [[ ${#valid_qqs[@]} -gt 0 ]]; then
+                admin_users_json=$(printf '%s\n' "${valid_qqs[@]}" | jq -R . | jq -s .)
+                log_info "已从环境变量 SCHOOL_FORUM_ADMIN_QQ 预填 ${#valid_qqs[@]} 个管理员"
+            fi
+        fi
+        if is_interactive; then
+            log_info "已跳过学校与管理员配置，可稍后编辑 data/config.json"
+        else
+            add_missing "管理员与学校信息未配置（非交互模式自动跳过），可手动编辑 data/config.json 中的 adminUsers / schools"
+        fi
     fi
 
     # 写入 data/config.json
