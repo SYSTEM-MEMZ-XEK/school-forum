@@ -349,14 +349,16 @@ install_mongodb_local() {
     log_info "安装 MongoDB $version ..."
     case $OS in
         ubuntu)
+            # GPG 公钥为 MongoDB 官方签名密钥（清华镜像不托管签名密钥，必须保留官方地址用于校验）
             curl -fsSL "https://www.mongodb.org/static/pgp/server-${version}.asc" | $SUDO gpg -o "/usr/share/keyrings/mongodb-server-${version}.gpg" --dearmor
-            echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${version}.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/${version} multiverse" | $SUDO tee "/etc/apt/sources.list.d/mongodb-org-${version}.list"
+            # 软件包改用清华大学开源镜像站，避免直连官方源 repo.mongodb.org
+            echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${version}.gpg ] https://mirrors.tuna.tsinghua.edu.cn/mongodb/apt/ubuntu $(lsb_release -cs)/mongodb-org/${version} multiverse" | $SUDO tee "/etc/apt/sources.list.d/mongodb-org-${version}.list"
             $SUDO apt update -qq
             $SUDO apt install -y mongodb-org
             ;;
         debian)
             curl -fsSL "https://www.mongodb.org/static/pgp/server-${version}.asc" | $SUDO gpg -o "/usr/share/keyrings/mongodb-server-${version}.gpg" --dearmor
-            echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${version}.gpg ] https://repo.mongodb.org/apt/debian $(lsb_release -cs)/mongodb-org/${version} multiverse" | $SUDO tee "/etc/apt/sources.list.d/mongodb-org-${version}.list"
+            echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${version}.gpg ] https://mirrors.tuna.tsinghua.edu.cn/mongodb/apt/debian $(lsb_release -cs)/mongodb-org/${version} multiverse" | $SUDO tee "/etc/apt/sources.list.d/mongodb-org-${version}.list"
             $SUDO apt update -qq
             $SUDO apt install -y mongodb-org
             ;;
@@ -364,7 +366,8 @@ install_mongodb_local() {
             cat <<EOF | $SUDO tee "/etc/yum.repos.d/mongodb-org-${version}.repo"
 [mongodb-org-${version}]
 name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/\$releasever/mongodb-org/${version}/x86_64/
+# 阿里云 MongoDB 镜像（https://mirrors.aliyun.com/mongodb），避免直连官方源 repo.mongodb.org
+baseurl=https://mirrors.aliyun.com/mongodb/yum/redhat/\$releasever/mongodb-org/${version}/x86_64/
 gpgcheck=1
 enabled=1
 gpgkey=https://www.mongodb.org/static/pgp/server-${version}.asc
@@ -447,16 +450,37 @@ install_docker() {
     log_step "安装 Docker"
     case $PKG_MANAGER in
         apt)
-            $SUDO apt update -qq || true
-            # docker.io 是 Ubuntu/Debian 官方仓库自带的 Docker 引擎，无需额外加源，最省事最稳
-            if $SUDO apt install -y docker.io docker-compose-v2; then
-                log_success "Docker 安装完成（docker.io）"
-            elif $SUDO apt install -y docker.io; then
-                log_warn "已安装 docker.io，但 docker-compose-v2 不可用，将回退 docker run"
+            # 统一使用阿里云 Docker CE 镜像源（https://mirrors.aliyun.com/docker-ce），避免直连 Docker 官方源 download.docker.com
+            local dver
+            case $OS in
+                ubuntu) dver="ubuntu" ;;
+                debian) dver="debian" ;;
+                *) dver="ubuntu" ;;
+            esac
+            local codename
+            codename="$(. /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-}")"
+            [[ -z "$codename" ]] && codename="$(lsb_release -cs 2>/dev/null)"
+            $SUDO install -m 0755 -d /etc/apt/keyrings 2>/dev/null || true
+            if curl -fsSL "https://mirrors.aliyun.com/docker-ce/linux/$dver/gpg" | $SUDO gpg -o /etc/apt/keyrings/docker.gpg --dearmor 2>/dev/null; then
+                echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/$dver $codename stable" | $SUDO tee /etc/apt/sources.list.d/docker.list >/dev/null
+                $SUDO apt update -qq || true
+                if $SUDO apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin; then
+                    log_success "Docker 安装完成（Docker CE，阿里云镜像）"
+                else
+                    log_error "Docker 安装失败，请手动安装后重试"
+                    add_missing "Docker 安装失败：请手动安装 docker 后重新运行部署"
+                    return 1
+                fi
             else
-                log_error "Docker 安装失败，请手动安装后重试"
-                add_missing "Docker 安装失败：请手动安装 docker.io 后重新运行部署"
-                return 1
+                log_warn "阿里云 Docker GPG 拉取失败，回退到发行版自带 docker.io"
+                $SUDO apt update -qq || true
+                if $SUDO apt install -y docker.io docker-compose-v2; then
+                    log_success "Docker 安装完成（docker.io 回退）"
+                else
+                    log_error "Docker 安装失败，请手动安装后重试"
+                    add_missing "Docker 安装失败：请手动安装 docker 后重新运行部署"
+                    return 1
+                fi
             fi
             ;;
         yum|dnf)
