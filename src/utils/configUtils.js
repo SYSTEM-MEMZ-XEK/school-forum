@@ -63,7 +63,9 @@ const DEFAULT_CONFIG = {
   // 分页配置
   pagination: {
     defaultPage: 1,
-    defaultLimit: 20
+    defaultLimit: 20,
+    // 内存精排（推荐/相关等）候选集上限
+    maxCandidates: 1000
   },
   
   // 内容长度限制
@@ -222,7 +224,8 @@ function mergeWithDefaults(config) {
     },
     pagination: {
       defaultPage: config.pagination?.defaultPage || DEFAULT_CONFIG.pagination.defaultPage,
-      defaultLimit: config.pagination?.defaultLimit || DEFAULT_CONFIG.pagination.defaultLimit
+      defaultLimit: config.pagination?.defaultLimit || DEFAULT_CONFIG.pagination.defaultLimit,
+      maxCandidates: config.pagination?.maxCandidates || DEFAULT_CONFIG.pagination.maxCandidates
     },
     contentLimits: {
       post: config.contentLimits?.post || DEFAULT_CONFIG.contentLimits.post,

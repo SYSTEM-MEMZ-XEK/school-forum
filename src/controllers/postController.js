@@ -100,8 +100,8 @@ const postController = {
           { timestamp: -1 };
         posts = await Post.find(query).sort(sort).skip((page - 1) * limit).limit(limit).lean();
       } else {
-        // 内存精排：取过滤后按时间倒序的候选集（上限 1000 条）再精排分页
-        const MAX_CANDIDATES = 1000;
+        // 内存精排：取过滤后按时间倒序的候选集（上限取自配置 pagination.maxCandidates，默认 1000）再精排分页
+        const MAX_CANDIDATES = getPaginationConfig().maxCandidates || 1000;
         const candidates = await Post.find(query).sort({ timestamp: -1 }).limit(MAX_CANDIDATES).lean();
 
         let favoriteMap = {};

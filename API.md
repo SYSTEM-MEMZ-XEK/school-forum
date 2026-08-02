@@ -4,8 +4,7 @@
 
 > ## ⚠️ 文档与实现差异（2026-08-02 更新说明）
 >
-> 本文档的接口路径为**旧版无 `/api` 前缀**写法，代码已统一挂载到 `/api` 前缀下：
-> - **所有接口实际路径 = 文档路径 + `/api` 前缀**（例如文档 `POST /login` → 实际 `POST /api/login`）。
+> 本文档的接口路径**已全部更新为带 `/api` 前缀**（2026-08-02 批量同步，共 141 处）：
 > - 服务端对不带 `/api` 的旧路径提供 **307 重定向**兼容，但仅限 GET 请求与显式 JSON 请求；**新客户端请一律使用 `/api` 前缀**。
 > - **认证方式**：文档中要求 body 传 `userId`/`viewerId` 的接口，代码已改为**从 JWT 取身份**（`Authorization: Bearer <token>`），body/query 中传入的 userId 会被忽略（安全修复）。
 > - **响应格式**：文档示例为 `data` 嵌套；实际成功响应为 `{ success, message, ...业务字段 }`（业务字段直接展开在顶层，如 `user`、`token`）。
@@ -13,7 +12,7 @@
 
 ## 基础信息
 
-- **Base URL**: `http://your-domain:3000`（代码默认端口 2080，请以 .env 中 PORT 为准）
+- **Base URL**: `http://your-domain:2080`（默认端口 2080，请以 .env 中 PORT 为准）
 - **Content-Type**: `application/json`
 - **响应格式**: JSON
 
@@ -64,7 +63,7 @@
 ### 健康检查
 
 ```
-GET /health
+GET /api/health
 ```
 
 **响应示例**：
@@ -83,7 +82,7 @@ GET /health
 ### 发送注册验证码
 
 ```
-POST /send-verification-code
+POST /api/send-verification-code
 ```
 
 **请求参数**：
@@ -111,7 +110,7 @@ POST /send-verification-code
 ### 发送登录验证码
 
 ```
-POST /send-login-verification-code
+POST /api/send-login-verification-code
 ```
 
 **请求参数**：
@@ -124,7 +123,7 @@ POST /send-login-verification-code
 ### 发送密码修改验证码
 
 ```
-POST /send-password-change-code
+POST /api/send-password-change-code
 ```
 
 **请求参数**：
@@ -149,7 +148,7 @@ POST /send-password-change-code
 ### 验证密码修改验证码
 
 ```
-POST /verify-password-change-code
+POST /api/verify-password-change-code
 ```
 
 **请求参数**：
@@ -163,7 +162,7 @@ POST /verify-password-change-code
 ### 修改密码
 
 ```
-POST /change-password
+POST /api/change-password
 ```
 
 > 🔑 需要认证
@@ -180,7 +179,7 @@ POST /change-password
 ### 发送邮箱修改验证码
 
 ```
-POST /send-email-change-code
+POST /api/send-email-change-code
 ```
 
 > 🔑 需要认证
@@ -197,7 +196,7 @@ POST /send-email-change-code
 ### 验证并完成邮箱修改
 
 ```
-POST /verify-email-change
+POST /api/verify-email-change
 ```
 
 > 🔑 需要认证
@@ -213,7 +212,7 @@ POST /verify-email-change
 ### 修改 QQ 号
 
 ```
-POST /change-qq
+POST /api/change-qq
 ```
 
 > 🔑 需要认证
@@ -230,7 +229,7 @@ POST /change-qq
 ### 发送账户注销验证码
 
 ```
-POST /send-deletion-code
+POST /api/send-deletion-code
 ```
 
 > 🔑 需要认证
@@ -245,7 +244,7 @@ POST /send-deletion-code
 ### 注销账户
 
 ```
-POST /delete-account
+POST /api/delete-account
 ```
 
 > 🔑 需要认证
@@ -261,7 +260,7 @@ POST /delete-account
 ### 获取图形验证码
 
 ```
-GET /captcha
+GET /api/captcha
 ```
 
 获取一次性图形验证码（SVG 格式），用于登录、注册和管理员登录时的人机验证。
@@ -294,7 +293,7 @@ GET /captcha
 ### 用户注册
 
 ```
-POST /register
+POST /api/register
 ```
 
 **请求参数**：
@@ -356,7 +355,7 @@ POST /register
 ### 用户登录
 
 ```
-POST /login
+POST /api/login
 ```
 
 **请求参数**：
@@ -408,7 +407,7 @@ POST /login
 ### 验证登录状态
 
 ```
-POST /auth/verify
+POST /api/auth/verify
 ```
 
 **请求参数**：
@@ -435,7 +434,7 @@ POST /auth/verify
 ### 获取用户资料
 
 ```
-GET /users/:id
+GET /api/users/:id
 ```
 
 **路径参数**：
@@ -476,7 +475,7 @@ GET /users/:id
 ### 修改用户资料
 
 ```
-PUT /users/:id
+PUT /api/users/:id
 ```
 
 **路径参数**：
@@ -506,7 +505,7 @@ PUT /users/:id
 ### 更新用户设置
 
 ```
-PUT /users/:id/settings
+PUT /api/users/:id/settings
 ```
 
 **请求参数**：
@@ -529,7 +528,7 @@ PUT /users/:id/settings
 ### 上传头像
 
 ```
-POST /users/:id/avatar
+POST /api/users/:id/avatar
 ```
 
 **请求格式**: `multipart/form-data`
@@ -556,7 +555,7 @@ POST /users/:id/avatar
 ### 删除头像
 
 ```
-DELETE /users/:id/avatar
+DELETE /api/users/:id/avatar
 ```
 
 **请求参数**：无（通过路径参数指定用户）
@@ -578,7 +577,7 @@ DELETE /users/:id/avatar
 ### 获取图形验证码
 
 ```
-GET /captcha
+GET /api/captcha
 ```
 
 获取新的图形验证码，返回 captchaId 和 SVG 图片。
@@ -620,7 +619,7 @@ GET /captcha
 ### 获取帖子列表
 
 ```
-GET /posts
+GET /api/posts
 ```
 
 **查询参数**：
@@ -707,7 +706,7 @@ GET /posts
 ### 发布帖子
 
 ```
-POST /posts
+POST /api/posts
 ```
 
 **请求格式**: `multipart/form-data`
@@ -755,7 +754,7 @@ POST /posts
 ### 获取帖子详情
 
 ```
-GET /posts/:id
+GET /api/posts/:id
 ```
 
 **路径参数**：
@@ -768,7 +767,7 @@ GET /posts/:id
 ### 编辑帖子
 
 ```
-PUT /posts/:id
+PUT /api/posts/:id
 ```
 
 **请求格式**: `multipart/form-data`
@@ -786,7 +785,7 @@ PUT /posts/:id
 ### 删除帖子
 
 ```
-DELETE /posts/:id
+DELETE /api/posts/:id
 ```
 
 **请求参数**：
@@ -799,7 +798,7 @@ DELETE /posts/:id
 ### 增加浏览量
 
 ```
-POST /posts/:id/view
+POST /api/posts/:id/view
 ```
 
 **响应示例**：
@@ -817,7 +816,7 @@ POST /posts/:id/view
 ### 点赞帖子
 
 ```
-POST /posts/:id/like
+POST /api/posts/:id/like
 ```
 
 **请求参数**：
@@ -844,7 +843,7 @@ POST /posts/:id/like
 ### 点踩帖子
 
 ```
-POST /posts/:id/dislike
+POST /api/posts/:id/dislike
 ```
 
 **请求参数**：
@@ -871,7 +870,7 @@ POST /posts/:id/dislike
 ### 添加评论
 
 ```
-POST /posts/:id/comments
+POST /api/posts/:id/comments
 ```
 
 **路径参数**：
@@ -910,7 +909,7 @@ POST /posts/:id/comments
 ### 回复评论
 
 ```
-POST /posts/:id/comments/:commentId/replies
+POST /api/posts/:id/comments/:commentId/replies
 ```
 
 **路径参数**：
@@ -933,7 +932,7 @@ POST /posts/:id/comments/:commentId/replies
 ### 删除评论
 
 ```
-DELETE /posts/:id/comments/:commentId
+DELETE /api/posts/:id/comments/:commentId
 ```
 
 **请求参数**：
@@ -981,7 +980,7 @@ DELETE /posts/:id/comments/:commentId
 ### 获取所有已启用栏目
 
 ```
-GET /categories
+GET /api/categories
 ```
 
 **查询参数**：
@@ -1021,7 +1020,7 @@ GET /categories
 ### 获取单个栏目详情
 
 ```
-GET /categories/:id
+GET /api/categories/:id
 ```
 
 **路径参数**：
@@ -1051,7 +1050,7 @@ GET /categories/:id
 ### 获取栏目帖子
 
 ```
-GET /categories/:id/posts
+GET /api/categories/:id/posts
 ```
 
 **路径参数**：
@@ -1089,7 +1088,7 @@ GET /categories/:id/posts
 ### 申请新建栏目
 
 ```
-POST /category-applications
+POST /api/category-applications
 ```
 
 > 需要认证
@@ -1113,7 +1112,7 @@ POST /category-applications
 ### 管理员：获取所有栏目
 
 ```
-GET /admin/categories
+GET /api/admin/categories
 ```
 
 > 需要管理员权限
@@ -1145,7 +1144,7 @@ GET /admin/categories
 ### 管理员：创建栏目
 
 ```
-POST /admin/categories
+POST /api/admin/categories
 ```
 
 > 需要管理员权限
@@ -1182,7 +1181,7 @@ POST /admin/categories
 ### 管理员：更新栏目
 
 ```
-PUT /admin/categories/:id
+PUT /api/admin/categories/:id
 ```
 
 > 需要管理员权限
@@ -1201,7 +1200,7 @@ PUT /admin/categories/:id
 ### 管理员：删除栏目
 
 ```
-DELETE /admin/categories/:id
+DELETE /api/admin/categories/:id
 ```
 
 > 需要管理员权限
@@ -1219,7 +1218,7 @@ DELETE /admin/categories/:id
 ### 管理员：切换栏目启用状态
 
 ```
-PATCH /admin/categories/:id/toggle-status
+PATCH /api/admin/categories/:id/toggle-status
 ```
 
 > 需要管理员权限
@@ -1240,7 +1239,7 @@ PATCH /admin/categories/:id/toggle-status
 ### 管理员：获取所有栏目申请
 
 ```
-GET /admin/category-applications
+GET /api/admin/category-applications
 ```
 
 > 需要管理员权限
@@ -1269,7 +1268,7 @@ GET /admin/category-applications
 ### 管理员：批准栏目申请
 
 ```
-POST /admin/category-applications/:id/approve
+POST /api/admin/category-applications/:id/approve
 ```
 
 > 需要管理员权限
@@ -1287,7 +1286,7 @@ POST /admin/category-applications/:id/approve
 ### 管理员：拒绝栏目申请
 
 ```
-POST /admin/category-applications/:id/reject
+POST /api/admin/category-applications/:id/reject
 ```
 
 > 需要管理员权限
@@ -1307,7 +1306,7 @@ POST /admin/category-applications/:id/reject
 ### 关注用户
 
 ```
-POST /follow
+POST /api/follow
 ```
 
 **请求参数**：
@@ -1332,7 +1331,7 @@ POST /follow
 ### 取消关注
 
 ```
-DELETE /follow
+DELETE /api/follow
 ```
 
 **请求参数**：
@@ -1346,7 +1345,7 @@ DELETE /follow
 ### 检查关注状态
 
 ```
-GET /follow/status
+GET /api/follow/status
 ```
 
 **查询参数**：
@@ -1370,7 +1369,7 @@ GET /follow/status
 ### 获取关注统计
 
 ```
-GET /follow/stats/:userId
+GET /api/follow/stats/:userId
 ```
 
 **响应示例**：
@@ -1389,7 +1388,7 @@ GET /follow/stats/:userId
 ### 获取关注列表
 
 ```
-GET /following/:userId
+GET /api/following/:userId
 ```
 
 **查询参数**：
@@ -1433,7 +1432,7 @@ GET /following/:userId
 ### 获取粉丝列表
 
 ```
-GET /followers/:userId
+GET /api/followers/:userId
 ```
 
 参数同关注列表。
@@ -1443,7 +1442,7 @@ GET /followers/:userId
 ### 获取关注用户的帖子
 
 ```
-GET /following/posts/:userId
+GET /api/following/posts/:userId
 ```
 
 **查询参数**：
@@ -1457,7 +1456,7 @@ GET /following/posts/:userId
 ### 获取新帖子数量
 
 ```
-GET /follow/new-posts/:userId
+GET /api/follow/new-posts/:userId
 ```
 
 **响应示例**：
@@ -1475,7 +1474,7 @@ GET /follow/new-posts/:userId
 ### 标记已查看关注动态
 
 ```
-POST /follow/mark-viewed
+POST /api/follow/mark-viewed
 ```
 
 **请求参数**：
@@ -1490,7 +1489,7 @@ POST /follow/mark-viewed
 ### 收藏帖子
 
 ```
-POST /favorites/:postId
+POST /api/favorites/:postId
 ```
 
 **路径参数**：
@@ -1526,7 +1525,7 @@ POST /favorites/:postId
 ### 取消收藏
 
 ```
-DELETE /favorites/:postId
+DELETE /api/favorites/:postId
 ```
 
 **请求参数**：
@@ -1539,7 +1538,7 @@ DELETE /favorites/:postId
 ### 检查是否已收藏
 
 ```
-GET /favorites/:postId/check
+GET /api/favorites/:postId/check
 ```
 
 **查询参数**：
@@ -1564,7 +1563,7 @@ GET /favorites/:postId/check
 ### 获取用户收藏列表
 
 ```
-GET /favorites/user/:userId
+GET /api/favorites/user/:userId
 ```
 
 **查询参数**：
@@ -1599,7 +1598,7 @@ GET /favorites/user/:userId
 ### 获取收藏数量
 
 ```
-GET /favorites/user/:userId/count
+GET /api/favorites/user/:userId/count
 ```
 
 ---
@@ -1607,7 +1606,7 @@ GET /favorites/user/:userId/count
 ### 更新收藏标签
 
 ```
-PUT /favorites/:postId/tag
+PUT /api/favorites/:postId/tag
 ```
 
 **请求参数**：
@@ -1621,7 +1620,7 @@ PUT /favorites/:postId/tag
 ### 批量删除收藏
 
 ```
-POST /favorites/batch/delete
+POST /api/favorites/batch/delete
 ```
 
 **请求参数**：
@@ -1635,7 +1634,7 @@ POST /favorites/batch/delete
 ### 批量移动到标签
 
 ```
-POST /favorites/batch/move
+POST /api/favorites/batch/move
 ```
 
 **请求参数**：
@@ -1650,7 +1649,7 @@ POST /favorites/batch/move
 ### 获取用户标签
 
 ```
-GET /favorites/tags/:userId
+GET /api/favorites/tags/:userId
 ```
 
 **响应示例**：
@@ -1677,7 +1676,7 @@ GET /favorites/tags/:userId
 ### 创建标签
 
 ```
-POST /favorites/tags
+POST /api/favorites/tags
 ```
 
 **请求参数**：
@@ -1692,7 +1691,7 @@ POST /favorites/tags
 ### 更新标签
 
 ```
-PUT /favorites/tags/:tagId
+PUT /api/favorites/tags/:tagId
 ```
 
 **请求参数**：
@@ -1707,7 +1706,7 @@ PUT /favorites/tags/:tagId
 ### 删除标签
 
 ```
-DELETE /favorites/tags/:tagId
+DELETE /api/favorites/tags/:tagId
 ```
 
 **请求参数**：
@@ -1720,7 +1719,7 @@ DELETE /favorites/tags/:tagId
 ### 更新标签排序
 
 ```
-PUT /favorites/tags/order
+PUT /api/favorites/tags/order
 ```
 
 **请求参数**：
@@ -1736,7 +1735,7 @@ PUT /favorites/tags/order
 ### 获取通知列表
 
 ```
-GET /notifications
+GET /api/notifications
 ```
 
 **查询参数**：
@@ -1781,7 +1780,7 @@ GET /notifications
 ### 标记通知已读
 
 ```
-POST /notifications/:id/read
+POST /api/notifications/:id/read
 ```
 
 **路径参数**：
@@ -1799,7 +1798,7 @@ POST /notifications/:id/read
 ### 标记全部已读
 
 ```
-POST /notifications/read-all
+POST /api/notifications/read-all
 ```
 
 **请求参数**：
@@ -1814,7 +1813,7 @@ POST /notifications/read-all
 ### 获取举报类型
 
 ```
-GET /reports/types
+GET /api/reports/types
 ```
 
 **响应示例**：
@@ -1839,7 +1838,7 @@ GET /reports/types
 ### 提交举报
 
 ```
-POST /reports
+POST /api/reports
 ```
 
 **请求参数**：
@@ -1867,7 +1866,7 @@ POST /reports
 ### 获取用户举报历史
 
 ```
-GET /reports/user/:userId
+GET /api/reports/user/:userId
 ```
 
 ---
@@ -1877,7 +1876,7 @@ GET /reports/user/:userId
 ### 获取统计数据
 
 ```
-GET /stats
+GET /api/stats
 ```
 
 **响应示例**：
@@ -1903,7 +1902,7 @@ GET /stats
 ### 搜索
 
 ```
-GET /search
+GET /api/search
 ```
 
 **查询参数**：
@@ -1921,7 +1920,7 @@ GET /search
 ### 获取学校列表
 
 ```
-GET /schools
+GET /api/schools
 ```
 
 **响应示例**：
@@ -1947,7 +1946,7 @@ GET /schools
 ### 获取公开配置
 
 ```
-GET /public
+GET /api/public
 ```
 
 **响应示例**：
@@ -1978,7 +1977,7 @@ GET /public
 ### 发送私信
 
 ```
-POST /messages
+POST /api/messages
 ```
 
 **请求参数**：
@@ -2029,7 +2028,7 @@ POST /messages
 ### 获取消息记录
 
 ```
-GET /messages
+GET /api/messages
 ```
 
 **查询参数**：
@@ -2068,7 +2067,7 @@ GET /messages
 ### 获取未读消息总数
 
 ```
-GET /messages/unread
+GET /api/messages/unread
 ```
 
 **查询参数**：
@@ -2091,7 +2090,7 @@ GET /messages/unread
 ### 检查发送权限
 
 ```
-GET /messages/check-permission
+GET /api/messages/check-permission
 ```
 
 **查询参数**：
@@ -2125,7 +2124,7 @@ GET /messages/check-permission
 ### 获取可联系用户列表
 
 ```
-GET /messages/contactable-users
+GET /api/messages/contactable-users
 ```
 
 **查询参数**：
@@ -2157,7 +2156,7 @@ GET /messages/contactable-users
 ### 删除单条消息
 
 ```
-DELETE /messages/:messageId
+DELETE /api/messages/:messageId
 ```
 
 **路径参数**：
@@ -2175,7 +2174,7 @@ DELETE /messages/:messageId
 ### 获取会话列表
 
 ```
-GET /conversations
+GET /api/conversations
 ```
 
 **查询参数**：
@@ -2215,7 +2214,7 @@ GET /conversations
 ### 删除会话
 
 ```
-DELETE /conversations/:conversationId
+DELETE /api/conversations/:conversationId
 ```
 
 **路径参数**：
@@ -2235,7 +2234,7 @@ DELETE /conversations/:conversationId
 ### 拉黑用户
 
 ```
-POST /block
+POST /api/block
 ```
 
 **请求参数**：
@@ -2262,7 +2261,7 @@ POST /block
 ### 取消拉黑
 
 ```
-POST /unblock
+POST /api/unblock
 ```
 
 **请求参数**：
@@ -2287,7 +2286,7 @@ POST /unblock
 ### 检查拉黑状态
 
 ```
-GET /block/status
+GET /api/block/status
 ```
 
 **查询参数**：
@@ -2312,7 +2311,7 @@ GET /block/status
 ### 检查拉黑关系
 
 ```
-GET /block/relation
+GET /api/block/relation
 ```
 
 **查询参数**：
@@ -2336,7 +2335,7 @@ GET /block/relation
 ### 获取拉黑列表
 
 ```
-GET /blocked/:userId
+GET /api/blocked/:userId
 ```
 
 **路径参数**：
@@ -2383,7 +2382,7 @@ GET /blocked/:userId
 ### 获取拉黑数量
 
 ```
-GET /blocked/count/:userId
+GET /api/blocked/count/:userId
 ```
 
 **路径参数**：
@@ -2408,7 +2407,7 @@ GET /blocked/count/:userId
 ### 获取有效公告列表
 
 ```
-GET /announcements/active
+GET /api/announcements/active
 ```
 
 **响应示例**：
@@ -2437,7 +2436,7 @@ GET /announcements/active
 ### 获取公告详情
 
 ```
-GET /announcements/:id
+GET /api/announcements/:id
 ```
 
 **路径参数**：
@@ -2452,7 +2451,7 @@ GET /announcements/:id
 ### 获取当前运行模式
 
 ```
-GET /run-mode
+GET /api/run-mode
 ```
 
 **响应示例**（展开式响应）：
@@ -2477,7 +2476,7 @@ GET /run-mode
 ### 获取维护模式消息
 
 ```
-GET /maintenance-message
+GET /api/maintenance-message
 ```
 
 **响应示例**：
@@ -2499,7 +2498,7 @@ GET /maintenance-message
 ### 获取帖子列表（含已删除）
 
 ```
-GET /admin/posts
+GET /api/admin/posts
 ```
 
 **查询参数**：
@@ -2514,7 +2513,7 @@ GET /admin/posts
 ### 永久删除帖子
 
 ```
-DELETE /admin/posts/:id
+DELETE /api/admin/posts/:id
 ```
 
 **请求参数**：
@@ -2528,7 +2527,7 @@ DELETE /admin/posts/:id
 ### 获取所有用户
 
 ```
-GET /admin/users
+GET /api/admin/users
 ```
 
 ---
@@ -2536,7 +2535,7 @@ GET /admin/users
 ### 获取封禁用户列表
 
 ```
-GET /admin/banned-users
+GET /api/admin/banned-users
 ```
 
 ---
@@ -2544,7 +2543,7 @@ GET /admin/banned-users
 ### 封禁用户
 
 ```
-POST /admin/users/:id/ban
+POST /api/admin/users/:id/ban
 ```
 
 **路径参数**：
@@ -2564,7 +2563,7 @@ POST /admin/users/:id/ban
 ### 解封用户
 
 ```
-POST /admin/users/:id/unban
+POST /api/admin/users/:id/unban
 ```
 
 **请求参数**：
@@ -2577,7 +2576,7 @@ POST /admin/users/:id/unban
 ### 获取详细统计
 
 ```
-GET /admin/stats
+GET /api/admin/stats
 ```
 
 **响应示例**：
@@ -2609,7 +2608,7 @@ GET /admin/stats
 ### 获取最近活动
 
 ```
-GET /admin/recent-activity
+GET /api/admin/recent-activity
 ```
 
 ---
@@ -2617,7 +2616,7 @@ GET /admin/recent-activity
 ### 获取所有评论
 
 ```
-GET /admin/comments
+GET /api/admin/comments
 ```
 
 **查询参数**：
@@ -2632,7 +2631,7 @@ GET /admin/comments
 ### 删除评论
 
 ```
-DELETE /admin/comments/:id
+DELETE /api/admin/comments/:id
 ```
 
 **请求参数**：
@@ -2647,7 +2646,7 @@ DELETE /admin/comments/:id
 ### 获取日志
 
 ```
-GET /admin/logs
+GET /api/admin/logs
 ```
 
 **查询参数**：
@@ -2664,7 +2663,7 @@ GET /admin/logs
 ### 获取日志日期列表
 
 ```
-GET /admin/logs/dates
+GET /api/admin/logs/dates
 ```
 
 ---
@@ -2672,7 +2671,7 @@ GET /admin/logs/dates
 ### 清空日志
 
 ```
-DELETE /admin/logs
+DELETE /api/admin/logs
 ```
 
 **请求参数**：
@@ -2686,7 +2685,7 @@ DELETE /admin/logs
 ### 删除指定日期日志
 
 ```
-DELETE /admin/logs/date
+DELETE /api/admin/logs/date
 ```
 
 **请求参数**：
@@ -2700,7 +2699,7 @@ DELETE /admin/logs/date
 ### 获取举报列表
 
 ```
-GET /admin/reports
+GET /api/admin/reports
 ```
 
 **查询参数**：
@@ -2715,7 +2714,7 @@ GET /admin/reports
 ### 获取举报统计
 
 ```
-GET /admin/reports/stats
+GET /api/admin/reports/stats
 ```
 
 ---
@@ -2723,7 +2722,7 @@ GET /admin/reports/stats
 ### 处理举报
 
 ```
-POST /admin/reports/:reportId/process
+POST /api/admin/reports/:reportId/process
 ```
 
 **请求参数**：
@@ -2739,7 +2738,7 @@ POST /admin/reports/:reportId/process
 ### 获取配置
 
 ```
-GET /admin/config
+GET /api/admin/config
 ```
 
 ---
@@ -2747,7 +2746,7 @@ GET /admin/config
 ### 更新配置
 
 ```
-PUT /admin/config
+PUT /api/admin/config
 ```
 
 **请求参数**：
@@ -2761,7 +2760,7 @@ PUT /admin/config
 ### 获取管理员列表
 
 ```
-GET /admin/admins
+GET /api/admin/admins
 ```
 
 ---
@@ -2769,7 +2768,7 @@ GET /admin/admins
 ### 添加管理员
 
 ```
-POST /admin/admins
+POST /api/admin/admins
 ```
 
 **请求参数**：
@@ -2783,7 +2782,7 @@ POST /admin/admins
 ### 删除管理员
 
 ```
-DELETE /admin/admins
+DELETE /api/admin/admins
 ```
 
 **请求参数**：
@@ -2797,7 +2796,7 @@ DELETE /admin/admins
 ### 获取所有公告（管理员）
 
 ```
-GET /admin/announcements
+GET /api/admin/announcements
 ```
 
 ---
@@ -2805,7 +2804,7 @@ GET /admin/announcements
 ### 创建公告
 
 ```
-POST /admin/announcements
+POST /api/admin/announcements
 ```
 
 **请求参数**：
@@ -2822,7 +2821,7 @@ POST /admin/announcements
 ### 更新公告
 
 ```
-PUT /admin/announcements/:id
+PUT /api/admin/announcements/:id
 ```
 
 参数同创建公告（均为选填）。
@@ -2832,7 +2831,7 @@ PUT /admin/announcements/:id
 ### 删除公告
 
 ```
-DELETE /admin/announcements/:id
+DELETE /api/admin/announcements/:id
 ```
 
 ---
@@ -2840,7 +2839,7 @@ DELETE /admin/announcements/:id
 ### 切换公告启用状态
 
 ```
-PATCH /admin/announcements/:id/toggle-status
+PATCH /api/admin/announcements/:id/toggle-status
 ```
 
 ---
@@ -2848,7 +2847,7 @@ PATCH /admin/announcements/:id/toggle-status
 ### 切换公告置顶状态
 
 ```
-PATCH /admin/announcements/:id/toggle-pinned
+PATCH /api/admin/announcements/:id/toggle-pinned
 ```
 
 ---
@@ -2856,7 +2855,7 @@ PATCH /admin/announcements/:id/toggle-pinned
 ### 批量更新公告状态
 
 ```
-PATCH /admin/announcements/batch-status
+PATCH /api/admin/announcements/batch-status
 ```
 
 **请求参数**：
@@ -2870,7 +2869,7 @@ PATCH /admin/announcements/batch-status
 ### 获取 IP 访问统计列表（管理员）
 
 ```
-GET /admin/ip-stats
+GET /api/admin/ip-stats
 ```
 
 **查询参数**：
@@ -2884,7 +2883,7 @@ GET /admin/ip-stats
 ### 获取 IP 统计摘要（管理员）
 
 ```
-GET /admin/ip-stats/summary
+GET /api/admin/ip-stats/summary
 ```
 
 ---
@@ -2892,7 +2891,7 @@ GET /admin/ip-stats/summary
 ### 清除指定 IP 统计
 
 ```
-DELETE /admin/ip-stats/:ip
+DELETE /api/admin/ip-stats/:ip
 ```
 
 ---
@@ -2900,7 +2899,7 @@ DELETE /admin/ip-stats/:ip
 ### 清除所有 IP 统计
 
 ```
-DELETE /admin/ip-stats
+DELETE /api/admin/ip-stats
 ```
 
 ---
@@ -2908,7 +2907,7 @@ DELETE /admin/ip-stats
 ### 设置运行模式
 
 ```
-POST /admin/run-mode
+POST /api/admin/run-mode
 ```
 
 **请求参数**：
@@ -2924,7 +2923,7 @@ POST /admin/run-mode
 #### 获取所有栏目（含禁用的）
 
 ```
-GET /admin/categories
+GET /api/admin/categories
 ```
 
 **查询参数**：
@@ -2939,7 +2938,7 @@ GET /admin/categories
 #### 创建栏目
 
 ```
-POST /admin/categories
+POST /api/admin/categories
 ```
 
 **请求参数**：
@@ -2956,7 +2955,7 @@ POST /admin/categories
 #### 更新栏目
 
 ```
-PUT /admin/categories/:id
+PUT /api/admin/categories/:id
 ```
 
 **路径参数**：
@@ -2979,7 +2978,7 @@ PUT /admin/categories/:id
 #### 删除栏目
 
 ```
-DELETE /admin/categories/:id
+DELETE /api/admin/categories/:id
 ```
 
 **路径参数**：
@@ -2994,7 +2993,7 @@ DELETE /admin/categories/:id
 #### 切换栏目启用状态
 
 ```
-PATCH /admin/categories/:id/toggle-status
+PATCH /api/admin/categories/:id/toggle-status
 ```
 
 **路径参数**：
@@ -3024,7 +3023,7 @@ PATCH /admin/categories/:id/toggle-status
 #### 获取所有申请
 
 ```
-GET /admin/category-applications
+GET /api/admin/category-applications
 ```
 
 **查询参数**：
@@ -3039,7 +3038,7 @@ GET /admin/category-applications
 #### 批准栏目申请
 
 ```
-POST /admin/category-applications/:id/approve
+POST /api/admin/category-applications/:id/approve
 ```
 
 **路径参数**：
@@ -3075,7 +3074,7 @@ POST /admin/category-applications/:id/approve
 #### 拒绝栏目申请
 
 ```
-POST /admin/category-applications/:id/reject
+POST /api/admin/category-applications/:id/reject
 ```
 
 **路径参数**：
@@ -3093,7 +3092,7 @@ POST /admin/category-applications/:id/reject
 ### 自毁模式 - 三级
 
 ```
-POST /admin/self-destruct/level3
+POST /api/admin/self-destruct/level3
 ```
 
 > ⚠️ **危险操作**：删除所有帖子、评论、私信数据
@@ -3103,7 +3102,7 @@ POST /admin/self-destruct/level3
 ### 自毁模式 - 二级
 
 ```
-POST /admin/self-destruct/level2
+POST /api/admin/self-destruct/level2
 ```
 
 > ⚠️ **危险操作**：清空整个数据库
@@ -3113,7 +3112,7 @@ POST /admin/self-destruct/level2
 ### 自毁模式 - 一级
 
 ```
-POST /admin/self-destruct/level1
+POST /api/admin/self-destruct/level1
 ```
 
 > ⚠️ **极危险操作**：删除论坛所有文件
@@ -3504,7 +3503,7 @@ Android 客户端内置 Token 刷新拦截器（`TokenRefreshInterceptor`），�
 #### 刷新令牌
 
 ```
-POST /refresh-token
+POST /api/refresh-token
 ```
 
 **请求参数**：
@@ -3525,7 +3524,7 @@ POST /refresh-token
 #### 登出
 
 ```
-POST /logout
+POST /api/logout
 ```
 
 **请求参数**：
