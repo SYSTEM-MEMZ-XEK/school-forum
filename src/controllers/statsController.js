@@ -1,45 +1,53 @@
 const { 
-  getPosts,
-  getUsers
-} = require('../utils/dataUtils');
-const { 
   generateErrorResponse,
   generateSuccessResponse
 } = require('../utils/validationUtils');
 const { getPaginationConfig } = require('../config/constants');
 const logger = require('../utils/logger');
 const { ipStats, isRedisConnected } = require('../utils/redisUtils');
+const Post = require('../models/Post');
+const User = require('../models/User');
+
+// 转义正则特殊字符（用于搜索）
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 const statsController = {
   // 获取统计数据
   async getStats(req, res) {
     try {
-      const users = await getUsers();
-      const posts = await getPosts();
-      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      const todayPosts = posts.filter(post => {
-        const postDate = new Date(post.timestamp);
-        return postDate >= today && !post.isDeleted;
-      });
-      
-      const activeUsers = users.filter(user => 
-        user.lastLogin && new Date(user.lastLogin) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      ).length;
-      
+
+      // 全部走 DB 计数/聚合，不再全量加载
+      const [totalUsers, totalPosts, todayPosts, activeUsers, commentsAgg, likesAgg, anonymousPosts] = await Promise.all([
+        User.countDocuments({}),
+        Post.countDocuments({ isDeleted: false }),
+        Post.countDocuments({ isDeleted: false, timestamp: { $gte: today } }),
+        User.countDocuments({ lastLogin: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+        Post.aggregate([
+          { $match: { isDeleted: false } },
+          { $project: { c: { $size: { $ifNull: ['$comments', []] } } } },
+          { $group: { _id: null, total: { $sum: '$c' } } }
+        ]),
+        Post.aggregate([
+          { $match: { isDeleted: false } },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$likes', 0] } } } }
+        ]),
+        Post.countDocuments({ isDeleted: false, anonymous: { $in: [true, 'true'] } })
+      ]);
+
       const stats = {
-        totalUsers: users.length,
-        totalPosts: posts.filter(p => !p.isDeleted).length,
-        todayPosts: todayPosts.length,
-        totalComments: posts.reduce((sum, post) => 
-          sum + (post.comments ? post.comments.length : 0), 0),
-        totalLikes: posts.reduce((sum, post) => sum + (post.likes || 0), 0),
-        activeUsers: activeUsers,
-        anonymousPosts: posts.filter(p => p.anonymous && !p.isDeleted).length
+        totalUsers,
+        totalPosts,
+        todayPosts,
+        totalComments: commentsAgg.length ? commentsAgg[0].total : 0,
+        totalLikes: likesAgg.length ? likesAgg[0].total : 0,
+        activeUsers,
+        anonymousPosts
       };
-      
+
       res.json(generateSuccessResponse({ stats }));
     } catch (error) {
       logger.logError('获取统计失败', { error: error.message });
@@ -58,33 +66,36 @@ const statsController = {
       }
       
       if (type === 'posts') {
-        const posts = await getPosts();
-        const filteredPosts = posts.filter(post => 
-          post.content.toLowerCase().includes(q.toLowerCase()) && !post.isDeleted
-        );
-        
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + parseInt(limit);
-        const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
-        
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const query = { isDeleted: false, content: new RegExp(escapeRegex(q), 'i') };
+        const [results, total] = await Promise.all([
+          Post.find(query).sort({ timestamp: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum).lean(),
+          Post.countDocuments(query)
+        ]);
+
         res.json(generateSuccessResponse({
-          results: paginatedPosts,
-          total: filteredPosts.length,
+          results,
+          total,
           type: 'posts'
         }));
       } else if (type === 'users') {
-        const users = await getUsers();
-        const filteredUsers = users.filter(user => 
-          user.username.toLowerCase().includes(q.toLowerCase())
-        ).map(user => {
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const query = { username: new RegExp(escapeRegex(q), 'i') };
+        const [users, total] = await Promise.all([
+          User.find(query).sort({ createdAt: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum).lean(),
+          User.countDocuments(query)
+        ]);
+        const results = users.map(user => {
           // 只返回非敏感字段（绝不泄露 email/qq/birthday 等 PII）
           const { password, email, qq, birthday, _id, __v, ...safeUser } = user;
           return safeUser;
         });
-        
+
         res.json(generateSuccessResponse({
-          results: filteredUsers,
-          total: filteredUsers.length,
+          results,
+          total,
           type: 'users'
         }));
       } else {

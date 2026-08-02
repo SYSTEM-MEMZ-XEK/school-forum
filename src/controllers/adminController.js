@@ -1,6 +1,7 @@
 const {
   getPosts,
   getUsers,
+  getPostById,
   getUserById,
   updateUser,
   getBannedUsers,
@@ -17,6 +18,13 @@ const {
 } = require('../utils/validationUtils');
 const { getPaginationConfig } = require('../config/constants');
 const logger = require('../utils/logger');
+const Post = require('../models/Post');
+const User = require('../models/User');
+
+// 转义正则特殊字符（用于搜索）
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 const adminController = {
   // 管理员功能 - 获取帖子列表（包含已删除帖子）
@@ -34,31 +42,26 @@ const adminController = {
         ip: req.ip
       });
 
-      const posts = await getPosts(true); // 包含已删除的帖子
-
-      let filteredPosts = posts;
-
-      // 搜索功能（管理员可以看到所有帖子，包括已删除的）
+      // 包含已删除的帖子；搜索条件下推 MongoDB（管理员可见全部）
+      const query = {};
       if (search) {
-        filteredPosts = posts.filter(post =>
-          post.content.toLowerCase().includes(search.toLowerCase()) ||
-          (post.username && post.username.toLowerCase().includes(search.toLowerCase()))
-        );
+        const re = new RegExp(escapeRegex(search), 'i');
+        query.$or = [{ content: re }, { username: re }];
       }
 
-      // 分页
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
-      const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+      const [posts, total] = await Promise.all([
+        Post.find(query).sort({ timestamp: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum).lean(),
+        Post.countDocuments(query)
+      ]);
 
       res.json(generateSuccessResponse({
-        posts: paginatedPosts,
+        posts,
         pagination: {
           currentPage: pageNum,
-          totalPages: Math.ceil(filteredPosts.length / limitNum),
-          totalPosts: filteredPosts.length,
-          hasNext: endIndex < filteredPosts.length,
-          hasPrev: startIndex > 0
+          totalPages: Math.ceil(total / limitNum),
+          totalPosts: total,
+          hasNext: pageNum * limitNum < total,
+          hasPrev: pageNum > 1
         }
       }));
     } catch (error) {
@@ -75,8 +78,7 @@ const adminController = {
       const adminId = req.admin.id;
       const { reason } = req.body;
 
-      const posts = await getPosts(true);
-      const post = posts.find(p => p.id === postId);
+      const post = await getPostById(postId, true);
 
       if (!post) {
         logger.logWarn('永久删除帖子失败：帖子不存在', { postId, adminId });
@@ -229,7 +231,7 @@ const adminController = {
   // 管理员功能 - 获取所有用户
   async getAllUsers(req, res) {
     try {
-      const users = await getUsers();
+      const users = await User.find({}).lean();
       
       const safeUsers = users.map(user => {
         const { password, ...safeUser } = user;
@@ -246,14 +248,12 @@ const adminController = {
   // 管理员功能 - 获取封禁用户列表
   async getBannedUsers(req, res) {
     try {
-      const users = await getUsers();
+      const users = await User.find({ isActive: false }).lean();
       
-      const bannedUsers = users
-        .filter(user => user.isActive === false)
-        .map(user => {
-          const { password, ...safeUser } = user;
-          return safeUser;
-        });
+      const bannedUsers = users.map(user => {
+        const { password, ...safeUser } = user;
+        return safeUser;
+      });
       
       res.json(generateSuccessResponse({ bannedUsers }));
     } catch (error) {
@@ -265,116 +265,126 @@ const adminController = {
   // 管理员功能 - 获取详细统计数据
   async getDetailedStats(req, res) {
     try {
-      const users = await getUsers();
-      const posts = await getPosts();
-      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
       const monthAgo = new Date(today);
       monthAgo.setDate(monthAgo.getDate() - 30);
-      
-      // 基础统计
-      const totalUsers = users.length;
-      const totalPosts = posts.filter(p => !p.isDeleted).length;
-      const bannedUsers = users.filter(user => user.isActive === false).length;
-      
+
+      // 基础统计（全部走 DB 计数/聚合，不再全量加载）
+      const [totalUsers, totalPosts, bannedUsers] = await Promise.all([
+        User.countDocuments({}),
+        Post.countDocuments({ isDeleted: false }),
+        User.countDocuments({ isActive: false })
+      ]);
+
       // 时间范围统计
-      const todayPosts = posts.filter(post => 
-        new Date(post.timestamp) >= today && !post.isDeleted
-      );
-      const weekPosts = posts.filter(post => 
-        new Date(post.timestamp) >= weekAgo && !post.isDeleted
-      );
-      const monthPosts = posts.filter(post => 
-        new Date(post.timestamp) >= monthAgo && !post.isDeleted
-      );
-      
-      // 用户活跃度统计
-      const activeUsers = users.filter(user => {
-        const userPosts = posts.filter(post => 
-          post.userId === user.id && !post.isDeleted
-        );
-        return userPosts.length > 0;
-      }).length;
-      
-      // 年级分布统计
+      const [todayPosts, weekPosts, monthPosts] = await Promise.all([
+        Post.countDocuments({ isDeleted: false, timestamp: { $gte: today } }),
+        Post.countDocuments({ isDeleted: false, timestamp: { $gte: weekAgo } }),
+        Post.countDocuments({ isDeleted: false, timestamp: { $gte: monthAgo } })
+      ]);
+
+      // 有发帖的活跃用户数
+      const activeUserIds = await Post.distinct('userId', { isDeleted: false });
+      const activeUsers = activeUserIds.length;
+
+      // 年级/学校分布、评论数、点赞数、匿名帖数（聚合）
+      const [gradeAgg, schoolAgg, commentsAgg, likesAgg, anonymousPosts] = await Promise.all([
+        User.aggregate([{ $group: { _id: '$grade', count: { $sum: 1 } } }]),
+        User.aggregate([{ $group: { _id: '$school', count: { $sum: 1 } } }]),
+        Post.aggregate([
+          { $match: { isDeleted: false } },
+          { $project: { c: { $size: { $ifNull: ['$comments', []] } } } },
+          { $group: { _id: null, total: { $sum: '$c' } } }
+        ]),
+        Post.aggregate([
+          { $match: { isDeleted: false } },
+          { $group: { _id: null, total: { $sum: { $ifNull: ['$likes', 0] } } } }
+        ]),
+        Post.countDocuments({ isDeleted: false, anonymous: { $in: [true, 'true'] } })
+      ]);
+
       const gradeDistribution = {};
-      users.forEach(user => {
-        if (user.grade) {
-          gradeDistribution[user.grade] = (gradeDistribution[user.grade] || 0) + 1;
-        }
-      });
-      
-      // 学校分布统计
+      gradeAgg.forEach(g => { if (g._id) gradeDistribution[g._id] = g.count; });
       const schoolDistribution = {};
-      users.forEach(user => {
-        if (user.school) {
-          schoolDistribution[user.school] = (schoolDistribution[user.school] || 0) + 1;
-        }
-      });
-      
-      // 帖子类型统计
-      const anonymousPosts = posts.filter(post => 
-        (post.anonymous === true || post.anonymous === 'true') && !post.isDeleted
-      ).length;
+      schoolAgg.forEach(s => { if (s._id) schoolDistribution[s._id] = s.count; });
+
+      const totalComments = commentsAgg.length ? commentsAgg[0].total : 0;
+      const totalLikes = likesAgg.length ? likesAgg[0].total : 0;
       const normalPosts = totalPosts - anonymousPosts;
-      
-      // 评论和点赞统计
-      const totalComments = posts.reduce((sum, post) => 
-        sum + (post.comments ? post.comments.length : 0), 0
-      );
-      const totalLikes = posts.reduce((sum, post) => sum + (post.likes || 0), 0);
-      
-      // 最活跃用户
-      const userActivity = users.map(user => {
-        const userPosts = posts.filter(post => 
-          post.userId === user.id && !post.isDeleted
-        );
-        const userComments = posts.reduce((sum, post) => {
-          if (post.comments) {
-            return sum + post.comments.filter(comment => comment.userId === user.id).length;
-          }
-          return sum;
-        }, 0);
-        
-        return {
-          username: user.username,
-          school: user.school,
-          grade: user.grade,
-          postCount: userPosts.length,
-          commentCount: userComments,
-          totalActivity: userPosts.length + userComments
-        };
-      }).sort((a, b) => b.totalActivity - a.totalActivity).slice(0, 10);
-      
+
+      // 最活跃用户（发帖数 + 评论数聚合，取 top 10）
+      const [postCountAgg, commentCountAgg] = await Promise.all([
+        Post.aggregate([
+          { $match: { isDeleted: false } },
+          { $group: { _id: '$userId', postCount: { $sum: 1 } } }
+        ]),
+        Post.aggregate([
+          { $match: { isDeleted: false, comments: { $exists: true, $ne: [] } } },
+          { $unwind: '$comments' },
+          { $group: { _id: '$comments.userId', commentCount: { $sum: 1 } } }
+        ])
+      ]);
+
+      const activityMap = {};
+      postCountAgg.forEach(a => {
+        activityMap[a._id] = activityMap[a._id] || { userId: a._id, postCount: 0, commentCount: 0 };
+        activityMap[a._id].postCount = a.postCount;
+      });
+      commentCountAgg.forEach(a => {
+        activityMap[a._id] = activityMap[a._id] || { userId: a._id, postCount: 0, commentCount: 0 };
+        activityMap[a._id].commentCount = a.commentCount;
+      });
+
+      // 批量补充用户名/学校/年级
+      const activityUserIds = Object.keys(activityMap);
+      let userActivity = [];
+      if (activityUserIds.length > 0) {
+        const actUsers = await User.find({ id: { $in: activityUserIds } }).lean();
+        const userMap = {};
+        actUsers.forEach(u => { userMap[u.id] = u; });
+        userActivity = activityUserIds.map(uid => {
+          const u = userMap[uid] || {};
+          const a = activityMap[uid];
+          return {
+            username: u.username || uid,
+            school: u.school,
+            grade: u.grade,
+            postCount: a.postCount,
+            commentCount: a.commentCount,
+            totalActivity: a.postCount + a.commentCount
+          };
+        }).sort((a, b) => b.totalActivity - a.totalActivity).slice(0, 10);
+      }
+
       const detailedStats = {
         totalUsers,
         totalPosts,
         bannedUsers,
         activeUsers,
         inactiveUsers: totalUsers - activeUsers,
-        
-        todayPosts: todayPosts.length,
-        weekPosts: weekPosts.length,
-        monthPosts: monthPosts.length,
-        
+
+        todayPosts,
+        weekPosts,
+        monthPosts,
+
         totalComments,
         totalLikes,
         averageLikesPerPost: totalPosts > 0 ? (totalLikes / totalPosts).toFixed(2) : 0,
         averageCommentsPerPost: totalPosts > 0 ? (totalComments / totalPosts).toFixed(2) : 0,
-        
+
         anonymousPosts,
         normalPosts,
         anonymousPercentage: totalPosts > 0 ? ((anonymousPosts / totalPosts) * 100).toFixed(2) : 0,
-        
+
         gradeDistribution,
         schoolDistribution,
-        
+
         topActiveUsers: userActivity
       };
-      
+
       res.json(generateSuccessResponse({ stats: detailedStats }));
     } catch (error) {
       logger.logError('获取详细统计失败', { error: error.message });
@@ -385,25 +395,23 @@ const adminController = {
   // 管理员功能 - 获取最近活动
   async getRecentActivity(req, res) {
     try {
-      const posts = await getPosts();
-      const users = await getUsers();
-      
-      // 获取最近24小时的帖子
+      // 获取最近24小时的帖子 + 最近注册的用户（DB 级查询）
       const dayAgo = new Date();
       dayAgo.setDate(dayAgo.getDate() - 1);
-      
-      const recentPosts = posts
-        .filter(post => new Date(post.timestamp) >= dayAgo && !post.isDeleted)
-        .slice(0, 20);
-      
+
+      const [recentPosts, rawRecentUsers] = await Promise.all([
+        Post.find({ isDeleted: false, timestamp: { $gte: dayAgo } })
+          .sort({ timestamp: -1 })
+          .limit(20)
+          .lean(),
+        User.find({}).sort({ createdAt: -1 }).limit(10).lean()
+      ]);
+
       // 获取最近注册的用户
-      const recentUsers = users
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 10)
-        .map(user => {
-          const { password, ...safeUser } = user;
-          return safeUser;
-        });
+      const recentUsers = rawRecentUsers.map(user => {
+        const { password, ...safeUser } = user;
+        return safeUser;
+      });
       
       res.json(generateSuccessResponse({
         recentPosts,
@@ -422,46 +430,47 @@ const adminController = {
       const { page = paginationConfig.defaultPage, limit = paginationConfig.defaultLimit, search = '' } = req.query;
       const pageNum = parseInt(page);
       const limitNum = parseInt(limit);
-      const posts = await getPosts();
-      
-      // 收集所有评论
-      let allComments = [];
-      posts.forEach(post => {
-        if (post.comments && post.comments.length > 0) {
-          post.comments.forEach(comment => {
-            allComments.push({
-              ...comment,
-              postId: post.id,
-              postContent: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
-            });
-          });
-        }
-      });
-      
-      // 搜索功能
+      // 聚合管道：展开评论子文档，过滤/排序/分页全部在数据库层完成
+      const pipeline = [
+        { $match: { isDeleted: false, comments: { $exists: true, $ne: [] } } },
+        { $unwind: '$comments' },
+        { $project: {
+            postId: '$id',
+            postContent: { $substrCP: ['$content', 0, 50] },
+            contentLen: { $strLenCP: { $ifNull: ['$content', ''] } },
+            comment: '$comments'
+        } }
+      ];
+
       if (search) {
-        allComments = allComments.filter(comment => 
-          comment.content.toLowerCase().includes(search.toLowerCase()) ||
-          (comment.username && comment.username.toLowerCase().includes(search.toLowerCase()))
-        );
+        const re = new RegExp(escapeRegex(search), 'i');
+        pipeline.push({ $match: { $or: [{ 'comment.content': re }, { 'comment.username': re }] } });
       }
-      
-      // 按时间倒序排序
-      allComments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
-      // 分页
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
-      const paginatedComments = allComments.slice(startIndex, endIndex);
-      
+
+      const countResult = await Post.aggregate([...pipeline, { $count: 'total' }]);
+      const total = countResult.length ? countResult[0].total : 0;
+
+      pipeline.push(
+        { $sort: { 'comment.timestamp': -1 } },
+        { $skip: (pageNum - 1) * limitNum },
+        { $limit: limitNum }
+      );
+
+      const results = await Post.aggregate(pipeline);
+      const comments = results.map(r => ({
+        ...r.comment,
+        postId: r.postId,
+        postContent: r.postContent + (r.contentLen > 50 ? '...' : '')
+      }));
+
       res.json(generateSuccessResponse({
-        comments: paginatedComments,
+        comments,
         pagination: {
           currentPage: pageNum,
-          totalPages: Math.ceil(allComments.length / limitNum),
-          totalComments: allComments.length,
-          hasNext: endIndex < allComments.length,
-          hasPrev: startIndex > 0
+          totalPages: Math.ceil(total / limitNum),
+          totalComments: total,
+          hasNext: pageNum * limitNum < total,
+          hasPrev: pageNum > 1
         }
       }));
     } catch (error) {
@@ -482,13 +491,12 @@ const adminController = {
         return res.status(400).json(generateErrorResponse('帖子ID不能为空'));
       }
       
-      const posts = await getPosts(true);
-      const post = posts.find(p => p.id === postId);
-      
+      const post = await getPostById(postId, true);
+
       if (!post) {
         return res.status(404).json(generateErrorResponse('帖子不存在'));
       }
-      
+
       const comments = post.comments || [];
       const commentIndex = comments.findIndex(c => c.id === commentId);
       

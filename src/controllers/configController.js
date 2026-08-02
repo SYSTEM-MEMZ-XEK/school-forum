@@ -165,12 +165,22 @@ const configController = {
   async getAdmins(req, res) {
     try {
       const config = readConfig();
-      const { getUsers } = require('../utils/dataUtils');
-      const users = await getUsers();
-      
+      const User = require('../models/User');
+      const adminIds = config.adminUsers || [];
+
+      // 批量查询管理员用户信息（替代 getUsers() 全量加载）
+      const users = adminIds.length > 0
+        ? await User.find({ $or: [{ id: { $in: adminIds } }, { qq: { $in: adminIds } }] }).lean()
+        : [];
+      const userMap = {};
+      users.forEach(u => {
+        userMap[u.id] = u;
+        if (u.qq) userMap[u.qq] = u;
+      });
+
       // 获取管理员详细信息
-      const admins = config.adminUsers.map(adminId => {
-        const user = users.find(u => u.id === adminId || u.qq === adminId);
+      const admins = adminIds.map(adminId => {
+        const user = userMap[adminId];
         return {
           id: adminId,
           username: user?.username || adminId,

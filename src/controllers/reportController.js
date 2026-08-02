@@ -1,8 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 const {
-  getPosts,
-  getUsers,
+  getUserById,
   updateUser,
+  updatePost,
   getReports,
   createReport,
   updateReportStatus,
@@ -15,6 +15,8 @@ const {
 const { getPaginationConfig } = require('../config/constants');
 const logger = require('../utils/logger');
 const notificationController = require('./notificationController');
+const Post = require('../models/Post');
+const User = require('../models/User');
 
 // 举报类型
 const REPORT_TYPES = {
@@ -178,13 +180,17 @@ const reportController = {
       const endIndex = startIndex + parseInt(limit);
       const paginatedReports = reports.slice(startIndex, endIndex);
 
-      // 获取举报人信息
-      const users = await getUsers();
+      // 获取举报人信息（批量查询，替代 getUsers() 全量加载）
+      const reporterIds = [...new Set(paginatedReports.map(r => r.reporterId).filter(Boolean))];
+      const reporterMap = {};
+      if (reporterIds.length > 0) {
+        const reporters = await User.find({ id: { $in: reporterIds } }).lean();
+        reporters.forEach(u => { reporterMap[u.id] = u; });
+      }
       const reportsWithReporter = paginatedReports.map(report => {
-        const reporter = users.find(u => u.id === report.reporterId);
         return {
           ...report,
-          reporterUsername: reporter ? reporter.username : '未知用户'
+          reporterUsername: reporterMap[report.reporterId] ? reporterMap[report.reporterId].username : '未知用户'
         };
       });
 
@@ -277,8 +283,7 @@ const reportController = {
 
       if (action === 'approve') {
         // 举报通过 - 封禁被举报用户
-        const users = await getUsers();
-        const targetUser = users.find(u => u.id === report.targetUserId);
+        const targetUser = await getUserById(report.targetUserId);
         
         if (targetUser) {
           const banEndTime = new Date();
@@ -299,7 +304,7 @@ const reportController = {
           });
 
           // 记录封禁信息
-          const admin = users.find(u => u.id === adminId);
+          const admin = await getUserById(adminId);
           await createBanRecord({
             id: uuidv4(),
             userId: targetUser.id,
@@ -314,8 +319,7 @@ const reportController = {
             isActive: true
           });
 
-          // 删除违规内容
-          const { updatePost, Post } = require('../utils/dataUtils');
+          // 删除违规内容（updatePost/Post 已在文件顶部导入）
           if (report.targetType === 'post') {
             await updatePost(report.targetId, {
               isDeleted: true,
@@ -324,7 +328,14 @@ const reportController = {
               deleteReason: `举报违规：${report.reasonText}`
             });
           } else if (report.targetType === 'comment') {
-            const posts = await getPosts();
+            // 精确定位包含目标评论/回复的帖子（子文档点路径查询，替代 getPosts() 全量遍历）
+            const posts = await Post.find({
+              isDeleted: false,
+              $or: [
+                { 'comments.id': report.targetId },
+                { 'comments.replies.id': report.targetId }
+              ]
+            }).lean();
             
             // 递归删除评论或回复
             const removeCommentOrReply = (comments, targetId) => {

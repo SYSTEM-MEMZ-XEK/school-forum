@@ -1,6 +1,8 @@
 const Favorite = require('../models/Favorite');
 const FavoriteTag = require('../models/FavoriteTag');
-const { getPostById, getPosts } = require('../utils/dataUtils');
+const Post = require('../models/Post');
+const User = require('../models/User');
+const { getPostById } = require('../utils/dataUtils');
 const { generateErrorResponse, generateSuccessResponse } = require('../utils/validationUtils');
 const { favoriteCache, postCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
@@ -130,17 +132,27 @@ const favoriteController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
-      // 获取用户的收藏记录
+      // 获取用户的收藏记录（按收藏时间倒序）
       const favorites = await Favorite.getUserFavorites(userId, tagId || null);
-      
-      // 获取帖子详情
-      const posts = await getPosts();
-      const users = await require('../utils/dataUtils').getUsers();
-      
+      const favPostIds = favorites.map(f => f.postId);
+
+      // 批量查询被收藏的帖子与作者（避免 getPosts()+getUsers() 全量加载）
+      const postMap = {};
+      const userMap = {};
+      if (favPostIds.length > 0) {
+        const foundPosts = await Post.find({ id: { $in: favPostIds } }).lean();
+        foundPosts.forEach(p => { postMap[p.id] = p; });
+        const authorIds = [...new Set(foundPosts.map(p => p.userId).filter(Boolean))];
+        if (authorIds.length > 0) {
+          const authors = await User.find({ id: { $in: authorIds } }).lean();
+          authors.forEach(u => { userMap[u.id] = u; });
+        }
+      }
+
       const favoritePosts = favorites
         .map(fav => {
-          const post = posts.find(p => p.id === fav.postId);
-          
+          const post = postMap[fav.postId];
+
           // 帖子已被删除
           if (!post || post.isDeleted) {
             return {
@@ -150,8 +162,8 @@ const favoriteController = {
               tagId: fav.tagId
             };
           }
-          
-          const user = users.find(u => u.id === post.userId);
+
+          const user = userMap[post.userId];
           return {
             ...post,
             isDeleted: false,
@@ -191,9 +203,9 @@ const favoriteController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
-      const count = await Favorite.getUserFavorites(userId);
+      const count = await Favorite.countDocuments({ userId });
       
-      res.json(generateSuccessResponse({ count: count.length }));
+      res.json(generateSuccessResponse({ count }));
     } catch (error) {
       logger.logError('获取收藏数量失败', { error: error.message, userId: req.params.userId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
