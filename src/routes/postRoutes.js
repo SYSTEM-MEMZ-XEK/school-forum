@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const postController = require('../controllers/postController');
 const { upload } = require('../middleware/uploadMiddleware');
-const { authenticateUser } = require('../middleware/jwtAuth');
+const { authenticateUser, optionalAuth } = require('../middleware/jwtAuth');
 
-// 获取帖子列表（支持分页和搜索）— 公开接口，无需认证
-router.get('/posts', postController.getPosts);
+// 获取帖子列表（支持分页和搜索）— 可选认证（有 token 时按登录身份过滤可见性/黑名单）
+router.get('/posts', optionalAuth, postController.getPosts);
 
-// 获取单个帖子详情 — 公开接口，无需认证
-router.get('/posts/:id', postController.getPostById);
+// 获取单个帖子详情 — 可选认证（有 token 时按登录身份检查可见性/黑名单）
+router.get('/posts/:id', optionalAuth, postController.getPostById);
 
 // 增加帖子浏览量 — 公开接口，无需认证
 router.post('/posts/:id/view', postController.incrementViewCount);

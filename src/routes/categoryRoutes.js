@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/categoryController');
-const { authenticateUser } = require('../middleware/jwtAuth');
+const { authenticateUser, optionalAuth } = require('../middleware/jwtAuth');
 const { requireAdmin } = require('../middleware/adminAuth');
 
 // ============ 公开接口（用户端） ============
@@ -12,8 +12,8 @@ router.get('/categories', categoryController.getCategories);
 // 获取单个栏目
 router.get('/categories/:id', categoryController.getCategoryById);
 
-// 获取某栏目的帖子（支持分页）
-router.get('/categories/:id/posts', categoryController.getCategoryPosts);
+// 获取某栏目的帖子（支持分页）— 可选认证，按登录身份过滤帖子可见性
+router.get('/categories/:id/posts', optionalAuth, categoryController.getCategoryPosts);
 
 // ============ 用户申请（需登录） ============
 

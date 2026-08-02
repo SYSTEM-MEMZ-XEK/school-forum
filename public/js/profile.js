@@ -150,16 +150,12 @@ const profileManager = {
   // 加载用户个人资料
   loadUserProfile: async function() {
     try {
-      // 获取当前登录用户ID用于帖子可见性过滤
-      const currentUser = userManager.state.currentUser || 
-        (localStorage.getItem('forumUser') ? JSON.parse(localStorage.getItem('forumUser')) : null);
-      const viewerId = currentUser ? currentUser.id : '';
+      // 注意：服务端 getUserProfile 从 JWT 取查看者身份，不再信任 query viewerId。
+      // 携带 Authorization 头即可让服务端识别当前登录用户（可见性/隐私过滤）。
+      const authHeaders = (userManager && userManager.getAuthHeaders) ? userManager.getAuthHeaders() : {};
+      const url = `/api/users/${this.state.userId}`;
       
-      const url = viewerId
-        ? `/api/users/${this.state.userId}?viewerId=${encodeURIComponent(viewerId)}`
-        : `/api/users/${this.state.userId}`;
-      
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: authHeaders });
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`);
       }

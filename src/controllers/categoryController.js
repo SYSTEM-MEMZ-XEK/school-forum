@@ -39,6 +39,8 @@ exports.getCategoryPosts = async (req, res) => {
     const { id } = req.params;
     const { page = 1, limit = 20, sortBy = 'latest' } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    // 查看者身份必须来自认证中间件（optionalAuth），绝不信任客户端 query 参数
+    const viewerId = req.user?.id || null;
 
     // 检查栏目是否存在
     const category = await Category.getById(id);
@@ -57,13 +59,32 @@ exports.getCategoryPosts = async (req, res) => {
       sort = { likes: -1, timestamp: -1 };
     }
 
-    const [posts, total] = await Promise.all([
-      Post.find(query).sort(sort).skip(skip).limit(parseInt(limit)),
-      Post.countDocuments(query)
-    ]);
+    const posts = await Post.find(query).sort(sort).skip(skip).limit(parseInt(limit));
+
+    // 可见性过滤：self 仅作者可见，followers 仅作者与粉丝可见，public 所有人可见
+    let visiblePosts = posts;
+    if (viewerId) {
+      const Follow = require('../models/Follow');
+      const visibleIds = [];
+      for (const post of posts) {
+        const visibility = post.visibility || 'public';
+        if (visibility === 'public' || post.userId === viewerId) {
+          visibleIds.push(post);
+        } else if (visibility === 'followers') {
+          const isFollowing = await Follow.isFollowing(viewerId, post.userId);
+          if (isFollowing) visibleIds.push(post);
+        }
+      }
+      visiblePosts = visibleIds;
+    } else {
+      // 未登录用户只能看到公开帖子
+      visiblePosts = posts.filter(post => (post.visibility || 'public') === 'public');
+    }
+
+    const total = await Post.countDocuments(query);
 
     res.json(generateSuccessResponse({
-      posts,
+      posts: visiblePosts,
       category: {
         id: category.id,
         name: category.name,

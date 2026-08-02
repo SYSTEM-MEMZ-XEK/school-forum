@@ -860,11 +860,11 @@ const userController = {
   // 验证用户登录状态
   async verifyAuth(req, res) {
     try {
-      // 优先使用 JWT 验证的用户 ID，次选 body 兼容旧客户端
-      const userId = req.user?.id || req.body.userId;
-      
+      // 身份必须来自 JWT 认证中间件（optionalAuth），绝不信任客户端 body 参数
+      const userId = req.user?.id;
+
       if (!userId) {
-        return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+        return res.status(401).json(generateErrorResponse('请先登录'));
       }
       
       // 优先从Redis缓存获取用户信息

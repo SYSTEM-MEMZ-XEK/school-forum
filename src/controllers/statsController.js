@@ -77,7 +77,8 @@ const statsController = {
         const filteredUsers = users.filter(user => 
           user.username.toLowerCase().includes(q.toLowerCase())
         ).map(user => {
-          const { password, ...safeUser } = user;
+          // 只返回非敏感字段（绝不泄露 email/qq/birthday 等 PII）
+          const { password, email, qq, birthday, _id, __v, ...safeUser } = user;
           return safeUser;
         });
         

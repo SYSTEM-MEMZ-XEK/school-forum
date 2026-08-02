@@ -131,12 +131,12 @@ const userManager = {
     try {
       console.log('verifyUserWithServer: 正在验证用户状态，userId:', userId);
       
+      // 携带 Authorization 头：服务端 verifyAuth 已不再信任 body.userId，
+      // 身份完全来自 JWT token
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId })
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({})
       });
       
       if (!response.ok) {

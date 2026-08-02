@@ -197,10 +197,8 @@ const postsManager = {
         params.push(`categoryId=${this.state.currentCategoryId}`);
       }
       
-      // 添加当前用户ID用于黑名单过滤
-      if (userManager && userManager.state && userManager.state.currentUser && userManager.state.currentUser.id) {
-        params.push(`viewerId=${userManager.state.currentUser.id}`);
-      }
+      // 注意：不再通过 query 传 viewerId（服务端已改为从 JWT 取身份），
+      // 改为携带 Authorization 头，服务端 optionalAuth 会自动识别登录用户
       
       if (params.length > 0) {
         url += '?' + params.join('&');
@@ -208,9 +206,10 @@ const postsManager = {
 
       console.log('请求URL:', url); // 调试日志
 
-      // 并行加载帖子和收藏列表
+      // 并行加载帖子和收藏列表（携带认证头，用于可见性/黑名单过滤）
+      const authHeaders = (userManager && userManager.getAuthHeaders) ? userManager.getAuthHeaders() : {};
       const [postsResponse, favoritesData] = await Promise.all([
-        fetch(url),
+        fetch(url, { headers: authHeaders }),
         this.loadUserFavorites()
       ]);
       

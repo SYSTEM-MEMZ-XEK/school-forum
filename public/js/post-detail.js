@@ -92,12 +92,12 @@ const postDetailManager = {
     const commentsSection = document.getElementById('comments-section');
 
     try {
-      // 获取当前用户ID用于黑名单检查
-      const currentUser = userManager.state.currentUser;
-      const viewerId = currentUser ? currentUser.id : '';
-      const url = viewerId ? `/api/posts/${this.postId}?viewerId=${viewerId}` : `/api/posts/${this.postId}`;
+      // 注意：不再通过 query 传 viewerId（服务端已改为从 JWT 取身份），
+      // 改为携带 Authorization 头，服务端 optionalAuth 会自动识别登录用户
+      const authHeaders = (userManager && userManager.getAuthHeaders) ? userManager.getAuthHeaders() : {};
+      const url = `/api/posts/${this.postId}`;
       
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: authHeaders });
 
       if (!response.ok) {
         const errorData = await response.json();

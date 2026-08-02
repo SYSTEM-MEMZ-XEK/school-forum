@@ -206,7 +206,8 @@ const messageController = {
    */
   async getConversations(req, res) {
     try {
-      const { userId } = req.query;
+      // 会话列表必须使用认证身份，绝不信任客户端 query 参数
+      const userId = req.user.id;
 
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
@@ -252,7 +253,9 @@ const messageController = {
    */
   async getMessages(req, res) {
     try {
-      const { userId, otherUserId, limit = 50, before } = req.query;
+      const { otherUserId, limit = 50, before } = req.query;
+      // 会话主体必须是当前认证用户，绝不信任客户端 query 参数
+      const userId = req.user.id;
 
       if (!userId || !otherUserId) {
         return res.status(400).json(generateErrorResponse('缺少必要参数'));
@@ -314,8 +317,8 @@ const messageController = {
    */
   async getUnreadCount(req, res) {
     try {
-      // 优先从认证中间件获取userId，兼容query参数传入
-      const userId = req.user?.id || req.query.userId;
+      // 未读数必须使用认证身份，绝不信任客户端 query 参数
+      const userId = req.user.id;
 
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));

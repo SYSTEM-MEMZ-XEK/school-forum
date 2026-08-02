@@ -37,9 +37,11 @@ const postController = {
   async getPosts(req, res) {
     try {
       const paginationConfig = getPaginationConfig();
-      const { page: _page = paginationConfig.defaultPage, limit: _limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', viewerId, categoryId } = req.query;
+      const { page: _page = paginationConfig.defaultPage, limit: _limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', categoryId } = req.query;
       const page = parseInt(_page, 10) || paginationConfig.defaultPage;
       const limit = parseInt(_limit, 10) || paginationConfig.defaultLimit;
+      // 查看者身份必须来自认证中间件（optionalAuth），绝不信任客户端 query 参数
+      const viewerId = req.user?.id || null;
       const Follow = require('../models/Follow');
       const Category = require('../models/Category');
 
@@ -290,7 +292,8 @@ const postController = {
   async getPostById(req, res) {
     try {
       const postId = req.params.id;
-      const viewerId = req.query.viewerId; // 当前查看者的用户ID
+      // 查看者身份必须来自认证中间件（optionalAuth），绝不信任客户端 query 参数
+      const viewerId = req.user?.id || null;
       const Follow = require('../models/Follow');
 
       // 记录访问帖子详情日志
