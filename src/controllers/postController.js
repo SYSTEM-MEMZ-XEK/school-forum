@@ -33,137 +33,105 @@ const Favorite = require('../models/Favorite');
 const Blacklist = require('../models/Blacklist');
 
 const postController = {
-  // 获取帖子列表（支持分页、搜索和排序）
+  // 获取帖子列表（支持分页、搜索和排序）— DB 级查询重构版
   async getPosts(req, res) {
     try {
       const paginationConfig = getPaginationConfig();
       const { page: _page = paginationConfig.defaultPage, limit: _limit = paginationConfig.defaultLimit, search = '', sortBy = 'latest', categoryId } = req.query;
-      const page = parseInt(_page, 10) || paginationConfig.defaultPage;
-      const limit = parseInt(_limit, 10) || paginationConfig.defaultLimit;
+      const page = Math.max(1, parseInt(_page, 10) || paginationConfig.defaultPage);
+      const limit = Math.min(100, Math.max(1, parseInt(_limit, 10) || paginationConfig.defaultLimit));
       // 查看者身份必须来自认证中间件（optionalAuth），绝不信任客户端 query 参数
       const viewerId = req.user?.id || null;
       const Follow = require('../models/Follow');
       const Category = require('../models/Category');
+      const User = require('../models/User');
 
-      // 记录访问日志
       logger.logInfo('获取帖子列表', {
-        page,
-        limit,
-        search: search || '无',
-        sortBy,
-        viewerId: viewerId || '未登录',
-        ip: req.ip,
-        userAgent: req.get('user-agent')
+        page, limit, search: search || '无', sortBy,
+        viewerId: viewerId || '未登录', ip: req.ip
       });
 
-      const posts = await getPosts();
-      const users = await getUsers();
+      // ============ 1. 查询条件下推到 MongoDB（不再全量加载帖子/用户） ============
+      const query = { isDeleted: false };
+      if (categoryId) query.categoryId = categoryId;
 
-      let filteredPosts = posts.filter(post => !post.isDeleted);
-      // 推荐算法用：关注者ID列表（提升可见性）
+      // 搜索：正则子串匹配（DB 内过滤，仅返回匹配结果）
+      if (search) {
+        const esc = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        query.$or = [
+          { content: { $regex: esc, $options: 'i' } },
+          { username: { $regex: esc, $options: 'i' } }
+        ];
+      }
+
+      // 可见性 + 黑名单过滤（基于查看者身份）
       let followingIds = [];
-      
-      // 黑名单过滤：如果用户开启了隐藏黑名单用户帖子的设置
       if (viewerId) {
+        const followingDocs = await Follow.find({ followerId: viewerId }).select('followingId -_id').lean();
+        followingIds = followingDocs.map(doc => doc.followingId);
+
         const viewer = await getUserById(viewerId);
+        query.$and = [{
+          $or: [
+            { visibility: 'public' },
+            { userId: viewerId },
+            { visibility: 'followers', userId: { $in: followingIds } }
+          ]
+        }];
         if (viewer && viewer.settings && viewer.settings.privacy && viewer.settings.privacy.hideBlockedPosts) {
-          // 获取用户拉黑的人的ID列表
           const blockedIds = await Blacklist.getBlockedIds(viewerId);
-          if (blockedIds.length > 0) {
-            filteredPosts = filteredPosts.filter(post => !blockedIds.includes(post.userId));
-            logger.logInfo('帖子列表黑名单过滤', {
-              viewerId,
-              blockedCount: blockedIds.length,
-              filteredOutCount: posts.filter(post => !post.isDeleted).length - filteredPosts.length
-            });
+          if (blockedIds.length > 0) query.$and.push({ userId: { $nin: blockedIds } });
+        }
+      } else {
+        query.visibility = 'public'; // 未登录用户只能看到公开帖子
+      }
+
+      // ============ 2. 排序与分页 ============
+      // 需要内存精算的排序（推荐/相关/收藏/评论）与可直接下推 DB 的排序（最新/点赞/浏览）
+      const memorySortable = ['relevance', 'favorites', 'comments', 'recommended'];
+      const total = await Post.countDocuments(query);
+      let posts;
+
+      if (!memorySortable.includes(sortBy)) {
+        // DB 排序 + DB 分页
+        const sort =
+          sortBy === 'likes' ? { likes: -1, timestamp: -1 } :
+          sortBy === 'views' ? { viewCount: -1, timestamp: -1 } :
+          { timestamp: -1 };
+        posts = await Post.find(query).sort(sort).skip((page - 1) * limit).limit(limit).lean();
+      } else {
+        // 内存精排：取过滤后按时间倒序的候选集（上限 1000 条）再精排分页
+        const MAX_CANDIDATES = 1000;
+        const candidates = await Post.find(query).sort({ timestamp: -1 }).limit(MAX_CANDIDATES).lean();
+
+        let favoriteMap = {};
+        if (sortBy === 'relevance' || sortBy === 'favorites') {
+          const postIds = candidates.map(p => p.id);
+          if (postIds.length > 0) {
+            const favoriteCounts = await Favorite.aggregate([
+              { $match: { postId: { $in: postIds } } },
+              { $group: { _id: '$postId', count: { $sum: 1 } } }
+            ]);
+            favoriteMap = {};
+            favoriteCounts.forEach(item => { favoriteMap[item._id] = item.count; });
           }
         }
-      }
-      
-      // 帖子可见性过滤
-      if (viewerId) {
-        // 获取用户关注的人（提升推荐权重）
-        const followingDocs = await Follow.find({ followerId: viewerId });
-        followingIds = followingDocs.map(doc => doc.followingId);
-        
-        filteredPosts = filteredPosts.filter(post => {
-          const visibility = post.visibility || 'public';
-          
-          // 公开帖子：所有人可见
-          if (visibility === 'public') {
-            return true;
-          }
-          
-          // 仅自己可见：只有作者可见
-          if (visibility === 'self') {
-            return post.userId === viewerId;
-          }
-          
-          // 仅粉丝可见：粉丝和作者可见
-          if (visibility === 'followers') {
-            return post.userId === viewerId || followingIds.includes(post.userId);
-          }
-          
-          return true;
-        });
-      } else {
-        // 未登录用户只能看到公开帖子
-        filteredPosts = filteredPosts.filter(post => {
-          const visibility = post.visibility || 'public';
-          return visibility === 'public';
-        });
-      }
 
-      // 栏目筛选
-      if (categoryId) {
-        filteredPosts = filteredPosts.filter(post => post.categoryId === categoryId);
-      }
+        const withFav = candidates.map(post => ({ ...post, favoriteCount: favoriteMap[post.id] || 0 }));
 
-      // 搜索功能
-      if (search) {
-        filteredPosts = filteredPosts.filter(post => 
-          post.content.toLowerCase().includes(search.toLowerCase()) ||
-          (post.username && post.username.toLowerCase().includes(search.toLowerCase()))
-        );
-        
-        // 搜索结果排序功能
-        // 先获取所有帖子的收藏数（用于综合排序和收藏数排序）
-        const postIds = filteredPosts.map(p => p.id);
-        const favoriteCounts = await Favorite.aggregate([
-          { $match: { postId: { $in: postIds } } },
-          { $group: { _id: '$postId', count: { $sum: 1 } } }
-        ]);
-        
-        // 创建收藏数映射
-        const favoriteMap = {};
-        favoriteCounts.forEach(item => {
-          favoriteMap[item._id] = item.count;
-        });
-        
-        // 添加收藏数到帖子对象
-        filteredPosts = filteredPosts.map(post => ({
-          ...post,
-          favoriteCount: favoriteMap[post.id] || 0
-        }));
-        
         // 计算热度分数（用于综合排序）
         const calculateHotScore = (post) => {
           const likes = post.likes || 0;
           const favorites = post.favoriteCount || 0;
           const views = post.viewCount || 0;
           const comments = post.comments ? post.comments.length : 0;
-          
-          // 时间衰减因子：帖子越新，权重越高
           const postDate = new Date(post.timestamp);
           const now = new Date();
           const daysSincePost = Math.max(0, (now - postDate) / (1000 * 60 * 60 * 24));
-          const timeDecay = Math.exp(-daysSincePost / 7); // 7天衰减周期
-          
-          // 综合热度 = 点赞*3 + 收藏*4 + 评论*5 + 浏览*0.1，再乘以时间衰减
-          const hotScore = (likes * 3 + favorites * 4 + comments * 5 + views * 0.1) * timeDecay;
-          return hotScore;
+          const timeDecay = Math.exp(-daysSincePost / 7);
+          return (likes * 3 + favorites * 4 + comments * 5 + views * 0.1) * timeDecay;
         };
-        
+
         const sortFunctions = {
           // 综合：结合点赞、收藏、浏览、评论的综合热度排序
           relevance: (a, b) => calculateHotScore(b) - calculateHotScore(a),
@@ -176,65 +144,40 @@ const postController = {
           // 浏览量排序（降序）
           views: (a, b) => (b.viewCount || 0) - (a.viewCount || 0),
           // 评论数排序（降序）
-          comments: (a, b) => {
-            const aComments = a.comments ? a.comments.length : 0;
-            const bComments = b.comments ? b.comments.length : 0;
-            return bComments - aComments;
-          },
-          // 推荐：防信息茧房混合算法
-          // 40% 热门 + 25% 关注动态 + 20% 新鲜内容 + 15% 随机探索
+          comments: (a, b) => ((b.comments ? b.comments.length : 0) - (a.comments ? a.comments.length : 0)),
+          // 推荐：防信息茧房混合算法（40% 热门 + 25% 关注 + 20% 新鲜 + 15% 随机）
           recommended: (a, b) => {
-            // 热度分
             const scoreA = calculateHotScore(a);
             const scoreB = calculateHotScore(b);
-
-            // 新鲜分（48小时内加分）
             const now = new Date();
             const ageA = (now - new Date(a.timestamp)) / (1000 * 60 * 60);
             const ageB = (now - new Date(b.timestamp)) / (1000 * 60 * 60);
             const freshScoreA = ageA <= 48 ? (48 - ageA) / 48 : 0;
             const freshScoreB = ageB <= 48 ? (48 - ageB) / 48 : 0;
-
-            // 对于未登录用户或无法获取关注关系时，退化为纯热度+新鲜混合
-            // 对于登录用户，关注帖子加权
             const followWeightA = followingIds.includes(a.userId) ? 1.5 : 1.0;
             const followWeightB = followingIds.includes(b.userId) ? 1.5 : 1.0;
-
-            // 综合推荐分 = 热度 * 0.5 + 新鲜 * 0.3 + 关注 * 0.2
             const finalA = scoreA * 0.5 * followWeightA + freshScoreA * 100 * 0.3;
             const finalB = scoreB * 0.5 * followWeightB + freshScoreB * 100 * 0.3;
-
             return finalB - finalA;
           }
         };
 
-        const sortFunction = sortFunctions[sortBy] || sortFunctions.latest;
-        filteredPosts.sort(sortFunction);
-        
-        logger.logInfo('搜索结果排序', { 
-          search, 
-          sortBy, 
-          resultCount: filteredPosts.length,
-          topPosts: filteredPosts.slice(0, 3).map(p => ({
-            id: p.id,
-            likes: p.likes,
-            favoriteCount: p.favoriteCount,
-            viewCount: p.viewCount,
-            commentCount: p.comments ? p.comments.length : 0
-          }))
-        });
-      } else {
-        // 没有搜索时，按时间排序（最新在前）
-        filteredPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        withFav.sort(sortFunctions[sortBy] || sortFunctions.latest);
+        posts = withFav.slice((page - 1) * limit, (page - 1) * limit + limit);
       }
-      
-      // 为每个帖子添加用户头像信息和栏目信息（用 Map 代替线性查找，O(P+U)）
+
+      // ============ 3. 用户头像 + 栏目（批量查询，不再全量加载用户） ============
+      const postUserIds = [...new Set(posts.map(p => p.userId).filter(Boolean))];
+      const userMap = new Map(
+        postUserIds.length
+          ? (await User.find({ id: { $in: postUserIds } }).select('id avatar').lean()).map(u => [u.id, u])
+          : []
+      );
       const allCategories = await Category.getActiveCategories();
       const categoryMap = {};
       allCategories.forEach(c => { categoryMap[c.id] = c; });
-      const userMap = new Map(users.map(u => [u.id, u]));
 
-      const postsWithAvatar = filteredPosts.map(post => {
+      const postsWithAvatar = posts.map(post => {
         const user = userMap.get(post.userId);
         const categoryInfo = post.categoryId && categoryMap[post.categoryId]
           ? { id: categoryMap[post.categoryId].id, name: categoryMap[post.categoryId].name, icon: categoryMap[post.categoryId].icon, color: categoryMap[post.categoryId].color }
@@ -245,22 +188,11 @@ const postController = {
           category: categoryInfo
         };
       });
-      
-      // 分页
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + parseInt(limit);
-      const paginatedPosts = postsWithAvatar.slice(startIndex, endIndex);
 
       // PII 脱敏：未登录用户隐藏真实信息
-      const safePosts = paginatedPosts.map(post => {
+      const safePosts = postsWithAvatar.map(post => {
         if (!viewerId) {
-          return {
-            ...post,
-            school: '',
-            grade: '',
-            className: '',
-            likedBy: []
-          };
+          return { ...post, school: '', grade: '', className: '', likedBy: [] };
         }
         return post;
       });
@@ -268,19 +200,15 @@ const postController = {
       res.json(generateSuccessResponse({
         posts: safePosts,
         categories: allCategories.map(c => ({
-          id: c.id,
-          name: c.name,
-          description: c.description,
-          icon: c.icon,
-          color: c.color,
-          postCount: c.postCount
+          id: c.id, name: c.name, description: c.description,
+          icon: c.icon, color: c.color, postCount: c.postCount
         })),
         pagination: {
           currentPage: page,
-          totalPages: Math.ceil(filteredPosts.length / limit),
-          totalPosts: filteredPosts.length,
-          hasNext: endIndex < filteredPosts.length,
-          hasPrev: startIndex > 0
+          totalPages: Math.ceil(total / limit),
+          totalPosts: total,
+          hasNext: page * limit < total,
+          hasPrev: page > 1
         }
       }));
     } catch (error) {
