@@ -4498,12 +4498,12 @@ function toggleSidebar() {
 document.addEventListener('DOMContentLoaded', () => {
   adminManager.init().catch(error => {
     console.error('管理员系统初始化失败:', error);
-    // 在页面上显示具体错误原因，延迟跳转
+    // 在页面上显示具体错误原因，延迟跳转（error.message 转义防 XSS）
     document.body.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;font-family:sans-serif;background:#1a1a2e;color:#eee;text-align:center;padding:20px;">
         <div style="font-size:48px;margin-bottom:20px;">🔒</div>
         <h2 style="margin-bottom:10px;">管理员初始化失败</h2>
-        <p style="color:#ff6b6b;margin-bottom:20px;">${error.message}</p>
+        <p style="color:#ff6b6b;margin-bottom:20px;">${adminManager.escapeHtml(error.message)}</p>
         <p style="color:#888;font-size:14px;">3秒后自动跳转到登录页...</p>
       </div>
     `;

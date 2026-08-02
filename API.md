@@ -2,9 +2,18 @@
 
 本文档详细描述了校园论坛系统的所有 API 接口，供客户端开发者参考。
 
+> ## ⚠️ 文档与实现差异（2026-08-02 更新说明）
+>
+> 本文档的接口路径为**旧版无 `/api` 前缀**写法，代码已统一挂载到 `/api` 前缀下：
+> - **所有接口实际路径 = 文档路径 + `/api` 前缀**（例如文档 `POST /login` → 实际 `POST /api/login`）。
+> - 服务端对不带 `/api` 的旧路径提供 **307 重定向**兼容，但仅限 GET 请求与显式 JSON 请求；**新客户端请一律使用 `/api` 前缀**。
+> - **认证方式**：文档中要求 body 传 `userId`/`viewerId` 的接口，代码已改为**从 JWT 取身份**（`Authorization: Bearer <token>`），body/query 中传入的 userId 会被忽略（安全修复）。
+> - **响应格式**：文档示例为 `data` 嵌套；实际成功响应为 `{ success, message, ...业务字段 }`（业务字段直接展开在顶层，如 `user`、`token`）。
+> - 文档未收录的接口（均为代码中已存在）：`POST /api/posts/:id/comments/:commentId/like`（评论点赞）、`POST /api/unfollow`、`GET /api/blocked/:userId`、用户数据导出/导入（`/api/user/export-data`、`/api/user/import-data`）、公开 IP 统计已移除（`/api/ip-stats*` 现需管理员认证，同 `/api/admin/ip-stats*`）。
+
 ## 基础信息
 
-- **Base URL**: `http://your-domain:3000`
+- **Base URL**: `http://your-domain:3000`（代码默认端口 2080，请以 .env 中 PORT 为准）
 - **Content-Type**: `application/json`
 - **响应格式**: JSON
 

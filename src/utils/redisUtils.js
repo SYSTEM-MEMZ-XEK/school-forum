@@ -283,9 +283,12 @@ const ipStats = {
       const now = new Date().toISOString();
       
       // 使用 multi 批量执行：增加计数 + 更新最后访问时间
+      // 加 TTL（30 天）：防止 ip:stats:* key 永久堆积导致 Redis 内存无限增长
       const multi = client.multi();
       multi.incr(key);
       multi.set(lastAccessKey, now);
+      multi.expire(key, 30 * 24 * 60 * 60);
+      multi.expire(lastAccessKey, 30 * 24 * 60 * 60);
       await multi.exec();
     } catch (error) {
       console.error('[Redis] 记录IP访问失败:', error.message);
@@ -761,7 +764,11 @@ const followCache = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.incr(`${this.FOLLOWER_COUNT_PREFIX}${userId}`);
+      const key = `${this.FOLLOWER_COUNT_PREFIX}${userId}`;
+      const val = await client.incr(key);
+      // 计数 key 带 TTL，防止无界增长
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       console.error('[Redis] 增加粉丝数失败:', error.message);
       return null;
@@ -775,7 +782,11 @@ const followCache = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.decr(`${this.FOLLOWER_COUNT_PREFIX}${userId}`);
+      const key = `${this.FOLLOWER_COUNT_PREFIX}${userId}`;
+      const val = await client.decr(key);
+      // 计数 key 带 TTL，防止无界增长
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       console.error('[Redis] 减少粉丝数失败:', error.message);
       return null;
@@ -789,7 +800,11 @@ const followCache = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.incr(`${this.FOLLOWING_COUNT_PREFIX}${userId}`);
+      const key = `${this.FOLLOWING_COUNT_PREFIX}${userId}`;
+      const val = await client.incr(key);
+      // 计数 key 带 TTL，防止无界增长
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       console.error('[Redis] 增加关注数失败:', error.message);
       return null;
@@ -803,7 +818,11 @@ const followCache = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.decr(`${this.FOLLOWING_COUNT_PREFIX}${userId}`);
+      const key = `${this.FOLLOWING_COUNT_PREFIX}${userId}`;
+      const val = await client.decr(key);
+      // 计数 key 带 TTL，防止无界增长
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       console.error('[Redis] 减少关注数失败:', error.message);
       return null;
@@ -875,7 +894,10 @@ const postCounters = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.incr(`${this.LIKES_PREFIX}${postId}`);
+      const key = ``;
+      const val = await client.incr(key);
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       return null;
     }
@@ -888,7 +910,10 @@ const postCounters = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.decr(`${this.LIKES_PREFIX}${postId}`);
+      const key = ``;
+      const val = await client.decr(key);
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       return null;
     }
@@ -929,7 +954,10 @@ const postCounters = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.incr(`${this.DISLIKES_PREFIX}${postId}`);
+      const key = ``;
+      const val = await client.incr(key);
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       return null;
     }
@@ -942,7 +970,10 @@ const postCounters = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.decr(`${this.DISLIKES_PREFIX}${postId}`);
+      const key = ``;
+      const val = await client.decr(key);
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       return null;
     }
@@ -969,7 +1000,10 @@ const postCounters = {
     if (!isConnected) return null;
     try {
       const client = getRedisClient();
-      return await client.incr(`${this.VIEWS_PREFIX}${postId}`);
+      const key = ``;
+      const val = await client.incr(key);
+      await client.expire(key, this.EXPIRE_TIME);
+      return val;
     } catch (error) {
       return null;
     }
@@ -982,7 +1016,7 @@ const postCounters = {
     if (!isConnected) return false;
     try {
       const client = getRedisClient();
-      await client.set(`${this.VIEWS_PREFIX}${postId}`, count.toString());
+      await client.setEx(``, this.EXPIRE_TIME, count.toString());
       return true;
     } catch (error) {
       return false;

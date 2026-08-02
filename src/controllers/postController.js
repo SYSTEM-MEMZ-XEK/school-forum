@@ -228,13 +228,14 @@ const postController = {
         filteredPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       }
       
-      // 为每个帖子添加用户头像信息和栏目信息
+      // 为每个帖子添加用户头像信息和栏目信息（用 Map 代替线性查找，O(P+U)）
       const allCategories = await Category.getActiveCategories();
       const categoryMap = {};
       allCategories.forEach(c => { categoryMap[c.id] = c; });
+      const userMap = new Map(users.map(u => [u.id, u]));
 
       const postsWithAvatar = filteredPosts.map(post => {
-        const user = users.find(u => u.id === post.userId);
+        const user = userMap.get(post.userId);
         const categoryInfo = post.categoryId && categoryMap[post.categoryId]
           ? { id: categoryMap[post.categoryId].id, name: categoryMap[post.categoryId].name, icon: categoryMap[post.categoryId].icon, color: categoryMap[post.categoryId].color }
           : null;

@@ -131,9 +131,20 @@ exports.getAnnouncementById = async (req, res) => {
       });
     }
     
-    // 增加浏览次数
-    announcement.viewCount += 1;
-    await announcement.save();
+    // 增加浏览次数（防刷：同一 IP 30 秒内只计一次；Redis 不可用时直接计）
+    try {
+      const { getRedisClient } = require('../utils/redisUtils');
+      const redis = getRedisClient();
+      const viewKey = `announcement:view:${id}:${req.ip}`;
+      const firstView = await redis.set(viewKey, '1', 'EX', 30, 'NX');
+      if (firstView) {
+        announcement.viewCount += 1;
+        await announcement.save();
+      }
+    } catch (e) {
+      announcement.viewCount += 1;
+      await announcement.save();
+    }
     
     // 获取创建者用户名
     const { getUserById } = require('../utils/dataUtils');

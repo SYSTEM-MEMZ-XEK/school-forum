@@ -63,8 +63,15 @@ const notificationController = {
       const userId = req.user.id;
       
       const notifications = await getNotifications(userId);
-      const posts = await getPosts();
-      const users = await getUsers();
+      // 优化：只查询通知涉及到的帖子和用户，替代全量加载
+      const postIds = [...new Set(notifications.map(n => n.postId).filter(Boolean))];
+      const fromUserIds = [...new Set(notifications.map(n => n.fromUserId).filter(Boolean))];
+      const Post = require('../models/Post');
+      const User = require('../models/User');
+      const [posts, users] = await Promise.all([
+        postIds.length ? Post.find({ id: { $in: postIds } }).lean() : [],
+        fromUserIds.length ? User.find({ id: { $in: fromUserIds } }).lean() : []
+      ]);
       
       // 为通知添加帖子标题和用户信息
       const enrichedNotifications = notifications.map(notification => {
@@ -140,28 +147,26 @@ const notificationController = {
         return;
       }
       
-      const posts = await getPosts();
-      const users = await getUsers();
-      
-      const post = posts.find(p => p.id === postId && !p.isDeleted);
-      const fromUser = users.find(u => u.id === fromUserId);
+      // 优化：直接按 ID 查询，替代全量加载所有帖子和用户
+      const post = await getPostById(postId);
+      const fromUser = await getUserById(fromUserId);
       
       if (!post || !fromUser) {
         return;
       }
       
-      // 检查是否已存在相同的未读通知
-      const existingNotifications = await getNotifications(postOwnerId);
-      const existingNotification = existingNotifications.find(n => 
-        n.type === 'like' && 
-        n.postId === postId && 
-        n.fromUserId === fromUserId && 
-        !n.read
-      );
+      // 检查是否已存在相同的未读通知（直接查询而非加载全部）
+      const Notification = require('../models/Notification');
+      const existingNotification = await Notification.findOne({
+        userId: postOwnerId,
+        type: 'like',
+        postId: postId,
+        fromUserId: fromUserId,
+        read: false
+      });
       
       if (existingNotification) {
         // 如果已存在未读通知，更新时间戳
-        const { Notification } = require('../utils/dataUtils');
         await Notification.findOneAndUpdate(
           { id: existingNotification.id },
           { timestamp: new Date() }
@@ -202,24 +207,21 @@ const notificationController = {
         return;
       }
       
-      const posts = await getPosts();
-      const users = await getUsers();
-      
-      const post = posts.find(p => p.id === postId && !p.isDeleted);
-      const fromUser = users.find(u => u.id === fromUserId);
+      const post = await getPostById(postId);
+      const fromUser = await getUserById(fromUserId);
       
       if (!post || !fromUser) {
         return;
       }
       
       // 检查是否已存在相同的未读通知
-      const existingNotifications = await getNotifications(postOwnerId);
-      const existingNotification = existingNotifications.find(n => 
-        n.type === 'comment' && 
-        n.postId === postId && 
-        n.fromUserId === fromUserId && 
-        !n.read
-      );
+      const existingNotification = await Notification.findOne({
+        userId: postOwnerId,
+        type: 'comment',
+        postId: postId,
+        fromUserId: fromUserId,
+        read: false
+      });
       
       if (existingNotification) {
         // 如果已存在未读通知，更新时间戳和内容
@@ -265,11 +267,8 @@ const notificationController = {
         return;
       }
       
-      const posts = await getPosts();
-      const users = await getUsers();
-      
-      const post = posts.find(p => p.id === postId && !p.isDeleted);
-      const fromUser = users.find(u => u.id === fromUserId);
+      const post = await getPostById(postId);
+      const fromUser = await getUserById(fromUserId);
       
       if (!post || !fromUser) {
         return;
@@ -281,15 +280,15 @@ const notificationController = {
         return;
       }
       
-      // 检查是否已存在相同的未读通知
-      const existingNotifications = await getNotifications(commentOwnerId);
-      const existingNotification = existingNotifications.find(n => 
-        n.type === 'comment_reply' && 
-        n.postId === postId && 
-        n.commentId === commentId &&
-        n.fromUserId === fromUserId && 
-        !n.read
-      );
+      // 检查是否已存在相同的未读通知（直接查询而非加载全部）
+      const existingNotification = await Notification.findOne({
+        userId: commentOwnerId,
+        type: 'comment_reply',
+        postId: postId,
+        commentId: commentId,
+        fromUserId: fromUserId,
+        read: false
+      });
       
       if (existingNotification) {
         // 如果已存在未读通知，更新时间戳和内容
@@ -336,11 +335,8 @@ const notificationController = {
         return;
       }
       
-      const posts = await getPosts();
-      const users = await getUsers();
-      
-      const post = posts.find(p => p.id === postId && !p.isDeleted);
-      const fromUser = users.find(u => u.id === fromUserId);
+      const post = await getPostById(postId);
+      const fromUser = await getUserById(fromUserId);
       
       if (!post || !fromUser) {
         return;
@@ -363,15 +359,15 @@ const notificationController = {
         return;
       }
       
-      // 检查是否已存在相同的未读通知
-      const existingNotifications = await getNotifications(commentOwnerId);
-      const existingNotification = existingNotifications.find(n => 
-        n.type === 'comment_like' && 
-        n.postId === postId && 
-        n.commentId === commentId &&
-        n.fromUserId === fromUserId && 
-        !n.read
-      );
+      // 检查是否已存在相同的未读通知（直接查询而非加载全部）
+      const existingNotification = await Notification.findOne({
+        userId: commentOwnerId,
+        type: 'comment_like',
+        postId: postId,
+        commentId: commentId,
+        fromUserId: fromUserId,
+        read: false
+      });
       
       if (existingNotification) {
         // 如果已存在未读通知，更新时间戳
@@ -408,11 +404,8 @@ const notificationController = {
   // 创建帖子删除通知（系统消息）
   async createPostDeletedNotification(postId, postOwnerId, reason, adminId) {
     try {
-      const posts = await getPosts(true);
-      const users = await getUsers();
-      
-      const post = posts.find(p => p.id === postId);
-      const admin = users.find(u => u.id === adminId);
+      const post = await getPostById(postId, true);
+      const admin = await getUserById(adminId);
       
       if (!post || !admin) {
         return;
@@ -442,11 +435,8 @@ const notificationController = {
   // 创建评论删除通知（系统消息）
   async createCommentDeletedNotification(postId, commentId, commentOwnerId, reason, adminId) {
     try {
-      const posts = await getPosts();
-      const users = await getUsers();
-      
-      const post = posts.find(p => p.id === postId);
-      const admin = users.find(u => u.id === adminId);
+      const post = await getPostById(postId, true);
+      const admin = await getUserById(adminId);
       
       if (!post || !admin) {
         return;
@@ -477,10 +467,8 @@ const notificationController = {
   // 创建账号封禁通知（系统消息）
   async createAccountBannedNotification(userId, reason, banEndTime, adminId) {
     try {
-      const users = await getUsers();
-      
-      const user = users.find(u => u.id === userId);
-      const admin = users.find(u => u.id === adminId);
+      const user = await getUserById(userId);
+      const admin = await getUserById(adminId);
       
       if (!user || !admin) {
         return;
