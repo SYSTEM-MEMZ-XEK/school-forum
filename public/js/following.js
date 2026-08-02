@@ -245,21 +245,23 @@ const followingManager = {
       const userFavorited = this.state.favoritesSet.has(post.id);
       const truncatedContent = this.truncateContent(post.content, 300);
       
+      // 转义防 XSS
+      const esc = (s) => this.escapeHtml(s);
       postElement.innerHTML = `
         <div class="post-header">
           <div class="user-info">
             ${post.anonymous ? 
               `<div class="avatar anonymous-avatar">匿</div>` : 
-              `<div class="avatar clickable-avatar" data-user-id="${post.userId}" title="点击查看个人主页" ${post.userAvatar ? `style="background-image: url('${post.userAvatar}'); background-size: cover; background-position: center;"` : ''}>
-                ${!post.userAvatar ? (post.className ? post.className.slice(0,1) : '?') : ''}
+              `<div class="avatar clickable-avatar" data-user-id="${post.userId}" title="点击查看个人主页" ${post.userAvatar ? `style="background-image: url('${esc(post.userAvatar)}'); background-size: cover; background-position: center;"` : ''}>
+                ${!post.userAvatar ? (post.className ? esc(post.className).slice(0,1) : '?') : ''}
               </div>`
             }
             <div class="user-details">
               <div class="user-name-row">
-                <h3>${post.anonymous ? '匿名用户' : (post.username || '未知用户')}</h3>
+                <h3>${post.anonymous ? '匿名用户' : esc(post.username || '未知用户')}</h3>
               </div>
               ${post.anonymous ? '' : 
-                `<div class="class-info">${post.school || ''} | ${post.grade || ''} ${post.className || ''}</div>`
+                `<div class="class-info">${esc(post.school || '')} | ${esc(post.grade || '')} ${esc(post.className || '')}</div>`
               }
             </div>
           </div>
@@ -270,8 +272,8 @@ const followingManager = {
         
         <div class="post-content">
           ${post.anonymous ? '<span class="tag anonymous-tag">匿名</span>' : 
-          `<span class="tag">${post.grade || ''}</span>
-           <span class="tag">${post.className || ''}</span>`}
+          `<span class="tag">${esc(post.grade || '')}</span>
+           <span class="tag">${esc(post.className || '')}</span>`}
           ${this.renderMarkdownContent(truncatedContent)}
           ${truncatedContent !== post.content ? '<p class="read-more">点击查看全文...</p>' : ''}
           ${post.images && post.images.length > 0 ? this.renderPostImages(post.images.slice(0, 3)) : ''}
@@ -631,7 +633,11 @@ const followingManager = {
   restoreMathFormulas: function(html, placeholders) {
     let result = html;
     placeholders.forEach(({ placeholder, formula }) => {
-      result = result.replace(new RegExp(placeholder, 'g'), formula);
+      // 安全恢复：公式原文是用户输入，必须 HTML 转义后插入（防注入），
+      // 且用函数式替换避免 replacement 字符串中的 $ 序列被展开
+      const safeFormula = this.escapeHtml(formula);
+      const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), () => safeFormula);
     });
     return result;
   },
@@ -651,8 +657,10 @@ const followingManager = {
     let imagesHTML = '<div class="post-images">';
     
     images.forEach(image => {
+      // XSS 防护：URL 转义 HTML 属性 + 通过 data-url 传递（onclick 不再拼接用户数据）
+      const safeUrl = this.escapeHtml(image.url);
       imagesHTML += `
-        <img src="${image.url}" alt="${this.escapeHtml(image.originalname)}" class="post-image" onclick="followingManager.showImageModal('${image.url}')">
+        <img src="${safeUrl}" alt="${this.escapeHtml(image.originalname)}" class="post-image" data-url="${safeUrl}" onclick="followingManager.showImageModal(this.dataset.url)">
       `;
     });
     

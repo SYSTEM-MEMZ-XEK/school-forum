@@ -87,27 +87,33 @@
         return;
       }
       
-      listContainer.innerHTML = this.state.blockedList.map(user => `
-        <div class="blocked-item" data-user-id="${user.id}">
+      listContainer.innerHTML = this.state.blockedList.map(user => {
+        // 转义防 XSS（用户名可能含引号/HTML；unblock 不再内联拼接用户名）
+        const esc = (s) => utils.escapeHtml(s);
+        const safeId = esc(user.id);
+        const safeName = esc(user.username || '');
+        return `
+        <div class="blocked-item" data-user-id="${safeId}">
           <img 
-            src="${user.avatar || '/images/default-avatar.svg'}" 
-            alt="${user.username}" 
+            src="${esc(user.avatar || '/images/default-avatar.svg')}" 
+            alt="${safeName}" 
             class="blocked-avatar"
           >
           <div class="blocked-info">
-            <div class="blocked-username">${user.username || ''}</div>
+            <div class="blocked-username">${safeName}</div>
             <div class="blocked-meta">
-              ${user.school || ''} ${user.grade || ''} ${user.className || ''}
+              ${esc(user.school || '')} ${esc(user.grade || '')} ${esc(user.className || '')}
               ${user.blockedAt ? '· 拉黑于 ' + this.formatDate(user.blockedAt) : ''}
             </div>
           </div>
           <div class="blocked-actions">
-            <button class="unblock-btn" onclick="blacklistManager.unblockUser('${user.id}', '${user.username || ''}')">
+            <button class="unblock-btn" data-uid="${safeId}" data-uname="${safeName}" onclick="blacklistManager.unblockUser(this.dataset.uid, this.dataset.uname)">
               <i class="fas fa-unlock"></i> 解除拉黑
             </button>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     },
 
     renderPagination() {

@@ -537,7 +537,11 @@ const simpleEditManager = {
   restoreMathFormulas: function(html, placeholders) {
     let result = html;
     placeholders.forEach(({ placeholder, formula }) => {
-      result = result.replace(new RegExp(placeholder, 'g'), formula);
+      // 安全恢复：公式原文是用户输入，必须 HTML 转义后插入（防注入），
+      // 且用函数式替换避免 replacement 字符串中的 $ 序列被展开
+      const safeFormula = this.escapeHtml(formula);
+      const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), () => safeFormula);
     });
     return result;
   },

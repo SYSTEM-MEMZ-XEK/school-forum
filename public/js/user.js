@@ -384,10 +384,10 @@ const userManager = {
         
         console.log('updateHeaderUserAvatar: 班级信息:', gradeDisplay);
         
-        // 更新头像信息
+        // 更新头像信息（用户名转义防 XSS）
         headerUsername.innerHTML = user.isAdmin ?
-          `${user.username} <span style="color: #dc2626; margin-left: 5px; font-size: 14px;">管理员</span>` :
-          user.username;
+          `${utils.escapeHtml(user.username)} <span style="color: #dc2626; margin-left: 5px; font-size: 14px;">管理员</span>` :
+          utils.escapeHtml(user.username);
         headerUserClass.textContent = gradeDisplay;
         
         // 为管理员添加特殊样式
@@ -619,19 +619,21 @@ const userManager = {
       return;
     }
     
+    // 转义用户字段防 XSS
+    const esc = (s) => utils.escapeHtml(s);
     userInfoDisplay.innerHTML = `
       <div class="form-group">
         <label>您的身份信息</label>
         <div class="user-info-card">
-          <div class="user-info-avatar clickable-avatar" id="user-info-avatar" title="点击查看个人主页" ${user.avatar ? `style="background-image: url('${user.avatar}'); background-size: cover; background-position: center;"` : ''}>
-            ${!user.avatar ? (user.className ? user.className.slice(0,1) : '?') : ''}
+          <div class="user-info-avatar clickable-avatar" id="user-info-avatar" title="点击查看个人主页" ${user.avatar ? `style="background-image: url('${esc(user.avatar)}'); background-size: cover; background-position: center;"` : ''}>
+            ${!user.avatar ? (user.className ? esc(user.className).slice(0,1) : '?') : ''}
           </div>
           <div class="user-info-details">
-            <div class="user-info-name">${user.username}</div>
+            <div class="user-info-name">${esc(user.username)}</div>
             <div class="user-info-class">
               ${user.grade === "已毕业" ? 
-                `已毕业 · ${user.school} ${user.enrollmentYear}级 ${user.className}` :
-                `${user.school} · ${user.grade} ${user.className}`
+                `已毕业 · ${esc(user.school)} ${esc(String(user.enrollmentYear))}级 ${esc(user.className)}` :
+                `${esc(user.school)} · ${esc(user.grade)} ${esc(user.className)}`
               }
             </div>
           </div>

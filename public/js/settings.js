@@ -2820,7 +2820,8 @@ const settingsManager = {
             });
           }
         }
-        if (fileName) fileName.textContent = `已选择：${this._escapeHtml(file.name)}（${sizeKB} KB）`;
+        // textContent 不会解析 HTML，无需（也不能）预先转义，否则文件名含 < > 会显示为 &lt; &gt;
+        if (fileName) fileName.textContent = `已选择：${file.name}（${sizeKB} KB）`;
 
         this._setImportButtonsEnabled(true);
         this._hideImportResult();

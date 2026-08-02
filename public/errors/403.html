@@ -111,7 +111,7 @@
           
           userInfo.innerHTML = `
             <i class="fas fa-user"></i>
-            <span>当前用户: ${userData.username || '未知用户'}</span>
+            <span>当前用户: ${(userData.username || '未知用户').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
             <span style="color: var(--error-color); margin-left: 10px;">(非管理员)</span>
           `;
           
@@ -142,7 +142,7 @@
           const userData = JSON.parse(user);
           userInfo.innerHTML = `
             <i class="fas fa-user"></i>
-            <span>当前用户: ${userData.username || '未知用户'}</span>
+            <span>当前用户: ${(userData.username || '未知用户').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</span>
             <span style="color: var(--error-color); margin-left: 10px;">(非管理员)</span>
           `;
         } else {
@@ -189,8 +189,8 @@
   </script>
   
   <!-- 用户管理系统 -->
-  <script src="../js/utils.js"></script>
-  <script src="../js/user.js"></script>
+  <script src="../js/utils.js" defer></script>
+  <script src="../js/user.js" defer></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // 初始化用户管理

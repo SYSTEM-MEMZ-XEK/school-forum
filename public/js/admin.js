@@ -192,7 +192,7 @@ verifyUserWithServer: async function(user) {
 
     // 显示通知 - 增强权限处理
 showNotification: function(message, type = 'info') {
-  // 创建临时通知元素
+  // 创建临时通知元素（message 可能含用户可控内容，转义防 XSS）
   const notification = document.createElement('div');
   notification.className = `notification-message ${type}`;
   notification.innerHTML = `
@@ -200,7 +200,7 @@ showNotification: function(message, type = 'info') {
       type === 'success' ? 'check-circle' : 
       type === 'error' ? 'exclamation-circle' : 'info-circle'
     }"></i>
-    <span>${message}</span>
+    <span>${this.escapeHtml(message)}</span>
   `;
   
   document.body.appendChild(notification);
@@ -494,23 +494,29 @@ fetchWithTimeout: function(url, options = {}) {
 
     // 渲染最近活动
     renderRecentActivity: function(posts, users) {
+        // 转义防 XSS（用户名/内容均为用户可控数据）
+        const esc = (s) => this.escapeHtml(s);
         // 渲染最近帖子
         const postsContainer = document.getElementById('recent-posts');
         if (postsContainer) {
             if (!posts || posts.length === 0) {
                 postsContainer.innerHTML = '<div class="empty-state">暂无最近帖子</div>';
             } else {
-                postsContainer.innerHTML = posts.slice(0, 5).map(post => `
+                postsContainer.innerHTML = posts.slice(0, 5).map(post => {
+                    const username = post.anonymous ? '匿名用户' : esc(post.username || '未知用户');
+                    const preview = esc((post.content || '').substring(0, 50)) + ((post.content || '').length > 50 ? '...' : '');
+                    return `
                     <div class="activity-item">
                         <div class="activity-content">
-                            <strong>${post.anonymous ? '匿名用户' : post.username}</strong>
-                            <div class="post-content-preview">${post.content.substring(0, 50)}${post.content.length > 50 ? '...' : ''}</div>
+                            <strong>${username}</strong>
+                            <div class="post-content-preview">${preview}</div>
                         </div>
                         <div class="activity-meta">
                             ${this.formatDate(post.timestamp)}
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
         }
         
@@ -523,8 +529,8 @@ fetchWithTimeout: function(url, options = {}) {
                 usersContainer.innerHTML = users.slice(0, 5).map(user => `
                     <div class="activity-item">
                         <div class="activity-content">
-                            <strong>${user.username}</strong>
-                            <div>${user.school} · ${user.grade} ${user.className}</div>
+                            <strong>${esc(user.username)}</strong>
+                            <div>${esc(user.school)} · ${esc(user.grade)} ${esc(user.className)}</div>
                         </div>
                         <div class="activity-meta">
                             ${this.formatDate(user.createdAt)}
@@ -585,21 +591,25 @@ renderPostsList: function(posts) {
     return;
   }
 
-  container.innerHTML = posts.map(post => `
+  container.innerHTML = posts.map(post => {
+    // 转义防 XSS（用户名/学校/班级为用户可控数据）
+    const esc = (s) => this.escapeHtml(s);
+    const username = post.anonymous ? '匿名用户' : esc(post.username || '未知用户');
+    return `
     <tr>
       <td>
         <div class="post-content-preview" title="${this.escapeHtml(post.content)}">
-          ${this.escapeHtml(post.content.substring(0, 100))}${post.content.length > 100 ? '...' : ''}
+          ${this.escapeHtml((post.content || '').substring(0, 100))}${(post.content || '').length > 100 ? '...' : ''}
         </div>
         ${post.images && post.images.length > 0 ? 
           `<small><i class="fas fa-image"></i> ${post.images.length}张图片</small>` : ''
         }
       </td>
       <td>
-        <strong>${post.anonymous ? '匿名用户' : (post.username || '未知用户')}</strong>
+        <strong>${username}</strong>
         ${!post.anonymous ? `
         <div style="font-size: 12px; color: #666;">
-          ${post.school || ''} ${post.grade || ''} ${post.className || ''}
+          ${esc(post.school || '')} ${esc(post.grade || '')} ${esc(post.className || '')}
         </div>
         ` : ''}
       </td>
@@ -610,16 +620,17 @@ renderPostsList: function(posts) {
       </td>
       <td>
         <div class="action-buttons">
-          <button class="action-btn btn-info" onclick="adminManager.viewPostDetail('${post.id}')">
+          <button class="action-btn btn-info" onclick="adminManager.viewPostDetail('${esc(post.id)}')">
             <i class="fas fa-eye"></i> 详情
           </button>
-          <button class="action-btn btn-danger" onclick="adminManager.showDeletePostModal('${post.id}')">
+          <button class="action-btn btn-danger" onclick="adminManager.showDeletePostModal('${esc(post.id)}')">
             <i class="fas fa-trash"></i> 删除
           </button>
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 },
 
         // HTML转义函数，防止XSS攻击
@@ -680,17 +691,20 @@ renderPostsList: function(posts) {
             return;
         }
         
-        container.innerHTML = users.map(user => `
+        container.innerHTML = users.map(user => {
+            // 转义防 XSS（用户名/QQ/学校/班级为用户可控数据）
+            const esc = (s) => this.escapeHtml(s);
+            return `
             <tr>
                 <td>
-                    <strong>${user.username}</strong>
-                    <div style="font-size: 12px; color: #666;">ID: ${user.id ? user.id.substring(0, 8) + '...' : 'N/A'}</div>
+                    <strong>${esc(user.username)}</strong>
+                    <div style="font-size: 12px; color: #666;">ID: ${user.id ? esc(user.id.substring(0, 8)) + '...' : 'N/A'}</div>
                 </td>
-                <td>${user.qq || '未设置'}</td>
+                <td>${esc(user.qq || '未设置')}</td>
                 <td>
-                    <div>${user.school || '未设置'}</div>
+                    <div>${esc(user.school || '未设置')}</div>
                     <div style="font-size: 12px; color: #666;">
-                        ${user.grade || ''} ${user.className || ''}
+                        ${esc(user.grade || '')} ${esc(user.className || '')}
                     </div>
                 </td>
                 <td>${this.formatDate(user.createdAt)}</td>
@@ -706,17 +720,18 @@ renderPostsList: function(posts) {
                 <td>
                     <div class="action-buttons">
                         ${user.isActive === false ? 
-                            `<button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${user.id}', '${this.escapeHtml(user.username)}')">
+                            `<button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${esc(user.id)}', '${esc(user.username)}')">
                                 <i class="fas fa-unlock"></i> 解封
                             </button>` :
-                            `<button class="action-btn btn-warning" onclick="adminManager.showBanModal('${user.id}', '${this.escapeHtml(user.username)}')">
+                            `<button class="action-btn btn-warning" onclick="adminManager.showBanModal('${esc(user.id)}', '${esc(user.username)}')">
                                 <i class="fas fa-ban"></i> 封禁
                             </button>`
                         }
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     },
 
     // 加载封禁用户列表
@@ -762,23 +777,27 @@ loadBannedUsers: async function() {
             return;
         }
         
-        container.innerHTML = users.map(user => `
+        container.innerHTML = users.map(user => {
+            // 转义防 XSS（用户名/QQ/封禁原因/操作者均为用户可控数据）
+            const esc = (s) => this.escapeHtml(s);
+            return `
             <tr>
-                <td><strong>${user.username}</strong></td>
-                <td>${user.qq || '未设置'}</td>
-                <td>${user.banReason || '违反论坛规定'}</td>
+                <td><strong>${esc(user.username)}</strong></td>
+                <td>${esc(user.qq || '未设置')}</td>
+                <td>${esc(user.banReason || '违反论坛规定')}</td>
                 <td>${this.formatDate(user.banStartTime)}</td>
                 <td>${user.banEndTime ? this.formatDate(user.banEndTime) : '永久封禁'}</td>
-                <td>${user.bannedBy || '系统'}</td>
+                <td>${esc(user.bannedBy || '系统')}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${user.id}', '${this.escapeHtml(user.username)}')">
+                        <button class="action-btn btn-success" onclick="adminManager.showUnbanModal('${esc(user.id)}', '${esc(user.username)}')">
                             <i class="fas fa-unlock"></i> 解封
                         </button>
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     },
 
     // 加载可用日志日期列表
@@ -2331,27 +2350,31 @@ confirmDeletePost: async function() {
             return;
         }
 
-        container.innerHTML = comments.map(comment => `
+        container.innerHTML = comments.map(comment => {
+            // 转义防 XSS（用户名/学校/班级为用户可控数据）
+            const esc = (s) => this.escapeHtml(s);
+            const username = comment.anonymous ? '匿名用户' : esc(comment.username || '未知用户');
+            return `
             <tr>
                 <td>
                     <div class="comment-content-preview" title="${this.escapeHtml(comment.content)}">
-                        ${this.escapeHtml(comment.content.substring(0, 100))}${comment.content.length > 100 ? '...' : ''}
+                        ${this.escapeHtml((comment.content || '').substring(0, 100))}${(comment.content || '').length > 100 ? '...' : ''}
                     </div>
                 </td>
                 <td>
-                    <strong>${comment.anonymous ? '匿名用户' : (comment.username || '未知用户')}</strong>
+                    <strong>${username}</strong>
                     ${!comment.anonymous ? `
                     <div style="font-size: 12px; color: #666;">
-                        ${comment.school || ''} ${comment.grade || ''} ${comment.className || ''}
+                        ${esc(comment.school || '')} ${esc(comment.grade || '')} ${esc(comment.className || '')}
                     </div>
                     ` : ''}
                 </td>
                 <td>
-                    <div style="font-size: 12px; cursor: pointer; color: var(--primary-color);" onclick="adminManager.viewPostDetail('${comment.postId}')">
+                    <div style="font-size: 12px; cursor: pointer; color: var(--primary-color);" onclick="adminManager.viewPostDetail('${esc(comment.postId)}')">
                         <i class="fas fa-external-link-alt"></i> 点击查看
                     </div>
                     <div style="font-size: 12px; color: #666;">
-                        ID: ${comment.postId ? comment.postId.substring(0, 8) + '...' : 'N/A'}
+                        ID: ${comment.postId ? esc(comment.postId.substring(0, 8)) + '...' : 'N/A'}
                     </div>
                 </td>
                 <td>${this.formatDate(comment.timestamp)}</td>
@@ -2363,7 +2386,8 @@ confirmDeletePost: async function() {
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     },
 
     // 搜索评论
@@ -2452,12 +2476,14 @@ confirmDeletePost: async function() {
             const repliesHtml = comment.replies && comment.replies.length > 0 
                 ? `<div class="admin-comment-replies">${this.renderCommentsTree(comment.replies, depth + 1)}</div>` 
                 : '';
+            // 转义防 XSS（评论用户名为用户可控数据）
+            const username = comment.anonymous ? '匿名用户' : this.escapeHtml(comment.username || '未知用户');
 
             return `
                 <div class="admin-comment-item" data-depth="${depth}">
                     <div class="comment-header">
                         <div class="comment-author">
-                            <strong>${comment.anonymous ? '匿名用户' : (comment.username || '未知用户')}</strong>
+                            <strong>${username}</strong>
                             ${comment.replyTo ? `<span class="reply-indicator">↳ 回复</span>` : ''}
                         </div>
                         <span class="comment-time">${this.formatDate(comment.timestamp)}</span>
@@ -2586,7 +2612,12 @@ confirmDeletePost: async function() {
     restoreMathFormulas: function(html, placeholders) {
         let result = html;
         placeholders.forEach(({ placeholder, formula }) => {
-            result = result.replace(new RegExp(placeholder, 'g'), formula);
+            // 安全恢复：公式原文是用户输入，必须 HTML 转义后插入（防注入，包括
+            // $$<img onerror=...>$$ 这类绕过 markdown-it html:false 的攻击向量），
+            // 且用函数式替换避免 replacement 字符串中的 $ 序列被展开
+            const safeFormula = this.escapeHtml(formula);
+            const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            result = result.replace(new RegExp(escapedPlaceholder, 'g'), () => safeFormula);
         });
         return result;
     },

@@ -734,8 +734,9 @@ const favoritesManager = {
         return;
       }
 
-      // 正常帖子
-      const displayUsername = post.anonymous ? '匿名用户' : (post.username || '���知用户');
+      // 正常帖子（转义防 XSS；修正编码损坏的"未知用户"）
+      const displayUsername = post.anonymous ? '匿名用户' : this.escapeHtml(post.username || '未知用户');
+      const esc = (s) => this.escapeHtml(s);
       const preview = this.getPostPreview(post.content, 150);
       
       // 获取标签信息
@@ -758,13 +759,13 @@ const favoritesManager = {
             <div class="post-card-header">
               <div class="post-card-avatar ${post.anonymous ? 'anonymous-avatar' : ''}" 
                    ${!post.anonymous ? `data-user-id="${post.userId}"` : ''}
-                   ${!post.anonymous && post.userAvatar ? `style="background-image: url('${post.userAvatar}'); background-size: cover; background-position: center;"` : ''}>
-                ${post.anonymous ? '匿' : (!post.userAvatar ? (post.className ? post.className.slice(0,1) : '?') : '')}
+                   ${!post.anonymous && post.userAvatar ? `style="background-image: url('${esc(post.userAvatar)}'); background-size: cover; background-position: center;"` : ''}>
+                ${post.anonymous ? '匿' : (!post.userAvatar ? (post.className ? esc(post.className).slice(0,1) : '?') : '')}
               </div>
               <div class="post-card-user-info">
                 <div class="post-card-username">${displayUsername}</div>
                 ${!post.anonymous ? 
-                  `<div class="post-card-class">${post.school || ''} | ${post.grade || ''} ${post.className || ''}</div>` : ''
+                  `<div class="post-card-class">${esc(post.school || '')} | ${esc(post.grade || '')} ${esc(post.className || '')}</div>` : ''
                 }
               </div>
               <div class="post-card-stats">

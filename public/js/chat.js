@@ -535,7 +535,8 @@ const chatManager = {
     this.dom.viewProfileBtn.href = `profile.html?id=${user.id}`;
     
     if (user.avatar) {
-      this.dom.chatAvatar.innerHTML = `<img src="${user.avatar}" alt="${user.username}">`;
+      // 转义属性防 XSS（头像 URL 与用户名均可能含特殊字符）
+      this.dom.chatAvatar.innerHTML = `<img src="${utils.escapeHtml(user.avatar)}" alt="${utils.escapeHtml(user.username)}">`;
     }
   },
 
@@ -837,7 +838,9 @@ const chatManager = {
     if (!conversationId || !currentUser) return;
     
     try {
+      // 修复：之前未指定 method（默认 GET，body 无效导致删除不生效）
       const response = await fetch(`/api/messages/${conversationId}`, {
+        method: 'DELETE',
         headers: userManager.getAuthHeaders(),
         body: JSON.stringify({ userId: currentUser.id })
       });

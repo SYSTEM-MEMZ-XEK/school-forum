@@ -150,7 +150,13 @@ const postDetailManager = {
     const container = document.getElementById('post-detail');
     const currentUser = userManager.state.currentUser;
     const userLiked = currentUser && this.post.likedBy && this.post.likedBy.includes(currentUser.id);
-    const displayUsername = this.post.anonymous ? '匿名用户' : (this.post.username || '未知用户');
+    // 转义防 XSS
+    const escapeHtml = (s) => utils.escapeHtml(s);
+    const displayUsername = this.post.anonymous ? '匿名用户' : escapeHtml(this.post.username || '未知用户');
+    const displaySchool = escapeHtml(this.post.school || '');
+    const displayGrade = escapeHtml(this.post.grade || '');
+    const displayClassName = escapeHtml(this.post.className || '');
+    const displayUserAvatar = this.post.userAvatar ? escapeHtml(this.post.userAvatar) : null;
 
     // 检查收藏状态
     let isFavorited = false;
@@ -163,13 +169,13 @@ const postDetailManager = {
         <div class="post-detail-user">
           <div class="post-detail-avatar ${this.post.anonymous ? 'anonymous-avatar' : ''}" 
                ${!this.post.anonymous ? `data-user-id="${this.post.userId}"` : ''}
-               ${!this.post.anonymous && this.post.userAvatar ? `style="background-image: url('${this.post.userAvatar}'); background-size: cover; background-position: center;"` : ''}>
-            ${this.post.anonymous ? '匿' : (!this.post.userAvatar ? (this.post.className ? this.post.className.slice(0,1) : '?') : '')}
+               ${!this.post.anonymous && displayUserAvatar ? `style="background-image: url('${displayUserAvatar}'); background-size: cover; background-position: center;"` : ''}>
+            ${this.post.anonymous ? '匿' : (!displayUserAvatar ? (displayClassName ? displayClassName.slice(0,1) : '?') : '')}
           </div>
           <div class="post-detail-user-info">
             <div class="post-detail-username">${displayUsername}</div>
             ${this.post.anonymous ? '' : 
-              `<div class="post-detail-class">${this.post.school || ''} | ${this.post.grade || ''} ${this.post.className || ''}</div>`
+              `<div class="post-detail-class">${displaySchool} | ${displayGrade} ${displayClassName}</div>`
             }
           </div>
           <div class="post-detail-time">
@@ -474,7 +480,11 @@ const postDetailManager = {
   restoreMathFormulas: function(html, placeholders) {
     let result = html;
     placeholders.forEach(({ placeholder, formula }) => {
-      result = result.replace(new RegExp(placeholder, 'g'), formula);
+      // 安全恢复：公式原文是用户输入，必须 HTML 转义后插入（防注入），
+      // 且用函数式替换避免 replacement 字符串中的 $ 序列被展开
+      const safeFormula = this.escapeHtml(formula);
+      const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), () => safeFormula);
     });
     return result;
   },
@@ -486,9 +496,11 @@ const postDetailManager = {
     let imagesHTML = '<div class="post-detail-images">';
     
     images.forEach(image => {
+      // XSS 防护：URL 转义 HTML 属性 + 通过 data-url 传递（onclick 不再拼接用户数据）
+      const safeUrl = this.escapeHtml(image.url);
       imagesHTML += `
-        <img src="${image.url}" alt="${this.escapeHtml(image.originalname)}" 
-             class="post-detail-image" onclick="postDetailManager.showImageModal('${image.url}')">
+        <img src="${safeUrl}" alt="${this.escapeHtml(image.originalname)}" 
+             class="post-detail-image" data-url="${safeUrl}" onclick="postDetailManager.showImageModal(this.dataset.url)">
       `;
     });
     

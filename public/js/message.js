@@ -62,7 +62,7 @@ const messageManager = {
         const postId = e.target.dataset.postId;
         if (postId) {
           // 在新标签页打开帖子
-          window.open(`/post.html?id=${postId}`, '_blank');
+          window.open(`/post-detail.html?id=${postId}`, '_blank');
         }
       }
     });
