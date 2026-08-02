@@ -23,8 +23,9 @@ const messageController = {
       return { canSend: false, reason: '不能给自己发送私信' };
     }
 
-    // 检查发送者是否被封禁
-    const senderBanned = await BannedUser.findOne({ userId: senderId });
+    // 检查发送者是否被封禁（仅活跃封禁记录；已解封/过期的记录不影响发消息）
+    // 修复：此前不检查 isActive，解封后的用户因残留记录仍无法发私信
+    const senderBanned = await BannedUser.isUserBanned(senderId);
     if (senderBanned) {
       return { canSend: false, reason: '您的账号已被封禁，无法发送私信' };
     }

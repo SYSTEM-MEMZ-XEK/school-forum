@@ -432,6 +432,8 @@ process.on('unhandledRejection', (reason, promise) => {
 const gracefulShutdown = async (signal) => {
   logger.logSystemEvent(`收到 ${signal} 信号，正在关闭服务器...`);
   console.log(`\n收到 ${signal} 信号，正在优雅关闭...`);
+  // 落盘积压的异步日志
+  logger.flushLogsSync();
   await closeRedis();
   process.exit(0);
 };

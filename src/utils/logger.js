@@ -44,17 +44,50 @@ function formatLogMessage(level, message, data = null) {
   return `[${timestamp}] [${level}] ${message}${dataStr}`;
 }
 
+// ===================== 异步批量写盘（避免每请求 2-3 次同步磁盘 I/O 阻塞事件循环） =====================
+const logQueue = [];
+let flushTimer = null;
+let flushing = false;
+
+// 定时批量 flush（默认 300ms 一批，一次 appendFileSync 写入全部积压日志）
+function scheduleFlush() {
+  if (flushTimer || flushing) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    flushLogQueue();
+  }, 300);
+  // 不阻止进程退出
+  if (flushTimer.unref) flushTimer.unref();
+}
+
+function flushLogQueue() {
+  if (flushing) return;
+  const batch = logQueue.splice(0, logQueue.length);
+  if (batch.length === 0) return;
+  flushing = true;
+  try {
+    const logFilePath = getLogFilePath();
+    fs.appendFileSync(logFilePath, batch.join('\n') + '\n', 'utf8');
+  } catch (error) {
+    console.error('写入日志文件失败:', error);
+  } finally {
+    flushing = false;
+  }
+}
+
+// 进程退出前把积压日志落盘
+function flushLogsSync() {
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+  flushLogQueue();
+}
+
 /**
- * 写入日志到文件（按日期）
+ * 写入日志到文件（按日期，异步批量）
  * @param {string} formattedMessage - 格式化后的日志消息
  */
 function writeLogToFile(formattedMessage) {
-  try {
-    const logFilePath = getLogFilePath();
-    fs.appendFileSync(logFilePath, formattedMessage + '\n', 'utf8');
-  } catch (error) {
-    console.error('写入日志文件失败:', error);
-  }
+  logQueue.push(formattedMessage);
+  scheduleFlush();
 }
 
 /**
@@ -300,5 +333,6 @@ module.exports = {
   clearLogs,
   deleteLogs,
   clearAllLogs,
+  flushLogsSync,
   LOG_LEVELS
 };

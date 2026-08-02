@@ -481,6 +481,20 @@ const userController = {
       // 登录成功，清除失败记录
       await recordLoginAttempt(qq, true, clientIp);
 
+      // 封禁检查：仅允许活跃封禁记录拦截；记录已过期/解封时自动恢复账号
+      const BannedUser = require('../models/BannedUser');
+      const activeBan = await BannedUser.isUserBanned(user.id);
+      if (activeBan) {
+        logger.logSecurityEvent('封禁用户尝试登录被拒绝', { userId: user.id, qq, ip: clientIp });
+        return res.status(403).json(generateErrorResponse('该账号已被封禁，无法登录'));
+      }
+      if (user.isActive === false) {
+        // User.isActive 仍为 false 但无活跃封禁记录 → 封禁已到期/已解封，自动恢复
+        await updateUser(user.id, { isActive: true });
+        user.isActive = true;
+        logger.logInfo('登录时自动恢复已过封禁期的账号', { userId: user.id, qq });
+      }
+
       // 检查是否是管理员
       const { getAdminUsers } = require('../config/constants');
       const adminUsers = getAdminUsers();
@@ -1609,7 +1623,8 @@ const userController = {
               categoryId: p.category || null,
               timestamp: p.timestamp || now,
               updatedAt: now,
-              likes: [],
+              // 修复：likes 在 Post schema 中是 Number（此前传 [] 导致 CastError，导入全部失败）
+              likes: 0,
               views: 0,
               visibility: p.visibility || 'public',
               tags: Array.isArray(p.tags) ? p.tags : [],

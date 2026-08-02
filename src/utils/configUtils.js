@@ -7,6 +7,12 @@ const DATA_DIR = path.join(__dirname, '../../data/');
 // 配置文件路径
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
+// 配置缓存：避免每个请求多次同步读文件（此前每请求 6+ 次 readFileSync 阻塞事件循环）
+// 缓存 3 秒，写配置时立即失效；极端情况下最多延迟 3 秒生效
+const CONFIG_CACHE_TTL = 3000;
+let _configCache = null;
+let _configCacheTime = 0;
+
 // 运行模式定义
 const RUN_MODES = {
   NORMAL: 'normal',           // 正常模式
@@ -143,10 +149,15 @@ function initConfig() {
 }
 
 /**
- * 读取配置文件
+ * 读取配置文件（带 3 秒内存缓存，避免每请求同步读盘）
  * @returns {object} 配置对象
  */
 function readConfig() {
+  // 命中缓存且未过期：直接返回
+  const now = Date.now();
+  if (_configCache && (now - _configCacheTime) < CONFIG_CACHE_TTL) {
+    return _configCache;
+  }
   try {
     if (!fs.existsSync(CONFIG_FILE)) {
       initConfig();
@@ -156,7 +167,10 @@ function readConfig() {
     const config = JSON.parse(content);
     
     // 合并默认配置，确保所有必需的配置项都存在
-    return mergeWithDefaults(config);
+    const merged = mergeWithDefaults(config);
+    _configCache = merged;
+    _configCacheTime = now;
+    return merged;
   } catch (error) {
     console.error('读取配置文件失败:', error);
     return DEFAULT_CONFIG;
@@ -164,13 +178,15 @@ function readConfig() {
 }
 
 /**
- * 写入配置文件
+ * 写入配置文件（写后立即失效缓存，保证后续读取到最新配置）
  * @param {object} config - 配置对象
  */
 function writeConfig(config) {
   try {
     const configStr = JSON.stringify(config, null, 2);
     fs.writeFileSync(CONFIG_FILE, configStr, 'utf8');
+    _configCache = null;
+    _configCacheTime = 0;
   } catch (error) {
     console.error('写入配置文件失败:', error);
     throw error;
