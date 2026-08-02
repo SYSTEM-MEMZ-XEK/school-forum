@@ -47,7 +47,9 @@ const avatarUpload = multer({
     if (expectedMimes.length > 0 && expectedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('只支持 JPG, PNG, GIF, WebP 格式的图片'), false);
+      const err = new Error('只支持 JPG, PNG, GIF, WebP 格式的图片');
+      err.statusCode = 400; // 文件类型错误属客户端错误，返回 400 而非 500
+      cb(err, false);
     }
   },
   limits: {
