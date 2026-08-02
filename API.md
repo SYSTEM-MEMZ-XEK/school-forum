@@ -18,21 +18,46 @@
 
 ### 统一响应格式
 
+> 实际实现（`src/utils/validationUtils.js`）：业务字段**直接展开在顶层**，不使用 `data` 嵌套。
+> 下方章节的响应示例若为旧格式 `"data": {...}`，**请将 `data` 内的字段上提一层**，即
+> `{"success": true, "message": "...", ...data 内字段}`。
+
+成功响应（实际格式）：
 ```json
 {
   "success": true,
   "message": "操作成功",
-  "data": { ... }
+  "token": "...",
+  "user": { "...": "..." }
 }
 ```
 
-错误响应：
+### 统一认证方式
+
+> 实际实现：身份一律取自 JWT，**body/query 中传入的 `userId`/`viewerId`/`senderId` 会被忽略**（安全修复，防身份伪造）。
+> 下方章节若要求 body 传 `userId` 等身份参数，请忽略该参数，改为携带令牌。
+
+需登录接口请求头：
+```
+Authorization: Bearer <accessToken>
+```
+
+令牌说明：
+- `accessToken`：短期令牌（默认 7 天），通过 `POST /api/login` 或 `POST /api/register` 获取，响应字段 `token`。
+- `refreshToken`：长期令牌（默认 30 天），通过 `POST /api/refresh-token` 换取新 accessToken。
+- 管理员接口额外需要管理员身份（登录管理员账号获得），`Authorization` 同 user 令牌但要求 `isAdmin`。
+- 令牌失效场景：登出（加入黑名单）、修改密码（access 立即失效，refresh 同步失效）、达到有效期。
+
+错误响应（实际格式）：
 ```json
 {
   "success": false,
-  "message": "错误信息"
+  "message": "错误信息",
+  "code": 400
 }
 ```
+
+HTTP 状态码约定：成功 `200/201`；参数错误 `400`；未认证 `401`；无权限 `403`；资源不存在 `404`；服务器内部错误 `500`（部分接口对未登录访问返回 `401`）。
 
 ---
 
@@ -1946,7 +1971,7 @@ GET /api/schools
 ### 获取公开配置
 
 ```
-GET /api/public
+GET /api/config/public
 ```
 
 **响应示例**：
