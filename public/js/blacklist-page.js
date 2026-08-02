@@ -35,8 +35,10 @@
       `;
       
       try {
+        // 携带 Authorization：服务端按 JWT 身份返回（params 中的 userId 仅用于兼容，被忽略）
         const response = await fetch(
-          `/api/blocked/${currentUser.id}?page=${page}&limit=${this.state.limit}`
+          `/api/blocked/${currentUser.id}?page=${page}&limit=${this.state.limit}`,
+          { headers: (userManager && userManager.getAuthHeaders) ? userManager.getAuthHeaders() : {} }
         );
         const data = await response.json();
         

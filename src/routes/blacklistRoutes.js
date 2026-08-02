@@ -18,10 +18,10 @@ router.get('/block/status', blacklistController.checkBlockStatus);
 // 检查两个用户之间是否有拉黑关系
 router.get('/block/relation', blacklistController.checkBlockRelation);
 
-// 获取用户拉黑的人列表
-router.get('/blocked/:userId', blacklistController.getBlockedList);
+// 获取用户拉黑的人列表（需登录，仅能查自己）
+router.get('/blocked/:userId', authenticateUser, blacklistController.getBlockedList);
 
-// 获取拉黑数量
-router.get('/blocked/count/:userId', blacklistController.getBlockedCount);
+// 获取拉黑数量（需登录，仅能查自己）
+router.get('/blocked/count/:userId', authenticateUser, blacklistController.getBlockedCount);
 
 module.exports = router;

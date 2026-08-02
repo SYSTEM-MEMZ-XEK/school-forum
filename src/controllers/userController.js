@@ -175,7 +175,7 @@ const userController = {
       }
 
       // 验证验证码
-      const codeVerification = await verifyCode(user.email, verificationCode);
+      const codeVerification = await verifyCode(user.email, verificationCode, 'password');
       if (!codeVerification.valid) {
         logger.logSecurityEvent('密码修改验证码验证失败', { userId, ip: req.ip });
         return res.status(400).json(generateErrorResponse(codeVerification.message));
@@ -228,7 +228,7 @@ const userController = {
       }
 
       // 验证验证码
-      const codeVerification = await verifyCode(user.email, verificationCode);
+      const codeVerification = await verifyCode(user.email, verificationCode, 'password');
       if (!codeVerification.valid) {
         logger.logSecurityEvent('密码修改失败：验证码错误', { userId, ip: req.ip });
         return res.status(400).json(generateErrorResponse(codeVerification.message));
@@ -287,8 +287,8 @@ const userController = {
         return res.status(400).json(generateErrorResponse('验证码不能为空'));
       }
 
-      // 验证验证码是否正确（使用原始邮箱验证）
-      const codeVerification = await verifyCode(email, verificationCode);
+      // 验证验证码是否正确（使用原始邮箱验证，绑定 register 场景）
+      const codeVerification = await verifyCode(email, verificationCode, 'register');
       if (!codeVerification.valid) {
         logger.logWarn('用户注册失败：验证码验证失败', { email, code: verificationCode });
         return res.status(400).json(generateErrorResponse(codeVerification.message));
@@ -432,8 +432,8 @@ const userController = {
         ));
       }
 
-      // 验证验证码是否正确
-      const codeVerification = await verifyCode(email, verificationCode);
+      // 验证验证码是否正确（绑定 login 场景）
+      const codeVerification = await verifyCode(email, verificationCode, 'login');
       if (!codeVerification.valid) {
         logger.logSecurityEvent('登录失败：验证码验证失败', { email, ip: clientIp });
         return res.status(400).json(generateErrorResponse(codeVerification.message));
@@ -992,8 +992,8 @@ const userController = {
         return res.status(404).json(generateErrorResponse('用户不存在'));
       }
 
-      // 验证验证码
-      const codeVerification = await verifyCode(newEmail, verificationCode);
+      // 验证验证码（绑定 emailChange 场景）
+      const codeVerification = await verifyCode(newEmail, verificationCode, 'emailChange');
       if (!codeVerification.valid) {
         logger.logSecurityEvent('邮箱修改验证码验证失败', { userId, newEmail, ip: req.ip });
         return res.status(400).json(generateErrorResponse(codeVerification.message));
@@ -1083,13 +1083,28 @@ const userController = {
         return res.status(400).json(generateErrorResponse('刷新令牌不能为空'));
       }
 
-      const { verifyToken, generateAccessToken, invalidateToken } = require('../middleware/jwtAuth');
+      const { verifyToken, generateAccessToken } = require('../middleware/jwtAuth');
 
       // 验证刷新令牌
       const result = verifyToken(refreshToken);
 
       if (!result.valid || result.decoded.type !== 'refresh') {
         return res.status(401).json(generateErrorResponse('无效的刷新令牌'));
+      }
+
+      // 检查刷新令牌是否已注销（登出/改密后旧 refresh token 不得继续换新 access token）
+      const { getRedisClient } = require('../utils/redisUtils');
+      try {
+        const redis = getRedisClient();
+        if (redis) {
+          const isBlacklisted = await redis.get(`token_blacklist:${refreshToken}`);
+          if (isBlacklisted) {
+            return res.status(401).json(generateErrorResponse('刷新令牌已失效，请重新登录'));
+          }
+        }
+      } catch (redisError) {
+        // Redis 不可用时跳过黑名单检查，不阻断刷新
+        logger.logWarn('刷新令牌黑名单检查跳过（Redis不可用）', { error: redisError.message });
       }
 
       // 获取用户信息

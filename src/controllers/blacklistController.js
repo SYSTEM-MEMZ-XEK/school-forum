@@ -204,10 +204,10 @@ const blacklistController = {
     }
   },
 
-  // 获取用户拉黑的人列表
+  // 获取用户拉黑的人列表（仅限本人，身份来自 JWT，不信任 params 传入的 userId）
   async getBlockedList(req, res) {
     try {
-      const userId = req.params.userId;
+      const userId = req.user.id;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 20;
       const skip = (page - 1) * limit;
@@ -267,10 +267,10 @@ const blacklistController = {
     }
   },
 
-  // 获取拉黑数量
+  // 获取拉黑数量（仅限本人，身份来自 JWT）
   async getBlockedCount(req, res) {
     try {
-      const userId = req.params.userId;
+      const userId = req.user.id;
 
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));

@@ -254,15 +254,15 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
     // 统一使用小写邮箱作为 key
     const normalizedEmail = email.toLowerCase();
     
-    // 检查是否在短时间内重复请求
+    // 检查是否在短时间内重复请求（按邮箱+场景）
     if (isRedisConnected()) {
-      const inInterval = await verificationCode.isInInterval(normalizedEmail);
+      const inInterval = await verificationCode.isInInterval(normalizedEmail, scenario);
       if (inInterval) {
         throw new Error('请等待60秒后再次获取验证码');
       }
     } else {
       // 备用：内存存储检查
-      const lastCode = memoryStore.get(normalizedEmail);
+      const lastCode = memoryStore.get(`${scenario}:${normalizedEmail}`);
       if (lastCode && Date.now() - lastCode.timestamp < 60000) {
         throw new Error('请等待60秒后再次获取验证码');
       }
@@ -294,13 +294,13 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
       html: htmlTemplate
     });
 
-    // 存储验证码
+    // 存储验证码（key 带场景前缀，防止跨场景使用）
     if (isRedisConnected()) {
-      await verificationCode.set(normalizedEmail, code);
+      await verificationCode.set(normalizedEmail, code, scenario);
       logger.logInfo('验证码已存储到Redis', { email, scenario });
     } else {
       // 备用：内存存储
-      memoryStore.set(normalizedEmail, {
+      memoryStore.set(`${scenario}:${normalizedEmail}`, {
         code,
         timestamp: Date.now()
       });
@@ -319,18 +319,18 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
   }
 };
 
-// 验证验证码
-const verifyCode = async (email, code, scenario = null) => {
+// 验证验证码（scenario 绑定用途，防止跨场景复用）
+const verifyCode = async (email, code, scenario = 'default') => {
   // 统一使用小写邮箱作为 key
   const normalizedEmail = email.toLowerCase();
   
   // 优先使用Redis
   if (isRedisConnected()) {
-    return await verificationCode.verify(normalizedEmail, code);
+    return await verificationCode.verify(normalizedEmail, code, scenario);
   }
   
   // 备用：内存存储验证
-  const storedData = memoryStore.get(normalizedEmail);
+  const storedData = memoryStore.get(`${scenario}:${normalizedEmail}`);
   
   if (!storedData) {
     return { valid: false, message: '验证码不存在或已过期' };
@@ -338,7 +338,7 @@ const verifyCode = async (email, code, scenario = null) => {
   
   // 检查验证码是否过期（5分钟）
   if (Date.now() - storedData.timestamp > 5 * 60 * 1000) {
-    memoryStore.delete(normalizedEmail);
+    memoryStore.delete(`${scenario}:${normalizedEmail}`);
     return { valid: false, message: '验证码已过期' };
   }
   
@@ -348,7 +348,7 @@ const verifyCode = async (email, code, scenario = null) => {
   }
   
   // 验证成功，删除验证码
-  memoryStore.delete(normalizedEmail);
+  memoryStore.delete(`${scenario}:${normalizedEmail}`);
   
   return { valid: true, message: '验证码验证成功' };
 };

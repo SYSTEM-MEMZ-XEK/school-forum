@@ -37,10 +37,10 @@ async function getUserByUsername(username) {
   return await User.findOne({ username }).lean();
 }
 
-// 根据邮箱获取用户（不区分大小写）
+// 根据邮箱获取用户（不区分大小写；email 均以小写存储，直接等值查询可用索引）
 async function getUserByEmail(email) {
-  return await User.findOne({ 
-    email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+  return await User.findOne({
+    email: String(email).toLowerCase()
   }).lean();
 }
 

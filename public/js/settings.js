@@ -1264,6 +1264,10 @@ const settingsManager = {
         });
         
         utils.showNotification('密码修改成功！', 'success');
+
+        // 安全：密码已修改，清除 refreshToken（服务端已注销 accessToken，
+        // 旧 refreshToken 换新 token 的通道必须一并关闭）
+        localStorage.removeItem('refreshToken');
       } else {
         utils.showNotification(data.message || '密码修改失败', 'error');
       }

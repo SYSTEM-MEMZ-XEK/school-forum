@@ -87,6 +87,8 @@ function verifyToken(token, isAdmin = false) {
 
 /**
  * 从请求中提取令牌
+ * 安全说明：仅从 Authorization 头提取，不支持 query 参数（token 出现在 URL 会
+ * 泄露到访问日志/浏览器历史/Referer）；cookie 方式需显式启用 cookie-parser 才会生效
  */
 function extractToken(req) {
   // 优先从 Authorization 头获取
@@ -94,17 +96,7 @@ function extractToken(req) {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
-  // 其次从查询参数获取（用于 WebSocket 等）
-  if (req.query && req.query.token) {
-    return req.query.token;
-  }
-  
-  // 最后从 Cookie 获取
-  if (req.cookies && req.cookies.token) {
-    return req.cookies.token;
-  }
-  
+
   return null;
 }
 

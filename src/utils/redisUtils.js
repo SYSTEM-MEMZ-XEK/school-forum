@@ -143,6 +143,8 @@ function isRedisConnected() {
 
 /**
  * 验证码相关操作
+ * 注意：key 带场景前缀（register/login/password/emailChange/deletion），
+ * 防止同一邮箱在不同场景共用验证码（此前验证码不绑定用途可被跨场景使用）
  */
 const verificationCode = {
   // 验证码过期时间（5分钟）
@@ -153,25 +155,27 @@ const verificationCode = {
 
   /**
    * 生成验证码存储的key
+   * @param {string} email
+   * @param {string} scenario - 场景（register/login/password/emailChange/deletion）
    */
-  getKey(email) {
-    return `verification:${email.toLowerCase()}`;
+  getKey(email, scenario = 'default') {
+    return `verification:${scenario}:${email.toLowerCase()}`;
   },
 
   /**
    * 生成发送时间戳的key
    */
-  getTimestampKey(email) {
-    return `verification:timestamp:${email.toLowerCase()}`;
+  getTimestampKey(email, scenario = 'default') {
+    return `verification:timestamp:${scenario}:${email.toLowerCase()}`;
   },
 
   /**
    * 存储验证码
    */
-  async set(email, code) {
+  async set(email, code, scenario = 'default') {
     const client = getRedisClient();
-    const key = this.getKey(email);
-    const timestampKey = this.getTimestampKey(email);
+    const key = this.getKey(email, scenario);
+    const timestampKey = this.getTimestampKey(email, scenario);
     
     // 使用multi批量执行
     const multi = client.multi();
@@ -184,18 +188,18 @@ const verificationCode = {
   /**
    * 获取验证码
    */
-  async get(email) {
+  async get(email, scenario = 'default') {
     const client = getRedisClient();
-    const key = this.getKey(email);
+    const key = this.getKey(email, scenario);
     return await client.get(key);
   },
 
   /**
    * 删除验证码
    */
-  async delete(email) {
+  async delete(email, scenario = 'default') {
     const client = getRedisClient();
-    const key = this.getKey(email);
+    const key = this.getKey(email, scenario);
     await client.del(key);
   },
 
@@ -203,9 +207,9 @@ const verificationCode = {
    * 检查是否在发送间隔内
    * @returns {boolean} true表示在间隔内，不能发送
    */
-  async isInInterval(email) {
+  async isInInterval(email, scenario = 'default') {
     const client = getRedisClient();
-    const timestampKey = this.getTimestampKey(email);
+    const timestampKey = this.getTimestampKey(email, scenario);
     const timestamp = await client.get(timestampKey);
     return !!timestamp;
   },
@@ -214,8 +218,8 @@ const verificationCode = {
    * 验证验证码
    * @returns {object} { valid: boolean, message: string }
    */
-  async verify(email, code) {
-    const storedCode = await this.get(email);
+  async verify(email, code, scenario = 'default') {
+    const storedCode = await this.get(email, scenario);
     
     if (!storedCode) {
       return {
@@ -232,7 +236,7 @@ const verificationCode = {
     }
     
     // 验证成功，删除验证码
-    await this.delete(email);
+    await this.delete(email, scenario);
     
     return {
       valid: true,

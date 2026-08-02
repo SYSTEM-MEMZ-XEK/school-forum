@@ -94,6 +94,14 @@ const CommentSchema = new Schema({
     type: Boolean,
     default: false
   },
+  // 评论点赞（此前缺失导致 likeComment 写入被 mongoose 静默丢弃，评论点赞无效）
+  likes: {
+    type: Number,
+    default: 0
+  },
+  likedBy: [{
+    type: String
+  }],
   images: [{
     id: { type: String, required: true },
     url: { type: String, required: true },
