@@ -677,7 +677,8 @@ configure_project() {
     fi
 
     # --- 收集 .env 配置 ---
-    local port="3000"
+    # 端口统一为 2080（与代码默认端口 src/config/constants.js 一致，避免 CORS/端口分裂）
+    local port="2080"
     local node_env="production"
     local mongodb_uri="mongodb://localhost:27017/school-forum"
     local mongodb_username=""
@@ -693,12 +694,12 @@ configure_project() {
     local smtp_secure="true"
     local smtp_user=""
     local smtp_pass=""
-    local cors_origin="http://localhost:3000"
+    local cors_origin="http://localhost:2080"
 
     if [[ "$overwrite_env" == "true" ]] && is_interactive; then
         print_section "基础配置"
         while true; do
-            prompt_read port "服务端口 (默认: 3000): " "3000"
+            prompt_read port "服务端口 (默认: 2080): " "2080"
             if validate_positive_int "$port"; then
                 break
             else
@@ -732,12 +733,21 @@ configure_project() {
         prompt_read redis_password "Redis 密码 (若无请留空): " "" "silent"
 
         print_section "JWT 安全配置"
-        jwt_secret=$(generate_secret)
-        admin_jwt_secret=$(generate_secret)
-        prompt_read manual_jwt "是否手动指定 JWT_SECRET？(强烈建议使用自动生成) [y/N]: " "N"
+        # 优先保留已有 JWT 密钥：更新部署时不再强制重置，避免全站 token 失效/用户被登出
+        local existing_jwt=""
+        local existing_admin_jwt=""
+        if [[ -f .env ]]; then
+            existing_jwt=$(grep -E '^JWT_SECRET=' .env | head -1 | cut -d'=' -f2- | tr -d '\r')
+            existing_admin_jwt=$(grep -E '^ADMIN_JWT_SECRET=' .env | head -1 | cut -d'=' -f2- | tr -d '\r')
+        fi
+        jwt_secret="${existing_jwt:-$(generate_secret)}"
+        admin_jwt_secret="${existing_admin_jwt:-$(generate_secret)}"
+        prompt_read manual_jwt "是否手动指定 JWT_SECRET？(已有密钥将保留，仅更换时选择) [y/N]: " "N"
         if [[ "$manual_jwt" =~ ^[Yy]$ ]]; then
             prompt_read jwt_secret "请输入 JWT_SECRET (至少32字符): " ""
             prompt_read admin_jwt_secret "请输入 ADMIN_JWT_SECRET: " ""
+        elif [[ -n "$existing_jwt" ]]; then
+            log_info "已保留现有 JWT_SECRET（如需更换请选择手动指定或编辑 .env）"
         fi
 
         print_section "邮件服务配置（可选）"
@@ -761,7 +771,7 @@ configure_project() {
         fi
 
         print_section "CORS 白名单"
-        prompt_read cors_origin "CORS 白名单 (多个用逗号分隔, 默认 http://localhost:3000): " "http://localhost:3000"
+        prompt_read cors_origin "CORS 白名单 (多个用逗号分隔, 默认 http://localhost:2080): " "http://localhost:2080"
 
         print_section "服务器 IP"
         prompt_read server_ip "服务器内网IP (例如192.168.2.4, 留空自动检测): " ""
@@ -770,13 +780,29 @@ configure_project() {
             [[ -n "$server_ip" ]] && log_info "自动检测到服务器 IP: $server_ip"
         fi
     elif [[ "$overwrite_env" == "true" ]] && ! is_interactive; then
-        jwt_secret=$(generate_secret)
-        admin_jwt_secret=$(generate_secret)
+        # 非交互模式：仅在 .env 不存在或没有现有密钥时生成（已有则保留）
+        if [[ -z "$jwt_secret" ]]; then
+            jwt_secret=$(generate_secret)
+            admin_jwt_secret=$(generate_secret)
+        fi
     fi
 
     # 写入 .env
     if [[ "$overwrite_env" == "true" ]]; then
         log_info "生成 .env 配置文件..."
+        # 转义敏感值中的特殊字符，防止 heredoc 二次展开（$、反引号等）破坏配置或注入
+        esc_env() { printf '%s' "$1" | sed 's/[$`"\\]/\\&/g'; }
+        local esc_mongodb_uri esc_mongodb_password esc_redis_password esc_jwt_secret esc_admin_jwt_secret
+        local esc_smtp_user esc_smtp_pass esc_cors_origin esc_server_ip
+        esc_mongodb_uri=$(esc_env "$mongodb_uri")
+        esc_mongodb_password=$(esc_env "$mongodb_password")
+        esc_redis_password=$(esc_env "$redis_password")
+        esc_jwt_secret=$(esc_env "$jwt_secret")
+        esc_admin_jwt_secret=$(esc_env "$admin_jwt_secret")
+        esc_smtp_user=$(esc_env "$smtp_user")
+        esc_smtp_pass=$(esc_env "$smtp_pass")
+        esc_cors_origin=$(esc_env "$cors_origin")
+        esc_server_ip=$(esc_env "${server_ip:-}")
         cat > .env <<EOF
 # ===========================================
 # 校园论坛运行配置（由部署脚本自动生成）
@@ -785,9 +811,9 @@ configure_project() {
 PORT=$port
 NODE_ENV=$node_env
 
-MONGODB_URI=$mongodb_uri
+MONGODB_URI=$esc_mongodb_uri
 MONGODB_USERNAME=$mongodb_username
-MONGODB_PASSWORD=$mongodb_password
+MONGODB_PASSWORD=$esc_mongodb_password
 MONGODB_AUTHSOURCE=$mongodb_authsource
 MONGODB_TLS=false
 MONGODB_SERVER_SELECTION_TIMEOUT=10000
@@ -798,25 +824,25 @@ MONGODB_MIN_POOL_SIZE=2
 
 REDIS_HOST=$redis_host
 REDIS_PORT=$redis_port
-REDIS_PASSWORD=$redis_password
+REDIS_PASSWORD=$esc_redis_password
 REDIS_CONNECT_TIMEOUT=5000
 REDIS_COMMAND_TIMEOUT=3000
 
-JWT_SECRET=$jwt_secret
+JWT_SECRET=$esc_jwt_secret
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_EXPIRES_IN=30d
 
-ADMIN_JWT_SECRET=$admin_jwt_secret
+ADMIN_JWT_SECRET=$esc_admin_jwt_secret
 ADMIN_JWT_EXPIRES_IN=24h
 
 SMTP_HOST=$smtp_host
 SMTP_PORT=$smtp_port
 SMTP_SECURE=$smtp_secure
-SMTP_USER=$smtp_user
-SMTP_PASS=$smtp_pass
+SMTP_USER=$esc_smtp_user
+SMTP_PASS=$esc_smtp_pass
 
-CORS_ORIGIN=$cors_origin
-SERVER_IP=${server_ip:-}
+CORS_ORIGIN=$esc_cors_origin
+SERVER_IP=$esc_server_ip
 
 MAX_REQUEST_SIZE=10
 LOGIN_MAX_ATTEMPTS=5
@@ -936,19 +962,25 @@ EOF
     # 写入 data/config.json
     if [[ "$overwrite_config" == "true" ]]; then
         log_info "生成 data/config.json 配置文件..."
+        # 确保转义变量可用（overwrite_env=false 时上面未定义，这里重新计算）
+        esc_env() { printf '%s' "$1" | sed 's/[$`"\\]/\\&/g'; }
+        local esc_mongodb_uri esc_mongodb_password esc_redis_password
+        esc_mongodb_uri=$(esc_env "$mongodb_uri")
+        esc_mongodb_password=$(esc_env "$mongodb_password")
+        esc_redis_password=$(esc_env "$redis_password")
         cat > data/config.json <<EOF
 {
   "adminUsers": $admin_users_json,
   "mongodb": {
-    "uri": "$mongodb_uri",
+    "uri": "$esc_mongodb_uri",
     "username": "$mongodb_username",
-    "password": "$mongodb_password",
+    "password": "$esc_mongodb_password",
     "authSource": "$mongodb_authsource"
   },
   "redis": {
     "host": "$redis_host",
     "port": $redis_port,
-    "password": "$redis_password",
+    "password": "$esc_redis_password",
     "db": 0
   },
   "upload": {

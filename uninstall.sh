@@ -20,7 +20,8 @@
 set -u  # 卸载过程要容错，故不用 set -e
 
 # ---------- 可配置项 ----------
-PROJECT_DIR="${PROJECT_DIR:-$HOME/project/school-forum}"
+# 默认目录与 install.sh 保持一致（均为 $HOME/school-forum），避免按默认安装后卸载找不到项目
+PROJECT_DIR="${PROJECT_DIR:-$HOME/school-forum}"
 APP_NAME="school-forum"                 # PM2 应用名
 MONGO_CONTAINER="mongodb44"             # 直接 docker run 时的容器名（回退用）
 NPM_GLOBAL_DIR="$HOME/.npm-global"      # deploy.sh 里 PM2 的全局安装前缀

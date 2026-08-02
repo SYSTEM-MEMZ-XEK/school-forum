@@ -1,5 +1,5 @@
 // 校园论坛 Service Worker (PWA)
-const CACHE_NAME = 'school-forum-v1';
+const CACHE_NAME = 'school-forum-v2';
 const STATIC_ASSETS = [
   '/',
   '/css/style.css',
@@ -33,28 +33,49 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 请求拦截：缓存优先策略
+// 请求拦截：
+// - 文档请求（HTML 页面）→ network-first：保证发版后立即拿到新页面，离线时回退缓存
+// - 静态资源（css/js/图片）→ cache-first：提升加载性能
+// - 跳过 /api/ 与 /health：API 数据不能缓存（避免陈旧），健康检查不能被缓存误导
 self.addEventListener('fetch', (event) => {
-  // 跳过 API 请求
-  if (event.request.url.includes('/api/')) return;
+  const { request } = event;
+  const url = new URL(request.url);
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
+  // 仅处理同源 GET 请求
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-      return fetch(event.request).then((response) => {
-        // 只缓存成功的 GET 请求
-        if (event.request.method === 'GET' && response.status === 200) {
+  // 跳过 API 与健康检查（避免缓存导致 502 页误判服务器正常）
+  if (url.pathname.startsWith('/api/') || url.pathname === '/health') return;
+
+  const isDocument = request.mode === 'navigate';
+
+  if (isDocument) {
+    // 文档：network-first
+    event.respondWith(
+      fetch(request).then((response) => {
+        if (response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      }).catch(() => {
-        // 离线时返回缓存（如果有的话）
-        return cached || new Response('离线状态', { status: 503 });
-      });
-    })
-  );
+      }).catch(() =>
+        caches.match(request).then((cached) => cached || new Response('离线状态', { status: 503 }))
+      )
+    );
+  } else {
+    // 静态资源：cache-first
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+
+        return fetch(request).then((response) => {
+          if (response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => cached || new Response('离线状态', { status: 503 }));
+      })
+    );
+  }
 });
