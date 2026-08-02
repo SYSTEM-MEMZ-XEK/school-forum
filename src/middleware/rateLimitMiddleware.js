@@ -26,7 +26,8 @@ function createRateLimiter(options = {}) {
     try {
       // 生成限流key
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
-      const endpoint = keyGenerator ? keyGenerator(req) : req.originalUrl || req.url;
+      // 关键：endpoint 只取路径（不含查询字符串），否则攻击者加 ?x=1 即可绕过限流
+      const endpoint = keyGenerator ? keyGenerator(req) : (req.path || req.url).split('?')[0];
       
       // 检查是否超过限制
       const result = await rateLimiter.check(ip, endpoint, limit, window);

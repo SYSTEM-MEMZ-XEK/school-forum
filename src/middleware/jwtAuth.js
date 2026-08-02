@@ -154,16 +154,21 @@ async function authenticateUser(req, res, next) {
       });
     }
     
-    // 检查令牌是否在黑名单中（已注销）
-    const redis = getRedisClient();
-    if (redis) {
-      const isBlacklisted = await redis.get(`token_blacklist:${token}`);
-      if (isBlacklisted) {
-        return res.status(401).json({
-          success: false,
-          message: '令牌已失效，请重新登录'
-        });
+    // 检查令牌是否在黑名单中（已注销）——Redis 不可用时跳过该检查，不阻断请求
+    let isBlacklisted = null;
+    try {
+      const redis = getRedisClient();
+      if (redis) {
+        isBlacklisted = await redis.get(`token_blacklist:${token}`);
       }
+    } catch (redisError) {
+      logger.logWarn('令牌黑名单检查跳过（Redis不可用）', { error: redisError.message });
+    }
+    if (isBlacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: '令牌已失效，请重新登录'
+      });
     }
     
     // 验证用户是否存在（用户ID是自定义字符串UUID，不是MongoDB _id）
@@ -255,16 +260,21 @@ async function authenticateAdmin(req, res, next) {
       });
     }
     
-    // 检查令牌黑名单
-    const redis = getRedisClient();
-    if (redis) {
-      const isBlacklisted = await redis.get(`admin_token_blacklist:${token}`);
-      if (isBlacklisted) {
-        return res.status(401).json({
-          success: false,
-          message: '管理员令牌已失效'
-        });
+    // 检查令牌黑名单——Redis 不可用时跳过该检查，不阻断请求
+    let isBlacklisted = null;
+    try {
+      const redis = getRedisClient();
+      if (redis) {
+        isBlacklisted = await redis.get(`admin_token_blacklist:${token}`);
       }
+    } catch (redisError) {
+      logger.logWarn('管理员令牌黑名单检查跳过（Redis不可用）', { error: redisError.message });
+    }
+    if (isBlacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: '管理员令牌已失效'
+      });
     }
     
     // 验证管理员权限
@@ -365,13 +375,14 @@ async function invalidateToken(token, isAdmin = false) {
  * 登录失败追踪
  */
 async function recordLoginAttempt(identifier, success, ip) {
-  const redis = getRedisClient();
-  if (!redis) return { allowed: true };
-  
-  const LOGIN_SECURITY = getDynamicLoginSecurity();
-  const key = `${LOGIN_SECURITY.redisPrefix}${identifier}`;
-  
   try {
+    // getRedisClient 在 try 内调用：Redis 不可用时返回放行，避免登录接口 500
+    const redis = getRedisClient();
+    if (!redis) return { allowed: true };
+    
+    const LOGIN_SECURITY = getDynamicLoginSecurity();
+    const key = `${LOGIN_SECURITY.redisPrefix}${identifier}`;
+  
     if (success) {
       // 登录成功，清除失败记录
       await redis.del(key);
@@ -418,12 +429,12 @@ async function recordLoginAttempt(identifier, success, ip) {
  * 检查登录是否被锁定
  */
 async function checkLoginLocked(identifier) {
-  const redis = getRedisClient();
-  if (!redis) return { locked: false };
-  
-  const LOGIN_SECURITY = getDynamicLoginSecurity();
-  
   try {
+    // getRedisClient 在 try 内调用：Redis 不可用时视为未锁定，避免登录接口 500
+    const redis = getRedisClient();
+    if (!redis) return { locked: false };
+    
+    const LOGIN_SECURITY = getDynamicLoginSecurity();
     const key = `${LOGIN_SECURITY.redisPrefix}${identifier}`;
     const attempts = await redis.get(key);
     

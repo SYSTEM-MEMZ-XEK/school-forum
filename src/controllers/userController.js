@@ -791,8 +791,8 @@ const userController = {
         return res.status(400).json(generateErrorResponse('请选择要上传的头像图片'));
       }
       
-      // 验证文件类型
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'];
+      // 验证文件类型（二次防御，与 multer fileFilter 一致；SVG 一律拒绝防脚本注入）
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/avif', 'image/heic', 'image/heif'];
       if (!allowedTypes.includes(req.file.mimetype)) {
         return res.status(400).json(generateErrorResponse('只支持 JPG、PNG、GIF、WEBP 格式的图片'));
       }

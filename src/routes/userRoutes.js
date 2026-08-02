@@ -25,11 +25,26 @@ const avatarStorage = multer.diskStorage({
   }
 });
 
+// 允许的扩展名 → mimetype 映射（与 uploadMiddleware 保持一致，杜绝危险文件落地）
+const AVATAR_EXTENSION_MIME_MAP = {
+  '.jpg': ['image/jpeg'],
+  '.jpeg': ['image/jpeg'],
+  '.png': ['image/png'],
+  '.gif': ['image/gif'],
+  '.webp': ['image/webp'],
+  '.bmp': ['image/bmp'],
+  '.avif': ['image/avif'],
+  '.heic': ['image/heic'],
+  '.heif': ['image/heif']
+};
+
 const avatarUpload = multer({
   storage: avatarStorage,
   fileFilter: function (req, file, cb) {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/avif', 'image/heic', 'image/heif'];
-    if (allowedTypes.includes(file.mimetype)) {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const expectedMimes = AVATAR_EXTENSION_MIME_MAP[ext] || [];
+    // 扩展名 + mimetype 双重校验并强制匹配（SVG 一律拒绝，防止脚本注入）
+    if (expectedMimes.length > 0 && expectedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('只支持 JPG, PNG, GIF, WebP 格式的图片'), false);

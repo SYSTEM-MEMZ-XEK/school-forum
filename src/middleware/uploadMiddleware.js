@@ -14,10 +14,31 @@ const storage = multer.diskStorage({
   }
 });
 
+// 允许的扩展名 → mimetype 映射（强制扩展名与类型匹配，杜绝 html/svg 等危险文件落地）
+const EXTENSION_MIME_MAP = {
+  '.jpg': ['image/jpeg'],
+  '.jpeg': ['image/jpeg'],
+  '.png': ['image/png'],
+  '.gif': ['image/gif'],
+  '.webp': ['image/webp'],
+  '.bmp': ['image/bmp'],
+  '.avif': ['image/avif'],
+  '.heic': ['image/heic'],
+  '.heif': ['image/heif']
+};
+
 // 动态文件过滤器 - 每次请求时获取最新配置
 const fileFilter = (req, file, cb) => {
   const uploadConfig = getUploadConfig();
-  if (uploadConfig.allowedTypes.includes(file.mimetype)) {
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  const expectedMimes = EXTENSION_MIME_MAP[ext] || [];
+  // 三重校验：扩展名在白名单 + mimetype 在配置允许列表 + 扩展名与 mimetype 匹配
+  // 注意：SVG（image/svg+xml）不在映射表中，一律拒绝，防止脚本注入
+  if (
+    expectedMimes.length > 0 &&
+    uploadConfig.allowedTypes.includes(file.mimetype) &&
+    expectedMimes.includes(file.mimetype)
+  ) {
     cb(null, true);
   } else {
     cb(new Error('只支持 JPG, PNG, GIF, WebP 格式的图片'), false);

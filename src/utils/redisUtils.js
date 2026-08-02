@@ -1380,7 +1380,7 @@ const rateLimiter = {
       
       if (count >= limit) {
         // 超过限制
-        const ttl = await client.tTL(key);
+        const ttl = await client.ttl(key);
         return { allowed: false, remaining: 0, resetTime: Date.now() + ttl * 1000 };
       }
       
