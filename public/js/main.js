@@ -17,11 +17,6 @@ const app = {
       postsManager.init();
     }
     
-    // 初始化评论管理
-    if (typeof commentsManager !== 'undefined') {
-      commentsManager.init();
-    }
-    
     // 初始化统计数据
     if (typeof statsManager !== 'undefined') {
       statsManager.init();

@@ -111,8 +111,7 @@ contentSecurityPolicy: {
       fontSrc: ["'self'", "data:", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
       connectSrc: ["'self'", "https:"],
       frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: isHTTPS ? [] : [] // 非 HTTPS 环境不升级
+      objectSrc: ["'none'"]
     }
   },
   crossOriginEmbedderPolicy: false,

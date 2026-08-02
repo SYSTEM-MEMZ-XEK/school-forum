@@ -225,7 +225,10 @@ UserSchema.statics.findByUsername = function(username) {
   return this.findOne({ username });
 };
 
-// 静态方法：根据 ID 查找用户
+// ⚠️ 覆盖 mongoose 内置 Model.findById：本项目 User 使用自定义 UUID `id` 字段
+// （非 _id ObjectId），全项目约定 `User.findById(x)` 语义 = 按 `id` 字段查询。
+// 切勿传入 MongoDB _id（ObjectId）调用此方法，会查不到数据。
+// 如需按 _id 查询请显式使用 findOne({ _id })。
 UserSchema.statics.findById = function(id) {
   return this.findOne({ id });
 };

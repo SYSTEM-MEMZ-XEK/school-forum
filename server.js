@@ -35,8 +35,7 @@ const {
   PORT,
   MONGODB_URI,
   MONGODB_OPTIONS,
-  MONGODB_AUTH,
-  REDIS_CONFIG
+  MONGODB_AUTH
 } = require('./src/config/constants');
 
 // ===================== 启动前安全配置预检 =====================
@@ -57,13 +56,13 @@ function checkAuthConfig() {
   }
 
   // Redis 认证检查
-  if (!REDIS_CONFIG.password) {
+  if (!process.env.REDIS_PASSWORD) {
     warnings.push(
       '[安全警告] Redis 未配置密码认证（REDIS_PASSWORD）。' +
       '如 Redis 暴露于网络，请务必设置密码。'
     );
   }
-  if (process.env.NODE_ENV === 'production' && !REDIS_CONFIG.tls) {
+  if (process.env.NODE_ENV === 'production' && process.env.REDIS_TLS !== 'true') {
     warnings.push(
       '[安全警告] 生产环境建议启用 Redis TLS 加密传输（REDIS_TLS=true）。'
     );

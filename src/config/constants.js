@@ -59,19 +59,7 @@ if (process.env.MONGODB_TLS === 'true') {
   }
 }
 
-// ===================== Redis 配置（仅供 constants 导出，initRedis 内部有相同逻辑） =====================
-const REDIS_CONFIG = {
-  host:           process.env.REDIS_HOST           || 'localhost',
-  port:           parseInt(process.env.REDIS_PORT   || 6379, 10),
-  password:       process.env.REDIS_PASSWORD        || undefined,
-  username:       process.env.REDIS_USERNAME        || undefined,
-  db:             parseInt(process.env.REDIS_DB      || 0, 10),
-  tls:            process.env.REDIS_TLS === 'true',
-  connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT || 5000, 10),
-  commandTimeout: parseInt(process.env.REDIS_COMMAND_TIMEOUT || 3000, 10)
-};
-
-// 服务器端口（静态配置）
+// ===================== 服务器端口（静态配置） =====================
 const PORT = process.env.PORT || 2080;
 
 // ============ 动态配置获取函数 ============
@@ -186,7 +174,6 @@ module.exports = {
   MONGODB_URI,
   MONGODB_AUTH,
   MONGODB_OPTIONS,
-  REDIS_CONFIG,
   PORT,
   
   // 动态配置获取函数（推荐使用）

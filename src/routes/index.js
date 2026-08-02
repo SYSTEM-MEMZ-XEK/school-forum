@@ -89,15 +89,6 @@ router.get('/unauthorized', (req, res) => {
   res.redirect('/403');
 });
 
-// 测试路由
-router.get('/test/502', (req, res) => {
-  res.status(502).sendFile(path.join(__dirname, '../../public/errors/502.html'));
-});
-
-router.get('/test/403', (req, res) => {
-  res.status(403).sendFile(path.join(__dirname, '../../public/errors/403.html'));
-});
-
 // 404 处理 - 返回HTML错误页面或JSON
 router.use('*', (req, res) => {
   // 检查是否是API请求（非GET请求或明确请求JSON）
