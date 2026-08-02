@@ -38,3 +38,5 @@ start.bat
 android/
 .workbuddy/
 package-lock.json
+# Redis 持久化文件
+*.rdb
