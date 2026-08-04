@@ -143,6 +143,12 @@ const userManager = {
         const errorData = await response.json();
         console.log('verifyUserWithServer: 验证失败 -', errorData.message);
         
+        // 429 接口限流：只是临时限流，保持当前登录状态，避免用户被误登出
+        if (response.status === 429) {
+          console.warn('verifyUserWithServer: 验证接口限流，保持当前登录状态');
+          return true;
+        }
+        
         // 用户不存在
         if (response.status === 404) {
           utils.showNotification(errorData.message || '用户不存在，请重新登录', 'error');

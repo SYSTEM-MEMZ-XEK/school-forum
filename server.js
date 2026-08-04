@@ -216,10 +216,12 @@ app.use((req, res, next) => {
   }
 
   // 根据路径选择限流规则
+  // 注意：/api/auth/verify（登录态校验）每次页面加载都会调用，不能走登录级
+  // 严格限流（5次/分钟），否则切几个页面就触发 429 导致前端误判登录失效
   let limit, windowMs, message;
   const path = req.path.toLowerCase();
 
-  if (path.includes('/login') || path.includes('/register') || path.includes('/auth') || path.includes('/send-verification-code')) {
+  if (path.includes('/login') || path.includes('/register') || path.includes('/send-verification-code')) {
     // 登录/注册/验证码：严格限流
     limit = sec.rateLimitLogin || 5;
     windowMs = (sec.rateLimitLoginWindow || 60) * 1000;

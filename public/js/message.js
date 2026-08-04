@@ -537,10 +537,22 @@ const messageManager = {
   // 向服务器验证用户状态
   verifyUserWithServer: async function(userId) {
     try {
+      // 必须携带 Authorization 头：服务端 verifyAuth 只认 JWT，不带 token 必 401
+      const authHeaders = (typeof userManager !== 'undefined' && userManager.getAuthHeaders)
+        ? userManager.getAuthHeaders()
+        : { 'Content-Type': 'application/json' };
       const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({})
       });
       
       if (!response.ok) {
+        // 429 接口限流：保持登录状态，避免用户被误登出
+        if (response.status === 429) {
+          console.warn('消息页 verify 接口限流，保持当前登录状态');
+          return true;
+        }
         // 用户不存在或被禁用，清除本地数据
         localStorage.removeItem('forumUser');
         utils.showNotification('登录状态已失效，请重新登录', 'error');

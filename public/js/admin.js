@@ -128,6 +128,11 @@ verifyUserWithServer: async function(user) {
     });
     
     if (!response.ok) {
+      // 429 接口限流：保持登录状态，避免管理员被误登出
+      if (response.status === 429) {
+        console.warn('verifyUserWithServer: 验证接口限流，保持当前登录状态');
+        return true;
+      }
       localStorage.removeItem('forumUser');
       alert('登录状态已失效，请重新登录');
       window.location.href = 'login.html';
