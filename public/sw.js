@@ -1,10 +1,12 @@
 // 校园论坛 Service Worker (PWA)
-// v4：修复"前端代码更新但浏览器永远加载旧版"的 SW 缓存问题
+// v5：修复 network-first 命中浏览器 HTTP 缓存问题
+//  - v4 的 fetch(request) 会命中 Cache-Control: max-age=86400 的 HTTP 缓存，
+//    导致 JS/CSS 仍被旧缓存直接返回（network-first 形同虚设，出现列错位等
+//    '前端改了但页面用旧代码'问题）
+//  - 现在文档/JS/CSS 用 fetch(request, { cache: 'no-store' }) 强制走网络，
+//    离线时才回退 SW 缓存
 //  - server.js 已对 sw.js 设置 no-cache，保证每次导航都能检测到本文件变化
-//  - install 阶段调用 skipWaiting()：新 SW 安装后立即激活，不等旧页面全部关闭
-//  - activate 阶段调用 clients.claim()：激活后立即接管所有已打开的页面
-//  - JS/CSS 保持 network-first：保证代码文件实时更新，避免缓存旧逻辑
-const CACHE_NAME = 'school-forum-v4';
+const CACHE_NAME = 'school-forum-v5';
 const STATIC_ASSETS = [
   '/',
   '/css/style.css',
@@ -60,9 +62,10 @@ self.addEventListener('fetch', (event) => {
   const isCode = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
 
   if (isDocument || isCode) {
-    // 文档与代码文件：network-first
+    // 文档与代码文件：network-first，且强制绕过 HTTP 缓存
+    // （fetch 默认会命中 Cache-Control 的 HTTP 缓存，导致旧代码被直接返回）
     event.respondWith(
-      fetch(request).then((response) => {
+      fetch(request, { cache: 'no-store' }).then((response) => {
         if (response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));

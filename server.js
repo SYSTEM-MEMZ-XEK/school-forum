@@ -265,7 +265,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
     // 带哈希的文件（构建产物）缓存1年
     if (filePath.match(/\.([a-f0-9]{8,})\.(js|css|woff2?|png|jpg|svg)$/)) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    } else if (filePath.match(/\.(js|css|woff2?|png|jpg|svg|ico)$/)) {
+    } else if (filePath.match(/\.(js|css)$/)) {
+      // 非哈希 JS/CSS：no-cache（每次重新验证，未变更返回 304），
+      // 避免改版后浏览器继续用旧代码（本项目 JS/CSS 靠 git 版本控制更新）
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (filePath.match(/\.(woff2?|png|jpg|svg|ico)$/)) {
       res.setHeader('Cache-Control', 'public, max-age=86400');
     }
     // 设置正确的 MIME charset
