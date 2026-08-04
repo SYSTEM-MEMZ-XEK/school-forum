@@ -316,8 +316,8 @@ const userController = {
       // 加密密码
       const hashedPassword = await hashPassword(password);
 
-      // 入学年份缺省时默认当前年份（客户端只需传班级，年级由服务端按入学时间计算）
-      const year = enrollmentYear ? parseInt(enrollmentYear, 10) : new Date().getFullYear();
+      // 入学年份缺省/非法时默认当前年份（客户端只需传班级，年级由服务端按入学时间计算）
+      const year = enrollmentYear ? (parseInt(enrollmentYear, 10) || new Date().getFullYear()) : new Date().getFullYear();
 
       // 计算当前年级
       const currentGrade = calculateCurrentGrade(year);
