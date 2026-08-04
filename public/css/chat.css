@@ -883,7 +883,7 @@
   border-radius: var(--radius-lg);
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-content h3 {
