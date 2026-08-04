@@ -704,6 +704,12 @@ const userController = {
         const currentSettings = user.settings || {};
         updateData.settings = { ...currentSettings, ...updateData.settings, signature: signature || '' };
       }
+
+      // 更新头像（如果上传了新头像文件）
+      // avatarUpload 中间件已做扩展名↔mimetype 白名单校验（jpg/png/gif/webp）
+      if (req.file) {
+        updateData.avatar = `/images/avatars/${req.file.filename}`;
+      }
       
       // 更新设置（如果提供了）
       if (settings && typeof settings === 'object') {

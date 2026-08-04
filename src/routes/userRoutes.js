@@ -112,7 +112,9 @@ router.get('/user/profile/:id', authenticateUser, userController.getUserProfile)
 router.put('/users/:id', authenticateUser, userController.updateUserProfile);
 
 // 更新用户资料路由别名（兼容 Android）
-router.post('/user/update-profile', authenticateUser, userController.updateUserProfile);
+// 挂 avatarUpload.single('avatar')：支持 multipart 提交（头像文件 + 文本字段，
+// 文本字段由 multer 合并到 req.body；非 multipart 请求 multer 自动跳过）
+router.post('/user/update-profile', authenticateUser, avatarUpload.single('avatar'), userController.updateUserProfile);
 
 // 更新用户设置（支持PUT和POST方法）
 router.put('/users/:id/settings', authenticateUser, userController.updateUserSettings);
