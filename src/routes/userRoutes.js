@@ -119,7 +119,8 @@ router.put('/users/:id/settings', authenticateUser, userController.updateUserSet
 router.post('/users/:id/settings', authenticateUser, userController.updateUserSettings);
 
 // 通知设置
-router.get('/user/notification-settings/:userId', userController.getNotificationSettings);
+// 获取通知设置（需登录，身份来自 JWT；:userId 段仅作兼容保留）
+router.get('/user/notification-settings/:userId', authenticateUser, userController.getNotificationSettings);
 router.post('/user/notification-settings', authenticateUser, userController.updateNotificationSettings);
 
 // 隐私设置

@@ -1318,7 +1318,8 @@ const userController = {
   // 获取通知设置
   async getNotificationSettings(req, res) {
     try {
-      const { userId } = req.params;
+      // userId 来自已认证的 JWT（路由已加 authenticateUser），不信任 params.userId
+      const userId = req.user.id;
       const user = await getUserById(userId);
       
       if (!user) {
