@@ -38,7 +38,7 @@
                     <i class="fas fa-folder-open"></i><span>栏目</span>
                 </button>
                 <button data-section="announcements" onclick="showSection('announcements')">
-                    <i class="fas fa-bullhorn"></i><span>公告</span>
+                    <i class="fas fa-bullhorn"></i><span>公告/消息管理</span>
                 </button>
                 <button data-section="posts" onclick="showSection('posts')">
                     <i class="fas fa-file-alt"></i><span>帖子</span>
@@ -169,7 +169,7 @@
         <!-- 公告管理 -->
         <div id="announcements" class="admin-section">
             <div class="section-header">
-                <h2><i class="fas fa-bullhorn"></i> 公告管理</h2>
+                <h2><i class="fas fa-bullhorn"></i> 公告/消息管理</h2>
                 <div class="section-actions">
                     <button onclick="adminManager.showAddAnnouncementModal()" class="action-btn btn-success">
                         <i class="fas fa-plus"></i> 发布公告
@@ -177,23 +177,6 @@
                     <button onclick="adminManager.loadAnnouncements()" class="action-btn btn-info">
                         <i class="fas fa-sync-alt"></i> 刷新
                     </button>
-                </div>
-            </div>
-            <!-- 群发站内消息（全体用户通知） -->
-            <div class="broadcast-card">
-                <div class="broadcast-card-header">
-                    <i class="fas fa-broadcast-tower"></i>
-                    <strong>群发站内消息</strong>
-                    <span class="broadcast-card-hint">所有用户的「消息」列表都会收到（活动、维护等通知）</span>
-                </div>
-                <div class="broadcast-card-form">
-                    <input type="text" id="broadcast-title" placeholder="消息标题，如：周末活动通知" maxlength="100">
-                    <textarea id="broadcast-content" placeholder="消息内容，如：本周六下午学校篮球场举行社团招新活动，欢迎大家参加！" maxlength="2000" rows="3"></textarea>
-                    <div>
-                        <button onclick="adminManager.sendBroadcastMessage()" class="action-btn btn-success">
-                            <i class="fas fa-paper-plane"></i> 发送给全体用户
-                        </button>
-                    </div>
                 </div>
             </div>
             <div class="announcements-stats">
@@ -223,6 +206,24 @@
                 <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>
             </div>
             <div class="pagination" id="announcements-pagination"></div>
+
+            <!-- 板块2：群发站内消息（全体用户通知） -->
+            <div class="broadcast-card">
+                <div class="broadcast-card-header">
+                    <i class="fas fa-broadcast-tower"></i>
+                    <strong>群发站内消息</strong>
+                    <span class="broadcast-card-hint">所有用户的「消息」列表都会收到（活动、维护等通知）</span>
+                </div>
+                <div class="broadcast-card-form">
+                    <input type="text" id="broadcast-title" placeholder="消息标题，如：周末活动通知" maxlength="100">
+                    <textarea id="broadcast-content" placeholder="消息内容，如：本周六下午学校篮球场举行社团招新活动，欢迎大家参加！" maxlength="2000" rows="3"></textarea>
+                    <div>
+                        <button onclick="adminManager.sendBroadcastMessage()" class="action-btn btn-success">
+                            <i class="fas fa-paper-plane"></i> 发送给全体用户
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 帖子管理 -->

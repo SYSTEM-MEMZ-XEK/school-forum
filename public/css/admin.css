@@ -5225,7 +5225,8 @@
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: var(--radius-lg, 12px);
   padding: 18px 20px;
-  margin-bottom: 20px;
+  margin-top: 28px;
+  margin-bottom: 4px;
 }
 .broadcast-card-header {
   display: flex;
