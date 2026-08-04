@@ -20,8 +20,14 @@ function calculateCurrentGrade(enrollmentYear) {
   
   let yearOffset = currentYear - enrollmentYear;
   
+  // 9 月前按上一学年计算（如 2026 年 8 月注册、入学年 2026 → 高一）
   if (currentMonth < 9) {
     yearOffset -= 1;
+  }
+  
+  // 今年入学且 9 月前注册时 yearOffset 会为 -1，视为高一（clamp 到 0）
+  if (yearOffset < 0) {
+    yearOffset = 0;
   }
   
   switch(yearOffset) {

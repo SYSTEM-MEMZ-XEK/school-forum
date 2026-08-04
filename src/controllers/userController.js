@@ -316,8 +316,11 @@ const userController = {
       // 加密密码
       const hashedPassword = await hashPassword(password);
 
+      // 入学年份缺省时默认当前年份（客户端只需传班级，年级由服务端按入学时间计算）
+      const year = enrollmentYear ? parseInt(enrollmentYear, 10) : new Date().getFullYear();
+
       // 计算当前年级
-      const currentGrade = calculateCurrentGrade(enrollmentYear);
+      const currentGrade = calculateCurrentGrade(year);
 
       const newUser = {
         id: uuidv4(),
@@ -326,7 +329,7 @@ const userController = {
         email: email.toLowerCase(), // 统一转为小写存储
         password: hashedPassword,
         school,
-        enrollmentYear: parseInt(enrollmentYear),
+        enrollmentYear: year,
         className,
         grade: currentGrade,
         birthday: birthday || null,
