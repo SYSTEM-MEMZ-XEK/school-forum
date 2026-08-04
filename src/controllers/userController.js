@@ -8,7 +8,8 @@ const {
 const {
   createUser,
   updateUser,
-  getUserById
+  getUserById,
+  createNotification
 } = require('../utils/dataUtils');
 const {
   isQQRegistered,
@@ -643,14 +644,36 @@ const userController = {
         loginDevices
       });
 
-      // 新设备登录：异步发送安全提醒邮件（不阻塞登录响应）
-      if (isNewDevice && user.email) {
-        sendNewDeviceLoginEmail(user.email, {
-          device: uaInfo.device,
-          os: uaInfo.os,
-          ip: clientIp,
-          time: new Date().toLocaleString('zh-CN', { hour12: false })
-        });
+      // 新设备登录：站内消息提示（消息列表可见）+ 异步发送安全提醒邮件
+      if (isNewDevice) {
+        const deviceNotice = `检测到新设备登录：${uaInfo.device || '未知设备'}\n`
+          + `系统：${uaInfo.os || '未知'}\n`
+          + `IP：${clientIp}\n`
+          + `时间：${new Date().toLocaleString('zh-CN', { hour12: false })}\n\n`
+          + '如非本人操作，请尽快修改密码保护账号安全';
+        try {
+          await createNotification({
+            id: uuidv4(),
+            userId: user.id,
+            target: 'user',
+            type: 'system',
+            systemType: 'new_device',
+            title: '新设备登录提醒',
+            message: deviceNotice,
+            timestamp: nowIso,
+            read: false
+          });
+        } catch (noticeError) {
+          logger.logError('创建新设备登录通知失败', { error: noticeError.message, userId: user.id });
+        }
+        if (user.email) {
+          sendNewDeviceLoginEmail(user.email, {
+            device: uaInfo.device,
+            os: uaInfo.os,
+            ip: clientIp,
+            time: new Date().toLocaleString('zh-CN', { hour12: false })
+          });
+        }
       }
 
       user.lastLogin = nowIso;

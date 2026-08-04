@@ -9,14 +9,25 @@ const NotificationSchema = new Schema({
   },
   userId: {
     type: String,
-    required: true,
     index: true
+    // 非必填：广播通知（target='all'）不绑定具体用户，全体用户可见
+  },
+  // 通知目标：'user' 个人通知 / 'all' 广播通知（全体用户可见）
+  target: {
+    type: String,
+    enum: ['user', 'all'],
+    default: 'user'
   },
   type: {
     type: String,
     required: true,
     enum: ['like', 'comment', 'comment_reply', 'system', 'follow'],
     index: true
+  },
+  // 群发消息标题（systemType='broadcast' 时使用）
+  title: {
+    type: String,
+    default: null
   },
   // 点赞相关
   postId: {

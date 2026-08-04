@@ -834,12 +834,7 @@ async function loginUser() {
         showNotification(`欢迎回来，${userData.username}！正在跳转...`, 'success');
       }
       
-      // 新设备登录安全提示（服务端检测）
-      if (data.isNewDevice && data.device) {
-        showNewDeviceNotice(data.device);
-        return; // 由弹窗按钮跳转，不自动跳转
-      }
-
+      // 新设备登录提示走站内消息（消息页可见），不再弹窗
       // 延迟跳转：普通登录一律进入首页
       // （管理员账号在普通 tab 登录也进首页，避免被强制拉进管理后台；
       //   管理后台请通过首页导航栏"管理后台"入口进入，或使用管理员登录 tab）
@@ -946,13 +941,8 @@ async function loginAdmin() {
       if (data.adminToken) localStorage.setItem('adminToken', data.adminToken);
       
       showNotification(`管理员 ${userData.username} 登录成功！正在跳转到管理后台...`, 'success');
-
-      // 新设备登录安全提示
-      if (data.isNewDevice && data.device) {
-        showNewDeviceNotice(data.device, 'admin.html');
-        return; // 由弹窗按钮跳转
-      }
       
+      // 新设备登录提示走站内消息，不再弹窗
       // 延迟跳转到管理后台
       setTimeout(() => {
         window.location.href = 'admin.html';
@@ -1087,42 +1077,3 @@ function showNotification(message, type = 'info') {
   }
 }
 
-// HTML 转义（新设备提示弹窗使用）
-function escapeHtmlSafe(value) {
-  if (value === null || value === undefined) return '';
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-// 新设备登录安全提示弹窗
-function showNewDeviceNotice(device, targetUrl = 'index.html') {
-  const time = device.time ? new Date(device.time).toLocaleString('zh-CN', { hour12: false }) : '';
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;';
-  
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:14px;padding:28px 30px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;">
-      <div style="font-size:44px;margin-bottom:10px;">🔐</div>
-      <h3 style="margin:0 0 6px;color:#1a1a1a;font-size:18px;">检测到新设备登录</h3>
-      <p style="margin:0 0 18px;color:#888;font-size:13px;">为了您的账号安全，请确认是否为本人操作</p>
-      <div style="font-size:13px;color:#444;line-height:2.1;text-align:left;background:#f8f9fa;border-radius:10px;padding:14px 16px;">
-        <div>📱 设备：<strong>${escapeHtmlSafe(device.device || '未知')}</strong></div>
-        <div>🖥 系统：${escapeHtmlSafe(device.os || '未知')}</div>
-        <div>🌐 IP 地址：<code style="background:#eee;padding:1px 6px;border-radius:4px;">${escapeHtmlSafe(device.ip || '未知')}</code></div>
-        <div>🕐 登录时间：${escapeHtmlSafe(time || '未知')}</div>
-      </div>
-      <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:8px;padding:10px 14px;color:#ad6800;font-size:12px;line-height:1.6;margin-top:14px;text-align:left;">
-        如非本人操作，请尽快 <a href="forgot-password.html" style="color:#ad6800;font-weight:600;">重置密码</a> 以保护账号安全
-      </div>
-      <button id="device-notice-confirm" style="width:100%;margin-top:18px;padding:11px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">我知道了，进入首页</button>
-    </div>`;
-  
-  document.body.appendChild(overlay);
-  overlay.querySelector('#device-notice-confirm').addEventListener('click', () => {
-    window.location.href = targetUrl;
-  });
-}

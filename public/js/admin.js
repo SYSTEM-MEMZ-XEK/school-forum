@@ -3485,6 +3485,44 @@ confirmDeletePost: async function() {
         total: 0
     },
     
+    // 群发站内消息（全体用户通知）
+    sendBroadcastMessage: async function() {
+        const titleInput = document.getElementById('broadcast-title');
+        const contentInput = document.getElementById('broadcast-content');
+        const title = titleInput?.value.trim();
+        const content = contentInput?.value.trim();
+
+        if (!title) {
+            this.showNotification('请输入消息标题', 'error');
+            return;
+        }
+        if (!content) {
+            this.showNotification('请输入消息内容', 'error');
+            return;
+        }
+        if (!confirm(`确认发送群发消息？\n\n标题：${title}\n\n所有用户的「消息」列表都将收到此通知`)) {
+            return;
+        }
+
+        try {
+            const response = await this.fetchWithTimeout('/admin/broadcast-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+            const data = await response.json();
+            if (data.success) {
+                this.showNotification('群发消息成功，所有用户将收到通知', 'success');
+                if (titleInput) titleInput.value = '';
+                if (contentInput) contentInput.value = '';
+            } else {
+                this.showNotification(data.message || '群发消息失败', 'error');
+            }
+        } catch (error) {
+            this.showNotification('群发消息失败: ' + error.message, 'error');
+        }
+    },
+
     // 加载公告列表
     loadAnnouncements: async function(page = 1) {
         try {

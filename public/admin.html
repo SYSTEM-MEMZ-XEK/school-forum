@@ -179,6 +179,25 @@
                     </button>
                 </div>
             </div>
+            <!-- 群发站内消息（全体用户通知） -->
+            <div class="broadcast-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                    <i class="fas fa-broadcast-tower" style="color:#4f46e5;font-size:18px;"></i>
+                    <strong style="font-size:15px;">群发站内消息</strong>
+                    <span style="color:#999;font-size:12px;margin-left:auto;">所有用户的「消息」列表都会收到（活动、维护等通知）</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <input type="text" id="broadcast-title" placeholder="消息标题，如：周末活动通知" maxlength="100"
+                        style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;">
+                    <textarea id="broadcast-content" placeholder="消息内容，如：本周六下午学校篮球场举行社团招新活动，欢迎大家参加！" maxlength="2000" rows="3"
+                        style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+                    <div>
+                        <button onclick="adminManager.sendBroadcastMessage()" class="action-btn btn-success">
+                            <i class="fas fa-paper-plane"></i> 发送给全体用户
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="announcements-stats">
                 <div class="announcement-stat-card total">
                     <div class="stat-icon"><i class="fas fa-bullhorn"></i></div>

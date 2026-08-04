@@ -365,6 +365,26 @@ const messageManager = {
               ` : ''}
             </div>
           `;
+        } else if (notification.systemType === 'new_device') {
+          // 新设备登录提醒（站内消息）
+          actionText = '新设备登录提醒';
+          contentHtml = `
+            <div class="notification-system-content">
+              <div class="notification-system-detail" style="white-space:pre-line;">
+                ${this.escapeHtml(notification.message || '检测到新设备登录，请注意账号安全')}
+              </div>
+            </div>
+          `;
+        } else if (notification.systemType === 'broadcast') {
+          // 管理员群发消息（全体通知）
+          actionText = notification.title ? this.escapeHtml(notification.title) : '系统公告';
+          contentHtml = `
+            <div class="notification-system-content">
+              <div class="notification-system-detail" style="white-space:pre-line;">
+                ${this.escapeHtml(notification.message || '')}
+              </div>
+            </div>
+          `;
         } else {
           // 其他系统消息
           actionText = '系统消息';

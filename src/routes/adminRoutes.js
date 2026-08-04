@@ -57,4 +57,7 @@ router.delete('/admin/ip-stats/:ip', requireAdmin, adminController.clearIpStats)
 // 管理员功能 - 清除所有IP统计
 router.delete('/admin/ip-stats', requireAdmin, adminController.clearAllIpStats);
 
+// 管理员功能 - 群发站内消息（全体用户通知）
+router.post('/admin/broadcast-message', requireAdmin, adminController.broadcastMessage);
+
 module.exports = router;

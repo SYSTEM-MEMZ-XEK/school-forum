@@ -172,17 +172,17 @@ async function restorePost(postId) {
 
 // ==================== 通知相关操作 ====================
 
-// 获取用户通知
+// 获取用户通知（含全体广播通知 target='all'）
 async function getNotifications(userId, limit = 50) {
-  return await Notification.find({ userId })
+  return await Notification.find({ $or: [{ userId }, { target: 'all' }] })
     .sort({ timestamp: -1 })
     .limit(limit)
     .lean();
 }
 
-// 获取未读通知
+// 获取未读通知（含全体广播通知）
 async function getUnreadNotifications(userId) {
-  return await Notification.find({ userId, read: false })
+  return await Notification.find({ read: false, $or: [{ userId }, { target: 'all' }] })
     .sort({ timestamp: -1 })
     .lean();
 }

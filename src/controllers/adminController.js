@@ -10,8 +10,10 @@ const {
   getDeletedPosts,
   permanentDeletePost,
   deletePost,
-  updatePost
+  updatePost,
+  createNotification
 } = require('../utils/dataUtils');
+const { v4: uuidv4 } = require('uuid');
 const {
   generateErrorResponse,
   generateSuccessResponse
@@ -737,6 +739,51 @@ const adminController = {
       res.json(generateSuccessResponse({}, '所有IP统计已清除'));
     } catch (error) {
       logger.logError('清除所有IP统计失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 管理员群发站内消息（全体用户通知）
+  async broadcastMessage(req, res) {
+    try {
+      const adminId = req.admin.id;
+      const { title, content } = req.body;
+
+      if (!title || !title.trim()) {
+        return res.status(400).json(generateErrorResponse('消息标题不能为空'));
+      }
+      if (title.trim().length > 100) {
+        return res.status(400).json(generateErrorResponse('消息标题最多100个字符'));
+      }
+      if (!content || !content.trim()) {
+        return res.status(400).json(generateErrorResponse('消息内容不能为空'));
+      }
+      if (content.trim().length > 2000) {
+        return res.status(400).json(generateErrorResponse('消息内容最多2000个字符'));
+      }
+
+      // 创建广播通知（target='all'，全体用户消息列表可见）
+      await createNotification({
+        id: uuidv4(),
+        userId: null,
+        target: 'all',
+        type: 'system',
+        systemType: 'broadcast',
+        title: title.trim(),
+        message: content.trim(),
+        timestamp: new Date().toISOString(),
+        read: false
+      });
+
+      logger.logSecurityEvent('admin_broadcast_message', {
+        adminId,
+        title: title.trim(),
+        contentLength: content.trim().length
+      });
+
+      res.json(generateSuccessResponse({}, '群发消息成功，所有用户将收到通知'));
+    } catch (error) {
+      logger.logError('群发消息失败', { error: error.message });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   }
