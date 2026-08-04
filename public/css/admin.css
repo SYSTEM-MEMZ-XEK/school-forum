@@ -5218,3 +5218,80 @@
         align-self: flex-end;
     }
 }
+
+/* ===== 群发站内消息卡片 ===== */
+.broadcast-card {
+  background: var(--background-light, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.broadcast-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--text-primary, #1a1a1a);
+}
+.broadcast-card-header i {
+  color: var(--primary, #4f46e5);
+  font-size: 18px;
+}
+.broadcast-card-header strong {
+  font-size: 15px;
+}
+.broadcast-card-hint {
+  color: var(--text-muted, #999);
+  font-size: 12px;
+  margin-left: auto;
+}
+.broadcast-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.broadcast-card-form input,
+.broadcast-card-form textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  font-size: 14px;
+  outline: none;
+  background: var(--background-card, #fff);
+  color: var(--text-primary, #1a1a1a);
+  font-family: inherit;
+}
+.broadcast-card-form input:focus,
+.broadcast-card-form textarea:focus {
+  border-color: var(--primary, #4f46e5);
+}
+.broadcast-card-form textarea {
+  resize: vertical;
+}
+
+/* 暗色主题 */
+[data-theme="dark"] .broadcast-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+[data-theme="dark"] .broadcast-card-header {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .broadcast-card-hint {
+  color: #94a3b8;
+}
+[data-theme="dark"] .broadcast-card-form input,
+[data-theme="dark"] .broadcast-card-form textarea {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .broadcast-card-form input:focus,
+[data-theme="dark"] .broadcast-card-form textarea:focus {
+  border-color: #818cf8;
+}
+[data-theme="dark"] .broadcast-card-form input::placeholder,
+[data-theme="dark"] .broadcast-card-form textarea::placeholder {
+  color: #64748b;
+}
