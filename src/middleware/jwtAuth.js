@@ -171,6 +171,19 @@ async function authenticateUser(req, res, next) {
         message: '用户不存在'
       });
     }
+
+    // 密码变更后旧令牌失效检查（安全）：token 签发时间早于密码变更时间 → 拒绝
+    // 覆盖忘记密码重置 / 修改密码后，旧 token（含其他设备）立即失效
+    if (user.passwordChangedAt && result.decoded.iat) {
+      const changedAt = new Date(user.passwordChangedAt).getTime();
+      if (result.decoded.iat * 1000 < changedAt) {
+        return res.status(401).json({
+          success: false,
+          message: '登录已失效，请重新登录',
+          code: 'PASSWORD_CHANGED'
+        });
+      }
+    }
     
     // 将用户信息附加到请求对象
     req.user = {

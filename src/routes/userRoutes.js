@@ -90,6 +90,10 @@ router.post('/change-qq', authenticateUser, userController.changeQQ);
 // 用户登录
 router.post('/login', userController.login);
 
+// 忘记密码（未登录）：发送重置验证码 / 重置密码
+router.post('/forgot-password/send-code', userController.forgotPasswordSendCode);
+router.post('/forgot-password/reset', userController.forgotPasswordReset);
+
 // 刷新访问令牌
 router.post('/refresh-token', userController.refreshToken);
 

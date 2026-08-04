@@ -137,6 +137,11 @@ const UserSchema = new Schema({
     type: String,
     required: true
   },
+  // 密码最后变更时间：用于使密码变更前的所有 JWT 令牌失效（安全）
+  passwordChangedAt: {
+    type: Date,
+    default: null
+  },
   email: {
     type: String,
     required: true,

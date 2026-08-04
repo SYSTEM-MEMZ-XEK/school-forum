@@ -237,8 +237,8 @@ const userController = {
       // 加密新密码
       const hashedPassword = await hashPassword(newPassword);
 
-      // 更新密码
-      await updateUser(userId, { password: hashedPassword });
+      // 更新密码（passwordChangedAt 使所有旧 token 立即失效）
+      await updateUser(userId, { password: hashedPassword, passwordChangedAt: new Date() });
 
       // 使当前 JWT 令牌失效（安全：防止密码修改后旧令牌仍可用）
       const { invalidateToken } = require('../middleware/jwtAuth');
@@ -251,6 +251,104 @@ const userController = {
       res.json(generateSuccessResponse({}, '密码修改成功'));
     } catch (error) {
       logger.logError('修改密码失败', { error: error.message, userId: req.body.userId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 忘记密码：发送重置验证码（未登录，校验 QQ+邮箱匹配 + 图形验证码防滥用）
+  async forgotPasswordSendCode(req, res) {
+    try {
+      const { qq, email, captchaId, captchaCode } = req.body;
+
+      if (!qq) {
+        return res.status(400).json(generateErrorResponse('QQ号不能为空'));
+      }
+
+      if (!email) {
+        return res.status(400).json(generateErrorResponse('邮箱不能为空'));
+      }
+
+      if (!emailRegex.test(email)) {
+        return res.status(400).json(generateErrorResponse('请输入有效的邮箱地址'));
+      }
+
+      // 图形验证码（一次性消费，防止匿名滥用邮件发送）
+      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
+      if (!captchaResult.valid) {
+        return res.status(400).json(generateErrorResponse(captchaResult.message));
+      }
+
+      // 校验账号存在且 QQ 与邮箱匹配（统一错误文案，防止账号枚举）
+      const user = await User.findOne({ qq });
+      if (!user || user.email.toLowerCase() !== email.toLowerCase()) {
+        logger.logSecurityEvent('找回密码：账号信息不匹配', { qq, email, ip: req.ip });
+        return res.status(400).json(generateErrorResponse('账号信息校验失败，请确认QQ号与邮箱正确'));
+      }
+
+      // 发送重置验证码（password 场景，与修改密码共用）
+      await sendVerificationEmail(user.email, 'password');
+
+      logger.logSecurityEvent('找回密码：重置验证码已发送', { userId: user.id, qq, ip: req.ip });
+
+      res.json(generateSuccessResponse({}, '验证码已发送到您的邮箱，请查收'));
+    } catch (error) {
+      logger.logError('发送找回密码验证码失败', { error: error.message, qq: req.body.qq });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 忘记密码：重置密码（未登录，验证邮箱验证码后设置新密码）
+  async forgotPasswordReset(req, res) {
+    try {
+      const { qq, email, verificationCode, newPassword } = req.body;
+
+      if (!qq) {
+        return res.status(400).json(generateErrorResponse('QQ号不能为空'));
+      }
+
+      if (!email) {
+        return res.status(400).json(generateErrorResponse('邮箱不能为空'));
+      }
+
+      if (!verificationCode) {
+        return res.status(400).json(generateErrorResponse('请输入邮箱验证码'));
+      }
+
+      if (!newPassword) {
+        return res.status(400).json(generateErrorResponse('请输入新密码'));
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json(generateErrorResponse('密码至少6个字符'));
+      }
+
+      if (newPassword.length > 64) {
+        return res.status(400).json(generateErrorResponse('密码过长，最多64个字符'));
+      }
+
+      // 校验账号存在且 QQ 与邮箱匹配
+      const user = await User.findOne({ qq });
+      if (!user || user.email.toLowerCase() !== email.toLowerCase()) {
+        logger.logSecurityEvent('找回密码重置失败：账号信息不匹配', { qq, ip: req.ip });
+        return res.status(400).json(generateErrorResponse('账号信息校验失败，请确认QQ号与邮箱正确'));
+      }
+
+      // 校验邮箱验证码（password 场景）
+      const codeVerification = await verifyCode(user.email, verificationCode, 'password');
+      if (!codeVerification.valid) {
+        logger.logSecurityEvent('找回密码重置失败：验证码错误', { userId: user.id, qq, ip: req.ip });
+        return res.status(400).json(generateErrorResponse(codeVerification.message));
+      }
+
+      // 加密并更新密码（passwordChangedAt 使该用户所有旧 token 立即失效）
+      const hashedPassword = await hashPassword(newPassword);
+      await updateUser(user.id, { password: hashedPassword, passwordChangedAt: new Date() });
+
+      logger.logSecurityEvent('找回密码：密码已重置', { userId: user.id, qq, ip: req.ip });
+
+      res.json(generateSuccessResponse({}, '密码重置成功，请使用新密码登录'));
+    } catch (error) {
+      logger.logError('找回密码重置失败', { error: error.message, qq: req.body.qq });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
@@ -325,6 +423,7 @@ const userController = {
         username,
         email: email.toLowerCase(), // 统一转为小写存储
         password: hashedPassword,
+        passwordChangedAt: new Date(), // 密码变更基准：注册时初始化为当前时间
         school,
         enrollmentYear: year,
         className,

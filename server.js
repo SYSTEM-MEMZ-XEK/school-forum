@@ -221,8 +221,8 @@ app.use((req, res, next) => {
   let limit, windowMs, message;
   const path = req.path.toLowerCase();
 
-  if (path.includes('/login') || path.includes('/register') || path.includes('/send-verification-code')) {
-    // 登录/注册/验证码：严格限流
+  if (path.includes('/login') || path.includes('/register') || path.includes('/forgot-password') || path.includes('/send-verification-code')) {
+    // 登录/注册/找回密码/验证码：严格限流
     limit = sec.rateLimitLogin || 5;
     windowMs = (sec.rateLimitLoginWindow || 60) * 1000;
     message = '登录尝试过于频繁，请60秒后再试';
