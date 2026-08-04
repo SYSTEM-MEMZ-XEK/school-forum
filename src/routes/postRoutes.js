@@ -44,4 +44,7 @@ router.delete('/posts/:id/comments/:commentId', authenticateUser, postController
 // 点赞评论
 router.post('/posts/:id/comments/:commentId/like', authenticateUser, postController.likeComment);
 
+// 点赞回复（嵌套任意层级）
+router.post('/posts/:id/comments/:commentId/replies/:replyId/like', authenticateUser, postController.likeReply);
+
 module.exports = router;

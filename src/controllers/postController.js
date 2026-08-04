@@ -52,6 +52,9 @@ async function enrichComments(comments) {
 
   const User = require('../models/User');
 
+  // 深拷贝：后续可能折叠超深数据（item.replies = []），绝不能污染 postCache 缓存对象
+  comments = JSON.parse(JSON.stringify(comments));
+
   // 1. 收集所有评论/回复的 userId（递归，限深）与节点
   const userIds = new Set();
   const allNodes = [];
@@ -82,9 +85,9 @@ async function enrichComments(comments) {
     if (node.id) nodeById[node.id] = node;
   }
 
-  // 4. 递归补全（限深）
+  // 4. 递归补全（限深：超过 MAX_REPLY_DEPTH 的层折叠为 hasMoreReplies 标记）
   (function fill(items, parentUsername, depth) {
-    if (!items || depth > MAX_REPLY_DEPTH) return;
+    if (!items) return;
     for (const item of items) {
       if (!item) continue;
       // 头像
@@ -97,9 +100,15 @@ async function enrichComments(comments) {
       } else if (!item.replyToId && parentUsername) {
         item.replyToUsername = parentUsername;
       }
-      // 递归（父节点名取匿名处理后的用户名）
+      // 递归（父节点名取匿名处理后的用户名）；超过上限的层折叠
       if (item.replies && Array.isArray(item.replies)) {
-        fill(item.replies, item.anonymous ? '匿名同学' : (item.username || null), depth + 1);
+        if (depth >= MAX_REPLY_DEPTH) {
+          // 超过嵌套上限：标记折叠并截断，防止超深数据无界返回
+          if (item.replies.length > 0) item.hasMoreReplies = true;
+          item.replies = [];
+        } else {
+          fill(item.replies, item.anonymous ? '匿名同学' : (item.username || null), depth + 1);
+        }
       }
     }
   })(comments, null, 1);
@@ -1345,6 +1354,87 @@ const postController = {
       }, liked ? '点赞成功' : '取消点赞成功'));
     } catch (error) {
       logger.logError('点赞评论失败', { error: error.message, postId: req.params.id, commentId: req.params.commentId });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  // 点赞/取消点赞回复（嵌套回复任意层级）
+  async likeReply(req, res) {
+    try {
+      const { id: postId, commentId, replyId } = req.params;
+      // userId 来自已认证的 JWT，防止客户端伪造
+      const userId = req.user.id;
+
+      const post = await getPostById(postId);
+
+      if (!post || post.isDeleted) {
+        return res.status(404).json(generateErrorResponse('帖子不存在'));
+      }
+
+      // 在指定评论的回复树中递归查找回复
+      const findReplyNode = (replies) => {
+        if (!replies || !Array.isArray(replies)) return null;
+        for (const r of replies) {
+          if (r.id === replyId) return r;
+          if (r.replies && r.replies.length > 0) {
+            const found = findReplyNode(r.replies);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      const comments = post.comments || [];
+      const comment = comments.find(c => c.id === commentId);
+      if (!comment) {
+        return res.status(404).json(generateErrorResponse('评论不存在'));
+      }
+
+      const targetReply = findReplyNode(comment.replies);
+      if (!targetReply) {
+        return res.status(404).json(generateErrorResponse('回复不存在'));
+      }
+
+      const likedBy = targetReply.likedBy || [];
+      const userIndex = likedBy.indexOf(userId);
+
+      let newLikes, newLikedBy, liked;
+
+      if (userIndex !== -1) {
+        // 取消点赞
+        newLikes = Math.max(0, (targetReply.likes || 0) - 1);
+        newLikedBy = likedBy.filter(id => id !== userId);
+        liked = false;
+      } else {
+        // 添加点赞
+        newLikes = (targetReply.likes || 0) + 1;
+        newLikedBy = [...likedBy, userId];
+        liked = true;
+
+        // 回复点赞通知（复用评论点赞通知，递归可定位到回复）
+        if (targetReply.userId !== userId) {
+          notificationController.createCommentLikeNotification(postId, replyId, userId, targetReply.userId);
+        }
+      }
+
+      targetReply.likes = newLikes;
+      targetReply.likedBy = newLikedBy;
+
+      await updatePost(postId, { comments });
+
+      logger.logUserAction(liked ? '点赞回复' : '取消点赞回复', userId, null, {
+        postId,
+        commentId,
+        replyId,
+        likes: newLikes
+      });
+
+      res.json(generateSuccessResponse({
+        likes: newLikes,
+        liked: liked
+      }, liked ? '点赞成功' : '取消点赞成功'));
+    } catch (error) {
+      logger.logError('点赞回复失败', { error: error.message, postId: req.params.id, commentId: req.params.commentId, replyId: req.params.replyId });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
   },
