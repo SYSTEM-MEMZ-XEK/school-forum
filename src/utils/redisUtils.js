@@ -253,6 +253,8 @@ const ipStats = {
   PREFIX: 'ip:stats:',
   // IP最后访问时间的前缀key
   LAST_ACCESS_PREFIX: 'ip:lastAccess:',
+  // 设备信息（User-Agent 解析结果）前缀key
+  UA_PREFIX: 'ip:ua:',
 
   /**
    * 获取IP统计的key
@@ -269,10 +271,18 @@ const ipStats = {
   },
 
   /**
+   * 获取设备信息key
+   */
+  getUaKey(ip) {
+    return `${this.UA_PREFIX}${ip}`;
+  },
+
+  /**
    * 记录一次访问
    * @param {string} ip - 访问IP
+   * @param {string} userAgent - User-Agent 字符串（用于识别设备/来源）
    */
-  async recordAccess(ip) {
+  async recordAccess(ip, userAgent) {
     if (!isConnected) {
       return;
     }
@@ -281,14 +291,28 @@ const ipStats = {
       const key = this.getKey(ip);
       const lastAccessKey = this.getLastAccessKey(ip);
       const now = new Date().toISOString();
+
+      // 解析并存储设备信息（每次更新，反映最近一次访问的设备）
+      let uaJson = null;
+      try {
+        const { parseUserAgent } = require('./userAgent');
+        uaJson = JSON.stringify(parseUserAgent(userAgent));
+      } catch (uaError) {
+        console.error('[Redis] 解析User-Agent失败:', uaError.message);
+      }
+      const uaKey = this.getUaKey(ip);
       
-      // 使用 multi 批量执行：增加计数 + 更新最后访问时间
+      // 使用 multi 批量执行：增加计数 + 更新最后访问时间 + 更新设备信息
       // 加 TTL（30 天）：防止 ip:stats:* key 永久堆积导致 Redis 内存无限增长
       const multi = client.multi();
       multi.incr(key);
       multi.set(lastAccessKey, now);
       multi.expire(key, 30 * 24 * 60 * 60);
       multi.expire(lastAccessKey, 30 * 24 * 60 * 60);
+      if (uaJson) {
+        multi.set(uaKey, uaJson);
+        multi.expire(uaKey, 30 * 24 * 60 * 60);
+      }
       await multi.exec();
     } catch (error) {
       console.error('[Redis] 记录IP访问失败:', error.message);
@@ -350,11 +374,24 @@ const ipStats = {
         // 获取最后访问时间
         const lastAccessKey = this.getLastAccessKey(ip);
         const lastAccess = await client.get(lastAccessKey);
+
+        // 获取设备信息（解析后的 User-Agent）
+        let uaInfo = null;
+        try {
+          const uaKey = this.getUaKey(ip);
+          const uaRaw = await client.get(uaKey);
+          if (uaRaw) {
+            uaInfo = JSON.parse(uaRaw);
+          }
+        } catch (uaError) {
+          console.error('[Redis] 读取设备信息失败:', uaError.message);
+        }
         
         stats.push({
           ip,
           count: parseInt(count) || 0,
-          lastAccess: lastAccess || null
+          lastAccess: lastAccess || null,
+          ua: uaInfo || { source: '未知', device: '未知' }
         });
       }
 
@@ -416,10 +453,12 @@ const ipStats = {
       const client = getRedisClient();
       const key = this.getKey(ip);
       const lastAccessKey = this.getLastAccessKey(ip);
+      const uaKey = this.getUaKey(ip);
       
-      // 同时删除访问计数和最后访问时间
+      // 同时删除访问计数、最后访问时间和设备信息
       await client.del(key);
       await client.del(lastAccessKey);
+      await client.del(uaKey);
       return true;
     } catch (error) {
       console.error('[Redis] 清除IP统计失败:', error.message);

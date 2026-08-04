@@ -352,8 +352,8 @@ app.use((req, res, next) => {
     const isStaticRequest = staticPaths.some(p => req.path.includes(p));
     
     if (!isStaticRequest && clientIp) {
-      // 异步记录，不阻塞响应
-      ipStats.recordAccess(clientIp).catch(() => {});
+      // 异步记录，不阻塞响应（附带 User-Agent 用于识别设备/来源）
+      ipStats.recordAccess(clientIp, req.headers['user-agent']).catch(() => {});
     }
   });
 

@@ -1182,7 +1182,7 @@ loadBannedUsers: async function() {
             const container = document.getElementById('ip-stats-list');
             if (!container) return;
 
-            container.innerHTML = '<tr><td colspan="4" class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+            container.innerHTML = '<tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
 
             // 加载摘要
             const summaryResponse = await this.fetchWithTimeout('/admin/ip-stats/summary');
@@ -1214,7 +1214,7 @@ loadBannedUsers: async function() {
 
             const container = document.getElementById('ip-stats-list');
             if (container) {
-                container.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-network-wired"></i> 无IP统计数据</td></tr>';
+                container.innerHTML = '<tr><td colspan="5" class="empty-state"><i class="fas fa-network-wired"></i> 无IP统计数据</td></tr>';
             }
         }
     },
@@ -1225,13 +1225,21 @@ loadBannedUsers: async function() {
         if (!container) return;
 
         if (!stats || stats.length === 0) {
-            container.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-network-wired"></i> 暂无IP访问记录</td></tr>';
+            container.innerHTML = '<tr><td colspan="5" class="empty-state"><i class="fas fa-network-wired"></i> 暂无IP访问记录</td></tr>';
             return;
         }
 
-        container.innerHTML = stats.map(stat => `
+        container.innerHTML = stats.map(stat => {
+            // 设备信息展示：来源（安卓客户端/浏览器）+ 设备描述
+            const ua = stat.ua || {};
+            const isApp = ua.source === '安卓客户端';
+            const deviceBadge = isApp
+                ? `<span class="badge badge-info"><i class="fas fa-mobile-alt"></i> 安卓客户端</span> <small class="text-muted">${this.escapeHtml(ua.os || '')}</small>`
+                : `<i class="fas fa-globe"></i> <small>${this.escapeHtml(ua.device || '浏览器')}</small>`;
+            return `
             <tr>
                 <td><code>${this.escapeHtml(stat.ip)}</code></td>
+                <td>${deviceBadge}</td>
                 <td><strong>${stat.count}</strong> 次</td>
                 <td>${stat.lastAccess ? this.formatDate(stat.lastAccess) : '-'}</td>
                 <td>
@@ -1240,7 +1248,7 @@ loadBannedUsers: async function() {
                     </button>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     },
 
     // 清除指定IP统计
