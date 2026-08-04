@@ -33,29 +33,37 @@ const Favorite = require('../models/Favorite');
 const Blacklist = require('../models/Blacklist');
 
 /**
+ * 评论/回复嵌套深度上限（评论为第1层，回复最多到第6层）
+ * 两端一致：服务端 addReply 拒绝超限，安卓端渲染按 6 层截断
+ */
+const MAX_REPLY_DEPTH = 6;
+
+/**
  * 评论/回复富化：实时补全 userAvatar 与 replyToUsername
  * - userAvatar：评论/回复存储时未快照头像（addComment/addReply 不写该字段），
  *   这里按 userId 批量查 User 表实时补全，头像修改后无需迁移旧数据
  * - replyToUsername：服务端只在"回复回复"时存了 replyToUsername；这里根据
  *   replyToId 反查被回复者补齐，并对"回复评论"的第一层回复补上评论作者名，
  *   保证每条回复都能指出回复对象
+ * - 超过 MAX_REPLY_DEPTH 层的部分不深入（防御旧数据/异常数据）
  */
 async function enrichComments(comments) {
   if (!comments || !Array.isArray(comments) || comments.length === 0) return comments;
 
   const User = require('../models/User');
 
-  // 1. 收集所有评论/回复的 userId（递归）与节点
+  // 1. 收集所有评论/回复的 userId（递归，限深）与节点
   const userIds = new Set();
   const allNodes = [];
-  (function collect(items) {
+  (function collect(items, depth) {
+    if (!items || depth > MAX_REPLY_DEPTH) return;
     for (const item of items) {
       if (!item) continue;
       allNodes.push(item);
       if (item.userId) userIds.add(item.userId);
-      if (item.replies && Array.isArray(item.replies)) collect(item.replies);
+      if (item.replies && Array.isArray(item.replies)) collect(item.replies, depth + 1);
     }
-  })(comments);
+  })(comments, 1);
 
   // 2. 批量查用户头像（id → avatar 映射）
   const avatarMap = {};
@@ -74,8 +82,9 @@ async function enrichComments(comments) {
     if (node.id) nodeById[node.id] = node;
   }
 
-  // 4. 递归补全
-  (function fill(items, parentUsername) {
+  // 4. 递归补全（限深）
+  (function fill(items, parentUsername, depth) {
+    if (!items || depth > MAX_REPLY_DEPTH) return;
     for (const item of items) {
       if (!item) continue;
       // 头像
@@ -90,10 +99,10 @@ async function enrichComments(comments) {
       }
       // 递归（父节点名取匿名处理后的用户名）
       if (item.replies && Array.isArray(item.replies)) {
-        fill(item.replies, item.anonymous ? '匿名同学' : (item.username || null));
+        fill(item.replies, item.anonymous ? '匿名同学' : (item.username || null), depth + 1);
       }
     }
-  })(comments, null);
+  })(comments, null, 1);
 
   return comments;
 }
@@ -1176,18 +1185,18 @@ const postController = {
         timestamp: new Date().toISOString()
       };
       
-      // 查找回复的辅助函数
-      const findReply = (replies, targetId) => {
+      // 查找回复的辅助函数（返回 { node, depth }，评论为第1层、第一层回复为第2层…）
+      const findReplyWithDepth = (replies, targetId, currentDepth) => {
         if (!replies || !Array.isArray(replies)) {
           return null;
         }
         
         for (let reply of replies) {
           if (reply.id === targetId) {
-            return reply;
+            return { node: reply, depth: currentDepth };
           }
           if (reply.replies && reply.replies.length > 0) {
-            const found = findReply(reply.replies, targetId);
+            const found = findReplyWithDepth(reply.replies, targetId, currentDepth + 1);
             if (found) {
               return found;
             }
@@ -1202,9 +1211,18 @@ const postController = {
       
       // 如果回复的是回复
       if (replyToId) {
-        const targetReply = findReply(comment.replies, replyToId);
-        if (!targetReply) {
+        const found = findReplyWithDepth(comment.replies, replyToId, 2); // 第一层回复深度=2
+        if (!found) {
           return res.status(404).json(generateErrorResponse('被回复的回复不存在'));
+        }
+        const targetReply = found.node;
+        
+        // 嵌套深度限制：新回复深度 = 目标深度 + 1，不得超过 MAX_REPLY_DEPTH
+        if (found.depth + 1 > MAX_REPLY_DEPTH) {
+          logger.logWarn('回复评论失败：超过嵌套深度限制', {
+            postId, commentId, replyToId, depth: found.depth + 1, maxDepth: MAX_REPLY_DEPTH
+          });
+          return res.status(400).json(generateErrorResponse(`嵌套回复最多支持 ${MAX_REPLY_DEPTH} 层`));
         }
         
         targetUserId = targetReply.userId; // 通知被回复的回复作者
@@ -1220,7 +1238,7 @@ const postController = {
         }
         targetReply.replies.push(newReply);
       } else {
-        // 回复评论，添加到评论的回复列表中
+        // 回复评论，添加到评论的回复列表中（深度2，不会超限）
         if (!comment.replies) {
           comment.replies = [];
         }
