@@ -1028,7 +1028,7 @@ const userController = {
     try {
       // userId 来自已认证的 JWT，防止操作他人账户
       const userId = req.user.id;
-      const { newQQ, qq } = req.body;
+      const { newQQ, qq, currentPassword } = req.body;
       const qqNumber = newQQ || qq;
 
       if (!qqNumber) {
@@ -1046,6 +1046,16 @@ const userController = {
       
       if (!user) {
         return res.status(404).json(generateErrorResponse('用户不存在'));
+      }
+
+      // 验证当前密码（防止会话被冒用时静默修改账号信息）
+      if (!currentPassword) {
+        return res.status(400).json(generateErrorResponse('请输入当前密码'));
+      }
+      const isPasswordValid = await comparePassword(currentPassword, user.password);
+      if (!isPasswordValid) {
+        logger.logSecurityEvent('QQ号修改失败：密码错误', { userId, ip: req.ip });
+        return res.status(401).json(generateErrorResponse('当前密码错误'));
       }
 
       // 检查新QQ号是否已被其他用户使用
