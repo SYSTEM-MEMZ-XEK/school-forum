@@ -62,7 +62,7 @@
   background: var(--background-card);
   color: var(--text-color);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -87,7 +87,7 @@
   background: var(--background-card);
   color: var(--primary-color);
   border: 2px solid var(--primary-color);
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -161,7 +161,7 @@
 }
 
 .notification-icon.follow {
-  background: rgba(67, 97, 238, 0.1);
+  background: rgba(43, 108, 176, 0.1);
   color: var(--primary-color);
 }
 

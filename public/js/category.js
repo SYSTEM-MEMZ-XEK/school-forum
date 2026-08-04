@@ -82,7 +82,7 @@ const categoryManager = {
 
     container.innerHTML = categories.map(cat => `
       <a href="category.html?id=${cat.id}" class="category-nav-item" data-category-id="${cat.id}">
-        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
         <span>${utils.escapeHtml(cat.name)}</span>
         ${cat.postCount !== undefined ? `<span class="category-count">${cat.postCount}</span>` : ''}
       </a>
@@ -102,7 +102,7 @@ const categoryManager = {
 
       container.innerHTML = categories.map(cat => `
       <a href="category.html?id=${cat.id}" class="category-sidebar-item">
-        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
         <span>${utils.escapeHtml(cat.name)}</span>
         ${cat.postCount !== undefined ? `<span class="category-sidebar-count">${cat.postCount}</span>` : ''}
       </a>

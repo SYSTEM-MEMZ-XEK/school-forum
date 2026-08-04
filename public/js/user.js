@@ -965,9 +965,9 @@ const userManager = {
     // 定义主题变量
     const themes = {
       light: {
-        '--primary-color': '#4361ee',
+        '--primary-color': '#2b6cb0',
         '--primary-light': '#edf0fe',
-        '--secondary-color': '#3f37c9',
+        '--secondary-color': '#1e4e79',
         '--text-color': '#333333',
         '--text-light': '#666666',
         '--background-light': '#f5f7fb',

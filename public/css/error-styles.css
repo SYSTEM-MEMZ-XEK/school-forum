@@ -4,13 +4,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: var(--primary-color) 100%);
   padding: 20px;
 }
 
 .error-card {
   background: var(--background-card);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   padding: 40px;
   text-align: center;

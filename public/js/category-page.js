@@ -68,8 +68,8 @@
 
     const iconEl = document.getElementById('category-icon');
     if (iconEl) {
-      iconEl.innerHTML = `<i class="fas ${category.icon || 'fa-folder'}" style="color: ${category.color || '#4361ee'}"></i>`;
-      iconEl.style.background = `${category.color || '#4361ee'}22`;
+      iconEl.innerHTML = `<i class="fas ${category.icon || 'fa-folder'}" style="color: ${category.color || '#2b6cb0'}"></i>`;
+      iconEl.style.background = `${category.color || '#2b6cb0'}22`;
     }
 
     // 已登录用户显示申请按钮
@@ -282,7 +282,7 @@
     // 侧边栏栏目列表
     const sidebarHtml = categories.map(cat => `
       <a href="category.html?id=${cat.id}" class="sidebar-category-item ${cat.id === categoryPageState.categoryId ? 'active' : ''}">
-        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
         <span>${window.utils ? window.utils.escapeHtml(cat.name) : cat.name}</span>
         ${cat.postCount !== undefined ? `<span class="cat-count">${cat.postCount}</span>` : ''}
       </a>
@@ -291,7 +291,7 @@
     // 顶部导航栏目列表
     const navHtml = categories.map(cat => `
       <a href="category.html?id=${cat.id}" class="category-nav-item ${cat.id === categoryPageState.categoryId ? 'active' : ''}">
-        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+        <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
         <span>${window.utils ? window.utils.escapeHtml(cat.name) : cat.name}</span>
       </a>
     `).join('');

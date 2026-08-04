@@ -1,8 +1,8 @@
 /* 帖子详情页样式 */
 :root {
-  --primary-color: #4361ee;
+  --primary-color: #2b6cb0;
   --primary-light: #edf0fe;
-  --secondary-color: #3f37c9;
+  --secondary-color: #1e4e79;
   --text-color: #333333;
   --text-light: #666666;
   --background-light: #f5f7fb;
@@ -18,12 +18,12 @@
 
 /* 全局选中样式 */
 ::selection {
-  background-color: rgba(67, 97, 238, 0.3) !important;
+  background-color: rgba(43, 108, 176, 0.3) !important;
   color: #333333 !important;
 }
 
 ::-moz-selection {
-  background-color: rgba(67, 97, 238, 0.3) !important;
+  background-color: rgba(43, 108, 176, 0.3) !important;
   color: #333333 !important;
 }
 
@@ -50,7 +50,7 @@
 .comment-body p ::selection,
 .comment-body strong ::selection,
 .comment-body span ::selection {
-  background-color: rgba(67, 97, 238, 0.3) !important;
+  background-color: rgba(43, 108, 176, 0.3) !important;
   color: #333333 !important;
 }
 
@@ -59,7 +59,7 @@
 .comment-body p ::-moz-selection,
 .comment-body strong ::-moz-selection,
 .comment-body span ::-moz-selection {
-  background-color: rgba(67, 97, 238, 0.3) !important;
+  background-color: rgba(43, 108, 176, 0.3) !important;
   color: #333333 !important;
 }
 
@@ -106,7 +106,7 @@
   width: 50px;
   height: 50px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: var(--primary-color));
   color: white;
   display: flex;
   align-items: center;
@@ -118,7 +118,7 @@
 }
 
 .post-detail-avatar.anonymous-avatar {
-  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  background: #9ca3af;
 }
 
 .post-detail-user-info {
@@ -359,7 +359,7 @@
 }
 
 .post-detail-action-btn.favorite-btn.active {
-  background: linear-gradient(135deg, #ffa000, #ff8f00);
+  background: #ffa000;
   color: white;
 }
 
@@ -382,7 +382,7 @@
 }
 
 .post-detail-action-btn.dislike-btn.active {
-  background: linear-gradient(135deg, #e91e63, #c2185b);
+  background: #e91e63;
   color: white;
 }
 
@@ -460,7 +460,7 @@
 /* btn-primary 由 style.css 统一定义；此处仅保留 post-detail 的附加效果 */
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+  box-shadow: 0 4px 12px rgba(43, 108, 176, 0.4);
 }
 
 .btn-primary:disabled {
@@ -1111,7 +1111,7 @@
 
 [data-theme="dark"] .tag-select-item:hover,
 [data-theme="dark"] .tag-select-item.selected {
-  background: rgba(67, 97, 238, 0.2);
+  background: rgba(43, 108, 176, 0.2);
 }
 
 [data-theme="dark"] .favorite-tag-modal-footer {
@@ -1338,7 +1338,7 @@
 
 [data-theme="dark"] .visibility-option:hover,
 [data-theme="dark"] .visibility-option.selected {
-  background: rgba(67, 97, 238, 0.2);
+  background: rgba(43, 108, 176, 0.2);
 }
 
 [data-theme="dark"] .visibility-modal-footer {
@@ -1520,7 +1520,7 @@
 }
 
 [data-theme="dark"] .comment-image-upload-btn:hover {
-  background: rgba(67, 97, 238, 0.2);
+  background: rgba(43, 108, 176, 0.2);
 }
 
 /* ==================== 评论 Emoji 按钮样式 ==================== */

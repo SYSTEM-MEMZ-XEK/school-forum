@@ -276,7 +276,7 @@ const favoritesManager = {
     } else {
       title.innerHTML = '<i class="fas fa-tag"></i> 新建标签';
       nameInput.value = '';
-      colorInput.value = '#4361ee';
+      colorInput.value = '#2b6cb0';
       this.editingTagId = null;
     }
 

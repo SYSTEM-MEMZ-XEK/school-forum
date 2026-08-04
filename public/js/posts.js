@@ -93,7 +93,7 @@ const postsManager = {
         } else {
           sidebarContainer.innerHTML = cats.slice(0, 8).map(cat => `
             <a href="category.html?id=${cat.id}" class="category-sidebar-item">
-              <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+              <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
               <span>${utils.escapeHtml(cat.name)}</span>
               ${cat.postCount !== undefined ? `<span class="category-sidebar-count">${cat.postCount}</span>` : ''}
             </a>
@@ -350,7 +350,7 @@ const postsManager = {
            class="category-nav-item ${this.state.currentCategoryId === cat.id ? 'active' : ''}" 
            data-category-id="${cat.id}"
            title="${this.escapeHtml(cat.description || cat.name)}">
-          <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+          <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
           ${this.escapeHtml(cat.name)}
         </a>
       `).join('');

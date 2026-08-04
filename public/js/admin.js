@@ -3951,7 +3951,7 @@ confirmDeletePost: async function() {
                 <div class="announcement-card ${statusClass}">
                     <div class="announcement-header">
                         <div class="announcement-title">
-                            <i class="${category.icon || 'fa-folder'}" style="color: ${category.color || '#4361ee'}; margin-right: 8px;"></i>
+                            <i class="${category.icon || 'fa-folder'}" style="color: ${category.color || '#2b6cb0'}; margin-right: 8px;"></i>
                             <span>${this.escapeHtml(category.name)}</span>
                         </div>
                         <div class="announcement-badges">
@@ -4039,7 +4039,7 @@ confirmDeletePost: async function() {
         document.getElementById('category-name').value = '';
         document.getElementById('category-description').value = '';
         document.getElementById('category-icon').value = 'fa-folder';
-        document.getElementById('category-color').value = '#4361ee';
+        document.getElementById('category-color').value = '#2b6cb0';
         document.getElementById('category-order').value = '0';
         document.getElementById('category-is-active').checked = true;
         document.getElementById('category-edit-id').value = '';
@@ -4058,7 +4058,7 @@ confirmDeletePost: async function() {
                 document.getElementById('category-name').value = category.name;
                 document.getElementById('category-description').value = category.description || '';
                 document.getElementById('category-icon').value = category.icon || 'fa-folder';
-                document.getElementById('category-color').value = category.color || '#4361ee';
+                document.getElementById('category-color').value = category.color || '#2b6cb0';
                 document.getElementById('category-order').value = category.order || 0;
                 document.getElementById('category-is-active').checked = category.isActive;
                 document.getElementById('category-edit-id').value = category.id;
@@ -4247,7 +4247,7 @@ confirmDeletePost: async function() {
                 <div class="announcement-card ${statusClass}">
                     <div class="announcement-header">
                         <div class="announcement-title">
-                            <i class="fas fa-folder-plus" style="color: #4361ee; margin-right: 8px;"></i>
+                            <i class="fas fa-folder-plus" style="color: #2b6cb0; margin-right: 8px;"></i>
                             <span>${this.escapeHtml(app.categoryName)}</span>
                         </div>
                         <div class="announcement-badges">
@@ -4301,7 +4301,7 @@ confirmDeletePost: async function() {
                         <div class="announcement-card">
                             <div class="announcement-header">
                                 <div class="announcement-title">
-                                    <i class="fas fa-folder-plus" style="color: #4361ee; margin-right: 8px;"></i>
+                                    <i class="fas fa-folder-plus" style="color: #2b6cb0; margin-right: 8px;"></i>
                                     <span>${this.escapeHtml(app.categoryName)}</span>
                                 </div>
                                 <div class="announcement-badges">

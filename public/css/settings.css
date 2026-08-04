@@ -197,7 +197,7 @@
 .theme-option.active {
   border-color: var(--primary-color);
   background: var(--primary-light);
-  box-shadow: 0 6px 20px rgba(67, 97, 238, 0.15);
+  box-shadow: 0 6px 20px rgba(43, 108, 176, 0.15);
 }
 
 .theme-preview {
@@ -210,17 +210,17 @@
 }
 
 .light-theme {
-  background: linear-gradient(135deg, #f5f7fb, #ffffff);
+  background: #f5f7fb;
   border: 1px solid #e0e0e0;
 }
 
 .dark-theme {
-  background: linear-gradient(135deg, #1e293b, #334155);
+  background: #1e293b;
   border: 1px solid #475569;
 }
 
 .auto-theme {
-  background: linear-gradient(135deg, #f5f7fb, #1e293b);
+  background: #f5f7fb;
   border: 1px solid #cbd5e1;
 }
 
@@ -301,7 +301,7 @@
 .settings-button.primary:hover {
   background: var(--secondary-color);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+  box-shadow: 0 4px 12px rgba(43, 108, 176, 0.3);
 }
 
 .settings-button.secondary {
@@ -462,7 +462,7 @@
   background: var(--primary-light);
   color: var(--primary-color);
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   font-weight: 500;
 }
@@ -755,7 +755,7 @@
   bottom: 0;
   background-color: var(--border-color);
   transition: 0.3s;
-  border-radius: 26px;
+  border-radius: var(--radius-md);
 }
 
 .toggle-slider:before {
@@ -780,7 +780,7 @@
 }
 
 .toggle-switch input:focus + .toggle-slider {
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.2);
 }
 
 /* 设置页面加载动画 */
@@ -884,7 +884,7 @@
 
 /* 登录警告横幅 */
 .login-warning-banner {
-  background: linear-gradient(135deg, #ffebee, #ffcdd2);
+  background: #ffebee;
   border: 2px solid var(--error-color);
   border-radius: var(--radius-lg);
   margin-bottom: 25px;
@@ -1038,7 +1038,7 @@
   background: var(--primary-color);
   border-color: var(--primary-color);
   color: white;
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+  box-shadow: 0 4px 12px rgba(43, 108, 176, 0.3);
 }
 
 .password-steps .step.completed .step-number {
@@ -1440,7 +1440,7 @@
 
 .deletion-modal-content {
   background: var(--background-card);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 480px;
   overflow: hidden;

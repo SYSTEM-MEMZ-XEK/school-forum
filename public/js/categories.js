@@ -64,8 +64,8 @@
 
     grid.innerHTML = categories.map(cat => `
       <a href="category.html?id=${cat.id}" class="category-card">
-        <div class="category-card-icon" style="background: ${cat.color || '#4361ee'}20;">
-          <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#4361ee'}"></i>
+        <div class="category-card-icon" style="background: ${cat.color || '#2b6cb0'}20;">
+          <i class="fas ${cat.icon || 'fa-folder'}" style="color: ${cat.color || '#2b6cb0'}"></i>
         </div>
         <div class="category-card-content">
           <h3>${window.utils.escapeHtml(cat.name)}</h3>

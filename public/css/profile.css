@@ -45,7 +45,7 @@
   width: 120px;
   height: 120px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: var(--primary-color));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +53,7 @@
   font-weight: bold;
   color: white;
   flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+  box-shadow: 0 8px 20px rgba(43, 108, 176, 0.3);
 }
 
 .profile-info {
@@ -80,7 +80,7 @@
   margin-bottom: 20px;
   padding: 8px 16px;
   background: var(--primary-light);
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   display: inline-block;
 }
 
@@ -91,7 +91,7 @@
   margin-bottom: 8px;
   padding: 6px 12px;
   background: var(--background-secondary);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -195,7 +195,7 @@
   padding: 8px 20px;
   background: var(--background-light);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   color: var(--text-light);
   font-size: 14px;
   cursor: pointer;
@@ -391,7 +391,7 @@
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 25px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -428,7 +428,7 @@
   background: transparent;
   color: var(--primary-color);
   border: 2px solid var(--primary-color);
-  border-radius: 25px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -449,7 +449,7 @@
   background: transparent;
   color: var(--text-light);
   border: 1px solid var(--border-color);
-  border-radius: 25px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -520,7 +520,7 @@
 
 .follow-list-modal-content {
   background: var(--background-card);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   width: 90%;
   max-width: 450px;
   max-height: 70vh;
@@ -595,7 +595,7 @@
   width: 45px;
   height: 45px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: var(--primary-color));
   display: flex;
   align-items: center;
   justify-content: center;
