@@ -311,7 +311,22 @@ window.utils = utils;
 // 注册 Service Worker (PWA)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      // 立即向服务器检查 sw.js 是否更新（配合 server.js 对 sw.js 的 no-cache 头，
+      // 保证发版后第一次访问就能检测到新版本，避免旧 SW 长期控制页面）
+      reg.update();
+      // 检测到新 SW 安装完成 → 刷新页面，让新版本立即生效
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          // installed + 页面已被旧 SW 控制 → 新版本已就绪，刷新加载最新代码
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 

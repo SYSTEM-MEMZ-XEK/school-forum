@@ -834,9 +834,11 @@ async function loginUser() {
         showNotification(`欢迎回来，${userData.username}！正在跳转...`, 'success');
       }
       
-      // 延迟跳转，管理员跳到后台，普通用户跳到首页
+      // 延迟跳转：普通登录一律进入首页
+      // （管理员账号在普通 tab 登录也进首页，避免被强制拉进管理后台；
+      //   管理后台请通过首页导航栏"管理后台"入口进入，或使用管理员登录 tab）
       setTimeout(() => {
-        window.location.href = userData.isAdmin ? 'admin.html' : 'index.html';
+        window.location.href = 'index.html';
       }, 1500);
     }
   } catch (error) {

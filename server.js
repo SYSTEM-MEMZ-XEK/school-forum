@@ -254,6 +254,12 @@ app.use((req, res, next) => {
 });
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
+    // Service Worker 文件必须禁用缓存：浏览器依赖每次导航重新请求 sw.js 检测更新，
+    // 一旦被 max-age 缓存，SW 更新机制将永久失效（表现为"前端改了但浏览器永远用旧代码"）
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return;
+    }
     // 带哈希的文件（构建产物）缓存1年
     if (filePath.match(/\.([a-f0-9]{8,})\.(js|css|woff2?|png|jpg|svg)$/)) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');

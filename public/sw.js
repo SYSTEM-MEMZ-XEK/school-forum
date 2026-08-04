@@ -1,5 +1,10 @@
 // 校园论坛 Service Worker (PWA)
-const CACHE_NAME = 'school-forum-v3';
+// v4：修复"前端代码更新但浏览器永远加载旧版"的 SW 缓存问题
+//  - server.js 已对 sw.js 设置 no-cache，保证每次导航都能检测到本文件变化
+//  - install 阶段调用 skipWaiting()：新 SW 安装后立即激活，不等旧页面全部关闭
+//  - activate 阶段调用 clients.claim()：激活后立即接管所有已打开的页面
+//  - JS/CSS 保持 network-first：保证代码文件实时更新，避免缓存旧逻辑
+const CACHE_NAME = 'school-forum-v4';
 const STATIC_ASSETS = [
   '/',
   '/css/style.css',
@@ -13,23 +18,25 @@ const STATIC_ASSETS = [
   '/images/logo.svg'
 ];
 
-// 安装：缓存静态资源
+// 安装：缓存静态资源，并立即激活（不等待旧页面关闭）
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch(() => {});
     })
   );
+  // 关键：新 SW 安装完成后立即激活，否则旧 SW 会一直控制页面
+  self.skipWaiting();
 });
 
-// 激活：清理旧缓存
+// 激活：清理旧缓存，并立即接管所有已打开的页面
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
