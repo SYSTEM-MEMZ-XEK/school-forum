@@ -1,5 +1,5 @@
 // 校园论坛 Service Worker (PWA)
-const CACHE_NAME = 'school-forum-v2';
+const CACHE_NAME = 'school-forum-v3';
 const STATIC_ASSETS = [
   '/',
   '/css/style.css',
@@ -35,7 +35,9 @@ self.addEventListener('activate', (event) => {
 
 // 请求拦截：
 // - 文档请求（HTML 页面）→ network-first：保证发版后立即拿到新页面，离线时回退缓存
-// - 静态资源（css/js/图片）→ cache-first：提升加载性能
+// - JS/CSS 代码文件 → network-first：保证发版后代码立即更新（cache-first 会导致
+//   浏览器长期使用旧代码，出现"修复了但没生效"的假象）
+// - 图片等其他静态资源 → cache-first：提升加载性能
 // - 跳过 /api/ 与 /health：API 数据不能缓存（避免陈旧），健康检查不能被缓存误导
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -48,9 +50,10 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/') || url.pathname === '/health') return;
 
   const isDocument = request.mode === 'navigate';
+  const isCode = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
 
-  if (isDocument) {
-    // 文档：network-first
+  if (isDocument || isCode) {
+    // 文档与代码文件：network-first
     event.respondWith(
       fetch(request).then((response) => {
         if (response.status === 200) {
@@ -63,7 +66,7 @@ self.addEventListener('fetch', (event) => {
       )
     );
   } else {
-    // 静态资源：cache-first
+    // 图片等静态资源：cache-first
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
