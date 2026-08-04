@@ -3,6 +3,7 @@ const {
   getNotifications,
   createNotification,
   markNotificationAsRead,
+  markBroadcastAsRead,
   markAllNotificationsAsRead,
   getPosts,
   getUsers,
@@ -73,15 +74,20 @@ const notificationController = {
         fromUserIds.length ? User.find({ id: { $in: fromUserIds } }).lean() : []
       ]);
       
-      // 为通知添加帖子标题和用户信息
+      // 为通知添加帖子标题和用户信息（广播/系统通知不填 postTitle/fromUsername，
+      // 避免安卓/网页端把系统消息误渲染成"帖子已被删除/未知用户"）
       const enrichedNotifications = notifications.map(notification => {
         const post = posts.find(p => p.id === notification.postId);
         const fromUser = users.find(u => u.id === notification.fromUserId);
+        const isSystem = notification.type === 'system';
         
         return {
           ...notification,
-          postTitle: post ? (post.content.length > 50 ? post.content.substring(0, 50) + '...' : post.content) : '帖子已被删除',
-          fromUsername: fromUser ? fromUser.username : '未知用户',
+          read: notification.target === 'all'
+            ? (notification.readBy || []).includes(userId)
+            : notification.read,
+          postTitle: isSystem ? null : (post ? (post.content.length > 50 ? post.content.substring(0, 50) + '...' : post.content) : '帖子已被删除'),
+          fromUsername: isSystem ? null : (fromUser ? fromUser.username : '未知用户'),
           postExists: !!post && !post.isDeleted
         };
       });
@@ -101,13 +107,20 @@ const notificationController = {
       const userId = req.user.id;
       
       const notifications = await getNotifications(userId);
-      const notification = notifications.find(n => n.id === notificationId && n.userId === userId);
-      
+      // 广播通知（target='all'）userId 为 null，需按 target 放行
+      const notification = notifications.find(n =>
+        n.id === notificationId && (n.userId === userId || n.target === 'all'));
+
       if (!notification) {
         return res.status(404).json(generateErrorResponse('通知不存在'));
       }
-      
-      await markNotificationAsRead(notificationId);
+
+      if (notification.target === 'all') {
+        // 广播通知：按用户记录已读（readBy），不动全局 read 字段
+        await markBroadcastAsRead(notificationId, userId);
+      } else {
+        await markNotificationAsRead(notificationId);
+      }
       
       res.json(generateSuccessResponse({}, '通知已标记为已读'));
     } catch (error) {

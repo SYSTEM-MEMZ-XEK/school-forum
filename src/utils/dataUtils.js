@@ -202,17 +202,36 @@ async function markNotificationAsRead(notificationId) {
   ).lean();
 }
 
-// 标记所有通知为已读
+// 标记广播通知为已读（按用户记录到 readBy，不动全局 read 字段）
+async function markBroadcastAsRead(notificationId, userId) {
+  return await Notification.findOneAndUpdate(
+    { id: notificationId, target: 'all' },
+    { $addToSet: { readBy: userId } },
+    { returnDocument: 'after' }
+  ).lean();
+}
+
+// 标记所有通知为已读（个人通知 read=true；广播通知 readBy 追加当前用户）
 async function markAllNotificationsAsRead(userId) {
-  return await Notification.updateMany(
+  await Notification.updateMany(
     { userId, read: false },
     { read: true }
   );
+  await Notification.updateMany(
+    { target: 'all' },
+    { $addToSet: { readBy: userId } }
+  );
+  return { modifiedCount: 1 };
 }
 
-// 获取未读通知数量
+// 获取未读通知数量（个人未读 + 当前用户未读的广播通知）
 async function getUnreadNotificationCount(userId) {
-  return await Notification.countDocuments({ userId, read: false });
+  return await Notification.countDocuments({
+    $or: [
+      { userId, read: false },
+      { target: 'all', readBy: { $ne: userId } }
+    ]
+  });
 }
 
 // ==================== 举报相关操作 ====================
@@ -469,6 +488,7 @@ module.exports = {
   getUnreadNotifications,
   createNotification,
   markNotificationAsRead,
+  markBroadcastAsRead,
   markAllNotificationsAsRead,
   getUnreadNotificationCount,
   

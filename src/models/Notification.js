@@ -98,6 +98,12 @@ const NotificationSchema = new Schema({
     type: Boolean,
     default: false,
     index: true
+  },
+  // 广播通知（target='all'）已读用户列表：广播通知是全体共享文档，
+  // 已读状态必须按用户记录（readBy），不能用全局 read 字段
+  readBy: {
+    type: Array,
+    default: []
   }
 }, {
   timestamps: false,
