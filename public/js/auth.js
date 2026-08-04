@@ -399,6 +399,9 @@ async function sendVerificationCode() {
     console.error('发送验证码失败:', error);
     showNotification(error.message || '发送验证码失败，请稍后重试', 'error');
     
+    // 图形验证码为一次性，失败后必须刷新，否则下一次请求必然再次失败
+    loadCaptcha('register');
+    
     if (dom.sendVerificationCodeBtn) {
       dom.sendVerificationCodeBtn.disabled = false;
       dom.sendVerificationCodeBtn.classList.remove('loading');

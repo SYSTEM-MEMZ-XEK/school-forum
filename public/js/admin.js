@@ -117,12 +117,14 @@ checkAdminAuth: async function() {
 // 向服务器验证用户状态，返回 { isAdmin, user } 或 false
 verifyUserWithServer: async function(user) {
   try {
+    // 携带用户 accessToken：服务端 verifyAuth 已不再信任 body.userId，身份完全来自 JWT
     const response = await fetch('/api/auth/verify', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '')
       },
-      body: JSON.stringify({ userId: user.id })
+      body: JSON.stringify({})
     });
     
     if (!response.ok) {
