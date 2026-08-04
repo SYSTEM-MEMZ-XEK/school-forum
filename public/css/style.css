@@ -5280,3 +5280,44 @@ mjx-container svg {
   display: flex; align-items: center; justify-content: center;
 }
 .emoji-item:hover { background: var(--background-hover); transform: scale(1.2); }
+
+/* ===== 顶栏登录/注册按钮（主站页面通用） =====
+   仅 edit-simple.css / error-styles.css 曾定义，主站页面缺失导致按钮样式丢失 */
+#login-btn,
+#register-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--background-light);
+  color: var(--primary-color);
+  border: none;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  font-size: 14px;
+  transition: var(--transition, 0.3s);
+  white-space: nowrap;
+}
+
+#login-btn:hover,
+#register-btn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+#login-btn:active,
+#register-btn:active {
+  transform: scale(0.97);
+}
+
+[data-theme="dark"] #login-btn,
+[data-theme="dark"] #register-btn {
+  background: #1e293b;
+  color: #818cf8;
+}
+
+[data-theme="dark"] #login-btn:hover,
+[data-theme="dark"] #register-btn:hover {
+  background: #818cf8;
+  color: #0f172a;
+}

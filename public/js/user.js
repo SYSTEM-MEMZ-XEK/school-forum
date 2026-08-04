@@ -279,7 +279,7 @@ const userManager = {
           <a href="message.html">
             <i class="fas fa-bell"></i>
             <span class="btn-label">通知</span>
-            <span id="message-badge" class="message-badge">0</span>
+            <span id="message-badge" class="notification-badge message-badge">0</span>
           </a>
         `;
         if (document.getElementById('user-actions')) {
@@ -290,7 +290,7 @@ const userManager = {
         if (!document.getElementById('message-badge')) {
           const badge = document.createElement('span');
           badge.id = 'message-badge';
-          badge.className = 'message-badge';
+          badge.className = 'notification-badge message-badge';
           badge.textContent = '0';
           existingMessageBtn.querySelector('a')?.appendChild(badge);
         }
