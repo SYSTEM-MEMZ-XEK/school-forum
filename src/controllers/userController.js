@@ -18,7 +18,8 @@ const {
   generateErrorResponse,
   generateSuccessResponse
 } = require('../utils/validationUtils');
-const { sendVerificationEmail, verifyCode } = require('../utils/emailUtils');
+const { sendVerificationEmail, verifyCode, sendNewDeviceLoginEmail } = require('../utils/emailUtils');
+const { parseUserAgent } = require('../utils/userAgent');
 const { userCache, notificationCache, captchaCache } = require('../utils/redisUtils');
 const logger = require('../utils/logger');
 const User = require('../models/User');
@@ -611,15 +612,50 @@ const userController = {
         });
       }
 
-      // 更新用户最后登录时间和年级
+      // 新设备登录检测（记录最近 10 个登录设备，用于安全提示）
+      const uaInfo = parseUserAgent(req.headers['user-agent']);
+      const isMobile = /移动/.test(uaInfo.device);
+      const deviceFingerprint = [uaInfo.source, uaInfo.browser, uaInfo.os, isMobile ? 'mobile' : 'desktop'].join('|');
+      const nowIso = new Date().toISOString();
+      let loginDevices = user.loginDevices || [];
+      const existingDevice = loginDevices.find(d => d && d.fingerprint === deviceFingerprint);
+      const isNewDevice = !existingDevice;
+
+      const deviceRecord = {
+        fingerprint: deviceFingerprint,
+        source: uaInfo.source,
+        browser: uaInfo.browser,
+        os: uaInfo.os,
+        device: uaInfo.device,
+        ip: clientIp,
+        lastLoginAt: nowIso,
+        count: (existingDevice ? existingDevice.count || 0 : 0) + 1
+      };
+      loginDevices = loginDevices.filter(d => d && d.fingerprint !== deviceFingerprint);
+      loginDevices.unshift(deviceRecord);
+      loginDevices = loginDevices.slice(0, 10);
+
+      // 更新用户最后登录时间、年级和设备列表
       const currentGrade = calculateCurrentGrade(user.enrollmentYear);
       await updateUser(user.id, {
-        lastLogin: new Date().toISOString(),
-        grade: currentGrade
+        lastLogin: nowIso,
+        grade: currentGrade,
+        loginDevices
       });
 
-      user.lastLogin = new Date().toISOString();
+      // 新设备登录：异步发送安全提醒邮件（不阻塞登录响应）
+      if (isNewDevice && user.email) {
+        sendNewDeviceLoginEmail(user.email, {
+          device: uaInfo.device,
+          os: uaInfo.os,
+          ip: clientIp,
+          time: new Date().toLocaleString('zh-CN', { hour12: false })
+        });
+      }
+
+      user.lastLogin = nowIso;
       user.grade = currentGrade;
+      user.loginDevices = loginDevices;
 
       // 记录用户登录日志
       logger.logUserAction('用户登录', user.id, user.username, {
@@ -649,7 +685,17 @@ const userController = {
         isAdmin: isAdmin,
         // JWT Token
         token: accessToken,
-        refreshToken: refreshToken
+        refreshToken: refreshToken,
+        // 新设备登录检测结果（前端用于安全提示）
+        isNewDevice: isNewDevice,
+        device: isNewDevice ? {
+          source: uaInfo.source,
+          browser: uaInfo.browser,
+          os: uaInfo.os,
+          device: uaInfo.device,
+          ip: clientIp,
+          time: nowIso
+        } : null
       };
 
       // 管理员返回额外 Token

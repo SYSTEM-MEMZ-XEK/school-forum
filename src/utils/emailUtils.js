@@ -319,6 +319,70 @@ const sendVerificationEmail = async (email, scenario = 'register') => {
   }
 };
 
+/**
+ * 新设备登录提醒邮件
+ * @param {string} email - 用户邮箱
+ * @param {object} info - { device, browser, os, ip, time }
+ */
+const sendNewDeviceLoginEmail = async (email, info = {}) => {
+  try {
+    const transporter = createTransporter();
+    const now = new Date().toLocaleString('zh-CN', { hour12: false });
+
+    const html = `
+  <div style="font-family:'Microsoft YaHei',Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#f5f7fa;border-radius:12px;">
+    <div style="background:#fff;border-radius:12px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:#fff7e6;display:flex;align-items:center;justify-content:center;font-size:26px;">⚠️</div>
+        <h2 style="margin:0;font-size:20px;color:#1a1a1a;">检测到新设备登录</h2>
+      </div>
+      <p style="color:#666;font-size:14px;line-height:1.8;">您的账号在以下新设备上完成了登录：</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;margin:16px 0;">
+        <tr>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:8px 0 0 8px;width:80px;color:#999;">设备</td>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:0 8px 8px 0;">${info.device || '未知'}</td>
+        </tr>
+        <tr><td style="padding:6px;"></td></tr>
+        <tr>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:8px 0 0 8px;color:#999;">系统</td>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:0 8px 8px 0;">${info.os || '未知'}</td>
+        </tr>
+        <tr><td style="padding:6px;"></td></tr>
+        <tr>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:8px 0 0 8px;color:#999;">IP 地址</td>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:0 8px 8px 0;"><code style="background:#eee;padding:2px 8px;border-radius:4px;">${info.ip || '未知'}</code></td>
+        </tr>
+        <tr><td style="padding:6px;"></td></tr>
+        <tr>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:8px 0 0 8px;color:#999;">登录时间</td>
+          <td style="padding:10px 14px;background:#f8f8f8;border-radius:0 8px 8px 0;">${info.time || now}</td>
+        </tr>
+      </table>
+      <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:8px;padding:12px 16px;color:#ad6800;font-size:13px;line-height:1.7;">
+        <strong>如果这不是您本人的操作</strong>，请立即登录并修改密码，以保护账号安全。
+      </div>
+      <div style="text-align:center;margin-top:24px;color:#bbb;font-size:12px;">
+        此邮件由校园论坛系统自动发送，请勿直接回复
+      </div>
+    </div>
+  </div>
+  `;
+
+    await transporter.sendMail({
+      from: `"校园论坛" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: '【校园论坛】安全提醒：检测到新设备登录',
+      html
+    });
+
+    logger.logSecurityEvent('new_device_login_email_sent', { email, ip: info.ip });
+    return { success: true };
+  } catch (error) {
+    logger.logError('发送新设备登录提醒邮件失败', { email, error: error.message });
+    return { success: false };
+  }
+};
+
 // 验证验证码（scenario 绑定用途，防止跨场景复用）
 const verifyCode = async (email, code, scenario = 'default') => {
   // 统一使用小写邮箱作为 key
@@ -355,5 +419,6 @@ const verifyCode = async (email, code, scenario = 'default') => {
 
 module.exports = {
   sendVerificationEmail,
+  sendNewDeviceLoginEmail,
   verifyCode
 };

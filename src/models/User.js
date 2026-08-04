@@ -186,6 +186,12 @@ const UserSchema = new Schema({
     type: Date,
     default: null
   },
+  // 最近登录设备列表（新设备登录检测；最多保留 10 条，最新在前）
+  // 每条：{ fingerprint, source, browser, os, device, ip, lastLoginAt, count }
+  loginDevices: {
+    type: Array,
+    default: []
+  },
   lastViewedFollowingAt: {
     type: Date,
     default: null
