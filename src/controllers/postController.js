@@ -32,6 +32,72 @@ const { postCache, postCounters, userCache, hotPostsCache } = require('../utils/
 const Favorite = require('../models/Favorite');
 const Blacklist = require('../models/Blacklist');
 
+/**
+ * 评论/回复富化：实时补全 userAvatar 与 replyToUsername
+ * - userAvatar：评论/回复存储时未快照头像（addComment/addReply 不写该字段），
+ *   这里按 userId 批量查 User 表实时补全，头像修改后无需迁移旧数据
+ * - replyToUsername：服务端只在"回复回复"时存了 replyToUsername；这里根据
+ *   replyToId 反查被回复者补齐，并对"回复评论"的第一层回复补上评论作者名，
+ *   保证每条回复都能指出回复对象
+ */
+async function enrichComments(comments) {
+  if (!comments || !Array.isArray(comments) || comments.length === 0) return comments;
+
+  const User = require('../models/User');
+
+  // 1. 收集所有评论/回复的 userId（递归）与节点
+  const userIds = new Set();
+  const allNodes = [];
+  (function collect(items) {
+    for (const item of items) {
+      if (!item) continue;
+      allNodes.push(item);
+      if (item.userId) userIds.add(item.userId);
+      if (item.replies && Array.isArray(item.replies)) collect(item.replies);
+    }
+  })(comments);
+
+  // 2. 批量查用户头像（id → avatar 映射）
+  const avatarMap = {};
+  if (userIds.size > 0) {
+    const users = await User.find({ id: { $in: Array.from(userIds) } })
+      .select('id avatar')
+      .lean();
+    for (const u of users) {
+      avatarMap[u.id] = u.avatar || null;
+    }
+  }
+
+  // 3. 节点索引（replyToId → username 反查）
+  const nodeById = {};
+  for (const node of allNodes) {
+    if (node.id) nodeById[node.id] = node;
+  }
+
+  // 4. 递归补全
+  (function fill(items, parentUsername) {
+    for (const item of items) {
+      if (!item) continue;
+      // 头像
+      if (item.userId && avatarMap[item.userId] !== undefined) {
+        item.userAvatar = avatarMap[item.userId];
+      }
+      // 回复目标：优先按 replyToId 反查；第一层回复（回复评论）用父节点名
+      if (item.replyToId && nodeById[item.replyToId]) {
+        item.replyToUsername = nodeById[item.replyToId].username || '用户';
+      } else if (!item.replyToId && parentUsername) {
+        item.replyToUsername = parentUsername;
+      }
+      // 递归（父节点名取匿名处理后的用户名）
+      if (item.replies && Array.isArray(item.replies)) {
+        fill(item.replies, item.anonymous ? '匿名同学' : (item.username || null));
+      }
+    }
+  })(comments, null);
+
+  return comments;
+}
+
 const postController = {
   // 获取帖子列表（支持分页、搜索和排序）— DB 级查询重构版
   async getPosts(req, res) {
@@ -322,6 +388,9 @@ const postController = {
           }
         }
       }
+
+      // 评论富化：实时补全评论/回复头像与回复目标（回复 @xxx）
+      filteredPost.comments = await enrichComments(filteredPost.comments);
 
       res.json(generateSuccessResponse({
         post: filteredPost
