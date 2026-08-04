@@ -383,12 +383,24 @@ const postController = {
     try {
       // userId 必须来自已认证的 JWT，防止客户端伪造
       const userId = req.user.id;
-      const { username, school, grade, className, content, anonymous, visibility, deviceInfo, categoryId, commentsEnabled } = req.body;
-      
-      if (!username || !school || !grade || !className) {
-        return res.status(400).json(generateErrorResponse('请填写所有必填字段'));
+      const { content, anonymous, visibility, deviceInfo, categoryId, commentsEnabled } = req.body;
+
+      // 用户身份字段（用户名/学校/年级/班级）一律从数据库获取，不信任客户端 body：
+      // 既防止伪造身份展示，也兼容客户端不传身份字段的调用（此前必填校验导致
+      // 安卓端不传这些字段时发帖必失败，报"请填写所有必填字段"）
+      const user = await getUserById(userId);
+      if (!user) {
+        return res.status(404).json(generateErrorResponse('用户不存在'));
       }
-      
+      if (!user.isActive) {
+        return res.status(403).json(generateErrorResponse('账号已被禁用，无法发帖'));
+      }
+
+      const username = user.username || '未知用户';
+      const school = user.school || '';
+      const grade = user.grade || '';
+      const className = user.className || '';
+
       // 处理上传的图片
       const images = processUploadedFiles(req.files);
       
@@ -417,15 +429,6 @@ const postController = {
             return res.status(400).json(generateErrorResponse(contentErrors[0]));
           }
         }
-      }
-      
-      // 验证用户是否存在且活跃
-      if (!await userExists(userId)) {
-        return res.status(404).json(generateErrorResponse('用户不存在'));
-      }
-      
-      if (!await isUserActive(userId)) {
-        return res.status(403).json(generateErrorResponse('账号已被禁用，无法发帖'));
       }
       
       // 验证可见性设置
@@ -478,8 +481,7 @@ const postController = {
 
       await createPost(newPost);
 
-      // 更新用户发帖数
-      const user = await getUserById(userId);
+      // 更新用户发帖数（user 已在函数开头查询并校验，直接复用）
       if (user) {
         await updateUser(userId, { postCount: (user.postCount || 0) + 1 });
       }
