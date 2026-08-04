@@ -258,13 +258,10 @@ const userController = {
   // 用户注册
   async register(req, res) {
     try {
-      const { qq, username, password, email, verificationCode, school, enrollmentYear, className, birthday, gender, captchaId, captchaCode } = req.body;
+      const { qq, username, password, email, verificationCode, school, enrollmentYear, className, birthday, gender } = req.body;
 
-      // 先验证图形验证码
-      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
-      if (!captchaResult.valid) {
-        return res.status(400).json(generateErrorResponse(captchaResult.message));
-      }
+      // 注：图形验证码已在发送邮箱验证码时校验过（一次性消费），
+      // 此处不再重复校验，否则注册提交必然报"验证码已过期"
 
       // 验证输入
       const validationErrors = validateUserInput(req.body);
@@ -376,7 +373,7 @@ const userController = {
   // 用户登录（安全增强版）
   async login(req, res) {
     try {
-      const { email, qq, password, verificationCode, captchaId, captchaCode } = req.body;
+      const { email, qq, password, verificationCode } = req.body;
 
       // 获取客户端 IP
       const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
@@ -414,11 +411,7 @@ const userController = {
         return res.status(400).json(generateErrorResponse('密码不能为空'));
       }
 
-      // 验证图形验证码
-      const captchaResult = await userController._verifyCaptcha(captchaId, captchaCode);
-      if (!captchaResult.valid) {
-        return res.status(400).json(generateErrorResponse(captchaResult.message));
-      }
+      // 注：图形验证码已在发送登录验证码时校验过（一次性消费），此处不再重复校验
 
       // 验证验证码
       if (!verificationCode) {
