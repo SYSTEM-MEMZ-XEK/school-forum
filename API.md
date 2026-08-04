@@ -2,6 +2,8 @@
 
 本文档详细描述了校园论坛系统的所有 API 接口，供客户端开发者参考。
 
+> 相关仓库：服务端本仓库 [XEKernel/school-forum](https://github.com/XEKernel/school-forum) · Android 客户端 [XEKernel/school-forum-android](https://github.com/XEKernel/school-forum-android)
+
 > ## ⚠️ 文档与实现差异（2026-08-02 更新说明）
 >
 > 本文档的接口路径**已全部更新为带 `/api` 前缀**（2026-08-02 批量同步，共 141 处）：

@@ -2,6 +2,8 @@
 
 本文档指导您将校园论坛系统部署到 Ubuntu 服务器上，并使用清华大学开源软件镜像源加速软件下载。
 
+> 相关仓库：服务端本仓库 [XEKernel/school-forum](https://github.com/XEKernel/school-forum) · Android 客户端 [XEKernel/school-forum-android](https://github.com/XEKernel/school-forum-android)
+
 ---
 
 ## 快速开始（推荐）

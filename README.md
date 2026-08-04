@@ -2,6 +2,15 @@
 
 一个功能完善的校园社区论坛系统，支持多学校、多班级的用户管理和丰富的内容交互功能。
 
+## 相关仓库
+
+| 项目 | 仓库地址 |
+|-----|---------|
+| 服务端 + Web 端（本仓库） | https://github.com/XEKernel/school-forum |
+| Android 客户端 | https://github.com/XEKernel/school-forum-android |
+
+> Android 客户端为原生 Java 应用（Java + OkHttp），通过 REST API 与本服务端通信。
+
 ## 项目简介
 
 本系统是一个面向校园用户的开源论坛平台，提供帖子发布、评论互动、用户关注、消息通知、内容收藏等核心功能。支持 Markdown 语法、LaTeX 数学公式渲染和代码高亮显示。
