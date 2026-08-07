@@ -770,17 +770,25 @@ configure_project() {
             add_missing "邮件服务 (SMTP) 未配置，如需发送邮件请编辑 .env 中的 SMTP_* 配置"
         fi
 
-        print_section "QQ 快捷登录配置（可选，需在 QQ 互联 connect.qq.com 申请应用）"
-        prompt_read qq_app_id "QQ 互联 AppID (留空跳过): " ""
-        if [[ -n "$qq_app_id" ]]; then
+        print_section "QQ 快捷登录（可选功能，默认不启用）"
+        log_info "说明：QQ 快捷登录是可选功能，不配置则完全不影响系统，登录页仅使用邮箱注册/登录。"
+        log_info "如要启用，需先在 QQ 互联 (https://connect.qq.com) 申请网站应用，然后在此填写。"
+        prompt_read qq_enable "是否启用 QQ 快捷登录？(y/N，默认不启用): " "N"
+        if [[ "$qq_enable" =~ ^[Yy]$ ]]; then
+            prompt_read qq_app_id "QQ 互联 AppID: " ""
             prompt_read qq_app_secret "QQ 互联 AppSecret: " "" "silent"
             prompt_read qq_redirect_uri "授权回调地址 (必须与QQ互联后台一致, 例如 https://域名/api/auth/qq/callback): " ""
             add_missing "QQ_APP_ID=$qq_app_id"
             add_missing "QQ_APP_SECRET=$qq_app_secret"
             add_missing "QQ_REDIRECT_URI=$qq_redirect_uri"
-            log_info "QQ 快捷登录已配置，登录页将显示 QQ 登录按钮"
+            log_info "✅ QQ 快捷登录已启用，登录页将显示 QQ 登录按钮"
         else
-            add_missing "QQ 快捷登录未配置，如需启用请编辑 .env 中的 QQ_APP_ID/QQ_APP_SECRET/QQ_REDIRECT_URI"
+            log_info "QQ 快捷登录未启用（默认），登录页保持邮箱注册/登录。"
+            log_info "如以后需要启用，编辑 .env 填写 QQ_APP_ID/QQ_APP_SECRET/QQ_REDIRECT_URI 后重启服务即可。"
+            add_missing "# QQ 快捷登录（可选功能，默认不启用；启用需在 QQ 互联 connect.qq.com 申请应用）"
+            add_missing "QQ_APP_ID="
+            add_missing "QQ_APP_SECRET="
+            add_missing "QQ_REDIRECT_URI="
         fi
 
         print_section "CORS 白名单"
