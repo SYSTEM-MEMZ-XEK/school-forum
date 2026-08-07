@@ -312,8 +312,10 @@ sudo ufw enable   # 如果 UFW 未启用
 - 可通过环境变量覆盖配置：`MONGODB_URI`、`MONGODB_USERNAME`、`MONGODB_PASSWORD`
 
 ### 14.2 邮件发送失败
-- 确认 QQ 邮箱已开启 SMTP 服务并生成授权码，已在配置文件中正确填写。
-- 如果使用 163 邮箱，需修改 `MAIL_HOST` 为 `smtp.163.com`，端口 465 并设置 `secure: true`。
+- 确认邮箱已开启 SMTP 服务并生成**授权码**（QQ 邮箱：设置 → 账户 → 开启 SMTP；网易 163 同样需要授权码）。
+- 在 `.env` 中正确配置发件信息：`SMTP_HOST`（如 `smtp.qq.com` 或 `smtp.163.com`）、
+  `SMTP_PORT`（SSL 用 465）、`SMTP_SECURE=true`、`SMTP_USER`（邮箱账号）、
+  `SMTP_PASS`（**授权码**，非登录密码）。
 - 检查服务器能否访问外网（如 `ping smtp.qq.com`）。
 
 ### 14.3 Redis 连接失败
@@ -336,6 +338,32 @@ sudo ufw enable   # 如果 UFW 未启用
 - 检查应用是否监听正确的端口：`pm2 logs forum` 查看错误日志。
 - 确认防火墙已放行该端口。
 - 检查是否使用了 `0.0.0.0` 作为监听地址（有些框架默认只监听 `127.0.0.1`，需修改为 `0.0.0.0` 才能对外访问）。
+
+### 14.7 QQ 快捷登录（可选功能）配置
+- QQ 快捷登录为**可选功能，默认不启用**；不配置不影响系统，登录页仅使用邮箱注册/登录。
+- 启用步骤：
+  1. 在 [QQ 互联](https://connect.qq.com) 注册开发者并创建**网站应用**（需实名认证）。
+  2. 在 QQ 互联后台配置授权回调地址，必须与 `QQ_REDIRECT_URI` 完全一致，
+     格式为 `https://你的域名/api/auth/qq/callback`。
+  3. 在 `.env` 填写：
+     ```
+     QQ_APP_ID=你的AppID
+     QQ_APP_SECRET=你的AppSecret
+     QQ_REDIRECT_URI=https://你的域名/api/auth/qq/callback
+     ```
+  4. 重启服务：`pm2 restart forum`，登录页即显示「QQ 快捷登录」按钮。
+- 也可在部署时运行 `deploy.sh`，按提示选择是否启用（默认不启用）。
+- 排查：登录页无 QQ 按钮 → 检查 `.env` 三项是否已填且服务已重启；授权后
+  回调报错 → 检查回调地址与 QQ 互联后台是否一致。
+
+### 14.8 部署前安全自查（重要）
+- 项目代码由 AI 生成，**未经专业安全审计**。正式使用前请务必阅读仓库根目录
+  [PROJECT-NOTICE.md](./PROJECT-NOTICE.md)，并执行以下自查：
+  - `npm audit` 检查依赖漏洞，修复高危项
+  - 为 MongoDB / Redis 设置强密码并仅监听内网/本机（不要暴露公网）
+  - 使用 HTTPS 部署（可配合 Nginx/Caddy 反向代理）
+  - 定期备份 MongoDB 数据并验证可恢复
+  - 生产环境建议通过 OWASP ZAP 等工具做一次安全扫描
 
 ---
 

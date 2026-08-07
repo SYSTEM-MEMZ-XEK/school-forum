@@ -4,13 +4,14 @@
 
 > 相关仓库：服务端本仓库 [XEKernel/school-forum](https://github.com/XEKernel/school-forum) · Android 客户端 [XEKernel/school-forum-android](https://github.com/XEKernel/school-forum-android)
 
-> ## ⚠️ 文档与实现差异（2026-08-02 更新说明）
+> ## ⚠️ 文档与实现差异（2026-08-07 更新说明）
 >
 > 本文档的接口路径**已全部更新为带 `/api` 前缀**（2026-08-02 批量同步，共 141 处）：
 > - 服务端对不带 `/api` 的旧路径提供 **307 重定向**兼容，但仅限 GET 请求与显式 JSON 请求；**新客户端请一律使用 `/api` 前缀**。
 > - **认证方式**：文档中要求 body 传 `userId`/`viewerId` 的接口，代码已改为**从 JWT 取身份**（`Authorization: Bearer <token>`），body/query 中传入的 userId 会被忽略（安全修复）。
 > - **响应格式**：文档示例为 `data` 嵌套；实际成功响应为 `{ success, message, ...业务字段 }`（业务字段直接展开在顶层，如 `user`、`token`）。
-> - 文档未收录的接口（均为代码中已存在）：`POST /api/posts/:id/comments/:commentId/like`（评论点赞）、`POST /api/unfollow`、`GET /api/blocked/:userId`、用户数据导出/导入（`/api/user/export-data`、`/api/user/import-data`）、公开 IP 统计已移除（`/api/ip-stats*` 现需管理员认证，同 `/api/admin/ip-stats*`）。
+> - **已补齐文档**（2026-08-07）：忘记密码（`/api/forgot-password/*`）、回复点赞（`/api/posts/:id/comments/:commentId/replies/:replyId/like`）、群发广播消息（`/api/admin/broadcast-message`）、QQ 快捷登录（`/api/auth/qq/*`，可选功能）。
+> - 文档仍未收录（均为代码中已存在）：`POST /api/unfollow`、`GET /api/blocked/:userId`、用户数据导出/导入（`/api/user/export-data`、`/api/user/import-data`）、公开 IP 统计已移除（`/api/ip-stats*` 现需管理员认证，同 `/api/admin/ip-stats*`）。
 
 ## 基础信息
 
@@ -530,6 +531,56 @@ Authorization: Bearer token
 
 ---
 
+### 发送找回密码验证码（忘记密码）
+
+```
+POST /api/forgot-password/send-code
+Content-Type: application/json
+
+{
+  "qq": "123456789",
+  "email": "user@example.com",
+  "captchaId": "图形验证码ID",
+  "captchaCode": "1234"
+}
+```
+未登录可用。校验 QQ 号 + 邮箱是否匹配注册信息 + 图形验证码（一次性），
+匹配后向该邮箱发送密码重置验证码。**统一错误文案**（"信息不匹配"）防止
+账号枚举；接口纳入严格限流（5 次/分钟）。
+
+```
+{
+  "success": true,
+  "message": "验证码已发送"
+}
+```
+
+---
+
+### 重置密码（忘记密码）
+
+```
+POST /api/forgot-password/reset
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "verificationCode": "123456",
+  "newPassword": "NewPass123!"
+}
+```
+未登录可用。校验邮箱验证码后重置密码。**重置成功后该用户所有旧登录
+Token（含其他设备）立即失效**（passwordChangedAt 机制），需用新密码重新登录。
+
+```
+{
+  "success": true,
+  "message": "密码重置成功"
+}
+```
+
+---
+
 ### 验证登录状态
 
 ```
@@ -1032,6 +1083,29 @@ POST /api/posts/:id/comments
 
 ---
 
+### 点赞评论
+
+```
+POST /api/posts/:id/comments/:commentId/like
+Authorization: Bearer token
+```
+需登录。点赞/取消点赞评论（重复点击切换），返回最新点赞数与点赞状态。
+
+**路径参数**：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 帖子ID |
+| commentId | string | 评论ID |
+
+**响应**：
+```json
+{ "success": true, "likes": 1, "liked": true, "message": "点赞成功" }
+```
+
+> 回复点赞（任意嵌套层级）见「点赞回复（任意层级）」一节。
+
+---
+
 ### 回复评论
 
 ```
@@ -1067,6 +1141,29 @@ DELETE /api/posts/:id/comments/:commentId
 | userId | string | 是 | 用户ID |
 | replyId | string | 否 | 回复ID（删除回复时） |
 | nestedReplyId | string | 否 | 嵌套回复ID |
+
+---
+
+### 点赞回复（任意层级）
+
+```
+POST /api/posts/:id/comments/:commentId/replies/:replyId/like
+Authorization: Bearer token
+```
+需登录。递归定位**任意嵌套层级**的回复进行点赞/取消点赞（重复点击切换），
+支持 6 层嵌套回复中的任意层。点赞时通知回复作者（复用 `comment_like` 通知）。
+
+**请求参数**（URL）：
+| 参数 | 类型 | 说明 |
+|-----|------|------|
+| id | string | 帖子ID |
+| commentId | string | 顶层评论ID |
+| replyId | string | 目标回复ID（可为任意层级） |
+
+**响应**：
+```json
+{ "success": true, "likes": 1, "liked": true, "message": "点赞成功" }
+```
 
 ---
 
@@ -2572,6 +2669,33 @@ GET /api/announcements/:id
 
 ---
 
+### 群发站内消息（广播通知全体用户）
+
+```
+POST /api/admin/broadcast-message
+Authorization: Bearer adminToken
+Content-Type: application/json
+
+{
+  "title": "周末活动通知",
+  "content": "本周六下午学校篮球场举行社团招新活动，欢迎大家参加！"
+}
+```
+需管理员登录。创建一条**广播通知**（`target: 'all'`），所有用户的「消息」
+列表均可看到（单文档共享，不逐用户插入，海量用户也不卡）。适合活动、
+维护等全体通知。
+
+**响应**：
+```json
+{ "success": true, "message": "广播消息已发送", "notificationId": "..." }
+```
+
+**广播通知的已读机制**：广播是全体共享文档，已读状态按用户独立记录
+（`readBy` 数组），`read` 字段在响应层按当前用户计算——A 用户已读不影响
+B 用户的未读状态；"全部已读"与未读数统计均包含广播通知。
+
+---
+
 ## 运行模式模块
 
 ### 获取当前运行模式
@@ -3429,17 +3553,27 @@ Android 客户端内置 Token 刷新拦截器（`TokenRefreshInterceptor`），�
 /**
  * @typedef {Object} Notification
  * @property {string} id - UUID
- * @property {string} userId - 接收者ID
+ * @property {string} [userId] - 接收者ID（广播通知为 null）
  * @property {'like'|'comment'|'comment_reply'|'follow'|'system'} type - 通知类型
+ * @property {string} [systemType] - 系统通知子类型：'new_device'（新设备登录提醒）、
+ *   'broadcast'（管理员群发广播消息）
+ * @property {'user'|'all'} [target] - 通知范围：'user' 单用户 / 'all' 全体广播
+ * @property {string} [title] - 标题（广播消息/新设备提醒）
+ * @property {string} [message] - 正文（system 通知使用；like/comment 等互动通知
+ *   用 content 字段）
  * @property {string} [postId] - 帖子ID
  * @property {string} [commentId] - 评论ID
  * @property {string} [fromUserId] - 发送者ID
  * @property {string} [fromUsername] - 发送者用户名
  * @property {string} [content] - 内容
  * @property {string} timestamp - 时间
- * @property {boolean} read - 是否已读
+ * @property {boolean} read - 是否已读（广播通知在响应层按 readBy 计算）
+ * @property {string[]} [readBy] - 广播通知已读用户ID列表
  */
 ```
+
+> **说明**：系统/广播类通知（`system`）不使用 `postTitle`/`fromUsername`
+> 交互字段，客户端应展示 `title` + `message`。
 
 ### 收藏 (Favorite)
 
