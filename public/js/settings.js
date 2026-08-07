@@ -172,8 +172,129 @@ const settingsManager = {
     // 加载学校配置（异步，加载完成后会自动填充个人信息）
     this.loadSchoolsConfig();
     
+    // 加载 QQ 绑定状态
+    this.loadQqBindStatus();
+    
     // 标记初始化完成
     console.log('settingsManager 初始化完成');
+  },
+
+  /**
+   * 加载 QQ 绑定状态并渲染绑定卡片
+   */
+  loadQqBindStatus: function() {
+    const container = document.getElementById('qq-bind-status');
+    if (!container) return;
+
+    if (!userManager || !userManager.state || !userManager.state.currentUser) {
+      container.innerHTML = '<div class="qq-bind-loading"><i class="fas fa-exclamation-circle"></i> 请先登录</div>';
+      return;
+    }
+
+    fetch('/api/auth/qq/bind-status', {
+      headers: userManager.getAuthHeaders()
+    })
+      .then(resp => resp.json())
+      .then(data => {
+        if (!data.success) {
+          container.innerHTML = `<div class="qq-bind-loading"><i class="fas fa-exclamation-circle"></i> ${this.escapeHtml(data.message || '查询失败')}</div>`;
+          return;
+        }
+        if (!data.configured) {
+          container.innerHTML = '<div class="qq-bind-loading"><i class="fas fa-info-circle"></i> QQ 登录尚未配置，请联系管理员</div>';
+          return;
+        }
+        if (data.qqBound) {
+          container.innerHTML = `
+            <div class="qq-bind-bound">
+              <div class="qq-bind-info">
+                <i class="fab fa-qq qq-bind-icon"></i>
+                <div>
+                  <strong>已绑定 QQ</strong>
+                  <span>可通过 QQ 快捷登录本账号${data.qqPlaceholder ? '（QQ 快捷注册账号）' : ''}</span>
+                </div>
+              </div>
+              <button type="button" class="settings-button secondary" id="unbind-qq-btn">
+                <i class="fas fa-unlink"></i> 解绑 QQ
+              </button>
+            </div>`;
+          document.getElementById('unbind-qq-btn').addEventListener('click', () => this.unbindQq());
+        } else {
+          container.innerHTML = `
+            <div class="qq-bind-unbound">
+              <div class="qq-bind-info">
+                <i class="fab fa-qq qq-bind-icon"></i>
+                <div>
+                  <strong>未绑定 QQ</strong>
+                  <span>绑定后可使用 QQ 一键登录</span>
+                </div>
+              </div>
+              <button type="button" class="settings-button primary" id="bind-qq-btn">
+                <i class="fab fa-qq"></i> 绑定 QQ
+              </button>
+            </div>`;
+          document.getElementById('bind-qq-btn').addEventListener('click', () => this.bindQq());
+        }
+      })
+      .catch(err => {
+        console.error('查询QQ绑定状态失败:', err);
+        container.innerHTML = '<div class="qq-bind-loading"><i class="fas fa-exclamation-circle"></i> 查询失败，请刷新重试</div>';
+      });
+  },
+
+  /**
+   * 发起 QQ 绑定（跳转授权）
+   */
+  bindQq: function() {
+    fetch('/api/auth/qq/authorize-url-bind?type=bind', {
+      headers: userManager.getAuthHeaders()
+    })
+      .then(resp => resp.json())
+      .then(data => {
+        if (!data.success) {
+          alert(data.message || 'QQ 绑定失败');
+          return;
+        }
+        window.location.href = data.url;
+      })
+      .catch(err => {
+        console.error('QQ 绑定失败:', err);
+        alert('QQ 绑定失败，请稍后重试');
+      });
+  },
+
+  /**
+   * 解绑 QQ
+   */
+  unbindQq: function() {
+    if (!confirm('确定要解绑 QQ 吗？解绑后将无法通过 QQ 快捷登录本账号。')) return;
+    fetch('/api/auth/qq/unbind', {
+      method: 'POST',
+      headers: userManager.getAuthHeaders()
+    })
+      .then(resp => resp.json())
+      .then(data => {
+        if (data.success) {
+          alert('QQ 解绑成功');
+          this.loadQqBindStatus();
+        } else {
+          alert(data.message || '解绑失败');
+        }
+      })
+      .catch(err => {
+        console.error('QQ 解绑失败:', err);
+        alert('QQ 解绑失败，请稍后重试');
+      });
+  },
+
+  /**
+   * HTML 转义
+   */
+  escapeHtml: function(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   },
 
   // 加载当前设置

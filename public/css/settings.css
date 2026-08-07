@@ -2175,3 +2175,57 @@
 .import-stat-skip i {
   font-size: 11px;
 }
+/* ===== QQ 账号绑定 ===== */
+.qq-bind-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color, #e4e6e8);
+}
+.qq-bind-desc {
+  color: var(--text-muted, #8c959f);
+  font-size: 13px;
+  margin: 6px 0 14px;
+}
+.qq-bind-card {
+  background: var(--background-light, #f6f7f8);
+  border: 1px solid var(--border-color, #e4e6e8);
+  border-radius: var(--radius-md, 6px);
+  padding: 14px 16px;
+}
+.qq-bind-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted, #8c959f);
+  font-size: 13px;
+  padding: 6px 0;
+}
+.qq-bind-bound,
+.qq-bind-unbound {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.qq-bind-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.qq-bind-icon {
+  font-size: 30px;
+  color: #12b7f5;
+}
+.qq-bind-info strong {
+  display: block;
+  color: var(--text-color, #1f2328);
+  font-size: 14px;
+}
+.qq-bind-info span {
+  display: block;
+  color: var(--text-muted, #8c959f);
+  font-size: 12px;
+  margin-top: 2px;
+}

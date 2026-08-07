@@ -1604,6 +1604,83 @@ const hotPostsCache = {
   }
 };
 
+/**
+ * QQ 快捷登录会话缓存（state 关联：授权发起 → 回调 → 前端取结果 → 补全资料）
+ * 带内存 fallback（Redis 不可用时进程内 Map）
+ */
+const qqCache = {
+  // 会话过期时间（10分钟）
+  EXPIRE_TIME: 10 * 60,
+
+  getKey(state) {
+    return `qq:session:${state}`;
+  },
+
+  /**
+   * 存储 QQ 会话
+   * @param {string} state - 防 CSRF 随机串
+   * @param {object} data - { type: 'login'|'bind', userId?, openid?, nickname?, avatar?, gender?, result? }
+   */
+  async set(state, data) {
+    const json = JSON.stringify(data);
+    if (!isConnected) {
+      if (!this._memoryStore) this._memoryStore = new Map();
+      this._memoryStore.set(this.getKey(state), { data, expireAt: Date.now() + this.EXPIRE_TIME * 1000 });
+      return true;
+    }
+    try {
+      const client = getRedisClient();
+      await client.setEx(this.getKey(state), this.EXPIRE_TIME, json);
+      return true;
+    } catch (error) {
+      console.error('[Redis] 存储QQ会话失败:', error.message);
+      return false;
+    }
+  },
+
+  /**
+   * 获取 QQ 会话
+   */
+  async get(state) {
+    if (!state) return null;
+    if (!isConnected) {
+      if (!this._memoryStore) return null;
+      const item = this._memoryStore.get(this.getKey(state));
+      if (!item) return null;
+      if (Date.now() > item.expireAt) {
+        this._memoryStore.delete(this.getKey(state));
+        return null;
+      }
+      return item.data;
+    }
+    try {
+      const client = getRedisClient();
+      const raw = await client.get(this.getKey(state));
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      console.error('[Redis] 获取QQ会话失败:', error.message);
+      return null;
+    }
+  },
+
+  /**
+   * 删除 QQ 会话（一次性消费）
+   */
+  async del(state) {
+    if (!state) return;
+    if (!isConnected) {
+      if (this._memoryStore) this._memoryStore.delete(this.getKey(state));
+      return;
+    }
+    try {
+      const client = getRedisClient();
+      await client.del(this.getKey(state));
+    } catch (error) {
+      console.error('[Redis] 删除QQ会话失败:', error.message);
+    }
+  }
+};
+
 module.exports = {
   initRedis,
   getRedisClient,
@@ -1621,5 +1698,6 @@ module.exports = {
   sessionCache,
   rateLimiter,
   hotPostsCache,
-  captchaCache
+  captchaCache,
+  qqCache
 };

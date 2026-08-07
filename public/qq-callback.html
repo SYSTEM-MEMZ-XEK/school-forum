@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QQ 登录处理中 - 校园论坛</title>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div id="notificationArea" class="notification-area"></div>
+
+  <div class="login-container">
+    <div class="login-wrapper">
+      <!-- 左侧欢迎区域 -->
+      <div class="login-welcome">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <i class="fab fa-qq"></i>
+          </div>
+          <h1 class="welcome-title">QQ 快捷登录</h1>
+          <p class="welcome-subtitle">
+            连接校园，分享知识，交流思想<br>
+            使用 QQ 授权快速登录校园论坛
+          </p>
+          <ul class="features-list">
+            <li><i class="fas fa-check-circle"></i> 无需记忆密码，一键登录</li>
+            <li><i class="fas fa-check-circle"></i> 自动获取 QQ 头像与昵称</li>
+            <li><i class="fas fa-check-circle"></i> 新用户自动注册，资料可后补</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 右侧处理区域 -->
+      <div class="login-form-area" id="callback-area">
+        <div class="form-header">
+          <h2 class="form-title" id="callback-title">QQ 登录处理中...</h2>
+          <p class="form-subtitle" id="callback-subtitle">正在获取 QQ 授权信息，请稍候</p>
+        </div>
+
+        <div class="qq-callback-status" id="callback-status">
+          <div class="qq-callback-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>正在验证 QQ 授权...</span>
+          </div>
+        </div>
+
+        <div class="back-link" id="callback-back" style="display:none;">
+          <a href="login.html"><i class="fas fa-arrow-left"></i> 返回登录页</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js" defer></script>
+  <script src="js/qq-callback.js" defer></script>
+</body>
+</html>

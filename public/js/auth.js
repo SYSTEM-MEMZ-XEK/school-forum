@@ -49,9 +49,55 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCaptcha('register');
   loadCaptcha('admin');
   
+  // 检查 QQ 快捷登录是否已配置，配置后显示按钮
+  checkQqLoginConfig();
+  
   // 检查是否已登录，如果已登录则跳转到首页
   checkAutoLogin();
 });
+
+/**
+ * QQ 快捷登录：检查服务端配置，已配置则显示按钮
+ */
+async function checkQqLoginConfig() {
+  try {
+    const resp = await fetch('/api/auth/qq/status');
+    const data = await resp.json();
+    const section = document.getElementById('qq-login-section');
+    if (section && data && data.configured) {
+      section.style.display = '';
+    }
+  } catch (e) {
+    // 网络异常时静默隐藏 QQ 按钮
+  }
+}
+
+/**
+ * QQ 快捷登录：获取授权 URL 并跳转 QQ 授权页
+ */
+async function qqLoginStart() {
+  try {
+    const btn = document.getElementById('qq-login-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 跳转中...';
+    }
+    const resp = await fetch('/api/auth/qq/authorize-url?type=login');
+    const data = await resp.json();
+    if (!data.success) {
+      throw new Error(data.message || 'QQ登录未配置');
+    }
+    window.location.href = data.url;
+  } catch (error) {
+    console.error('QQ登录失败:', error);
+    showNotification(error.message || 'QQ登录失败，请稍后重试', 'error');
+    const btn = document.getElementById('qq-login-btn');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fab fa-qq"></i> QQ 快捷登录';
+    }
+  }
+}
 
 // 加载学校配置
 async function loadSchoolsConfig() {
@@ -273,6 +319,12 @@ function setupEventListeners() {
         document.getElementById('register-form').classList.add('active');
       } else if (tab.dataset.tab === 'admin-login') {
         document.getElementById('admin-login-form').classList.add('active');
+      }
+
+      // QQ 快捷登录仅在用户登录/注册 tab 显示（管理员 tab 隐藏）
+      const qqSection = document.getElementById('qq-login-section');
+      if (qqSection) {
+        qqSection.style.display = (tab.dataset.tab === 'admin-login') ? 'none' : '';
       }
     });
   });

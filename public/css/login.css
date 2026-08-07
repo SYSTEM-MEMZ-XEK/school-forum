@@ -716,3 +716,161 @@ input[type="date"]::-webkit-date-and-time-value {
 .form-footer-links a i {
   font-size: 12px;
 }
+
+/* ===== QQ 快捷登录 ===== */
+.qq-login-section {
+  margin-top: 20px;
+}
+.qq-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted, #999);
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+.qq-divider::before,
+.qq-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color, #e0e0e0);
+}
+.qq-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: #12b7f5;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md, 6px);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast, 0.2s);
+}
+.qq-login-btn:hover {
+  background: #0fa3dc;
+}
+.qq-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.qq-login-btn i {
+  font-size: 20px;
+}
+.qq-login-hint {
+  text-align: center;
+  color: var(--text-muted, #999);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* ===== QQ 回调状态 ===== */
+.qq-callback-status {
+  margin: 20px 0;
+}
+.qq-callback-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 30px 0;
+  color: var(--text-light, #666);
+  font-size: 14px;
+}
+.qq-callback-loading i {
+  font-size: 34px;
+  color: #12b7f5;
+}
+.qq-callback-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+  border-radius: var(--radius-md, 6px);
+}
+.qq-callback-result i {
+  font-size: 42px;
+}
+.qq-callback-result p {
+  color: var(--text-color, #333);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+.qq-callback-result.success {
+  background: var(--primary-light, #ebf4fc);
+}
+.qq-callback-result.success i {
+  color: var(--success-color, #2f9e44);
+}
+.qq-callback-result.error {
+  background: #fef2f2;
+}
+.qq-callback-result.error i {
+  color: var(--error-color, #e03131);
+}
+.qq-bound-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: var(--radius-md, 6px);
+}
+.qq-bound-user img {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full, 50%);
+  object-fit: cover;
+}
+.qq-bound-user span {
+  color: var(--text-color, #333);
+  font-size: 14px;
+}
+
+/* ===== QQ 补全资料 ===== */
+.qq-prefill-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--background-light, #f6f7f8);
+  border: 1px solid var(--border-color, #e4e6e8);
+  border-radius: var(--radius-md, 6px);
+  margin-bottom: 18px;
+}
+.qq-prefill-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full, 50%);
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+}
+.qq-prefill-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.qq-prefill-info strong {
+  color: var(--text-color, #1f2328);
+  font-size: 15px;
+}
+.qq-prefill-info span {
+  color: var(--text-muted, #8c959f);
+  font-size: 12px;
+}
+.form-tip {
+  display: block;
+  color: var(--text-muted, #8c959f);
+  font-size: 12px;
+  margin-top: 4px;
+}

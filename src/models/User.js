@@ -128,6 +128,13 @@ const UserSchema = new Schema({
     required: true,
     unique: true
   },
+  // QQ 互联 openid：QQ 快捷登录用户的唯一标识（sparse 唯一：普通用户为 null 不冲突）
+  qqOpenId: {
+    type: String,
+    default: null,
+    index: true,
+    sparse: true
+  },
   username: {
     type: String,
     required: true,

@@ -431,6 +431,105 @@ POST /api/login
 
 ---
 
+### QQ 快捷登录（QQ 互联 OAuth2.0）
+
+> 需先在 [QQ 互联](https://connect.qq.com) 申请应用，并在 `.env` 配置：
+> `QQ_APP_ID`、`QQ_APP_SECRET`、`QQ_REDIRECT_URI`（回调地址需与 QQ 互联后台一致）。
+> 未配置时接口返回 400「QQ登录未配置」。
+
+#### 查询 QQ 登录配置状态
+
+```
+GET /api/auth/qq/status
+```
+未登录可用。返回 `{ configured: true|false }`，登录页据此决定是否显示「QQ 快捷登录」按钮。
+
+#### 获取 QQ 授权 URL（登录场景）
+
+```
+GET /api/auth/qq/authorize-url?type=login
+```
+未登录可用。返回 `{ url, state }`，前端跳转 `url` 进入 QQ 授权页。
+
+#### 获取 QQ 授权 URL（绑定场景）
+
+```
+GET /api/auth/qq/authorize-url-bind?type=bind
+```
+需登录（Authorization: Bearer token）。用于设置页绑定 QQ 到当前账号。
+
+#### QQ 授权回调（QQ 服务器重定向）
+
+```
+GET /api/auth/qq/callback?code=xxx&state=yyy
+```
+QQ 授权完成后由 QQ 服务器调用（即 `QQ_REDIRECT_URI`）。服务端换取
+openid/用户信息后，302 重定向到前端 `/qq-callback.html?state=yyy`。
+
+#### 获取 QQ 授权结果
+
+```
+GET /api/auth/qq/result?state=yyy
+```
+前端回调页调用，`state` 为一次性凭证（会话 10 分钟有效）。返回：
+
+```json
+{
+  "success": true,
+  "type": "login",
+  "result": {
+    "needProfile": false,
+    "user": { "id": "xxx", "username": "xxx" },
+    "token": "JWT访问令牌",
+    "refreshToken": "JWT刷新令牌",
+    "isAdmin": false,
+    "isNewDevice": false
+  },
+  "prefill": { "nickname": "QQ昵称", "avatar": "头像URL", "gender": "male" }
+}
+```
+- `result.needProfile = false`：已有账号，直接登录成功（前端保存 token 跳首页）
+- `result.needProfile = true`：新用户，跳转 `/qq-register.html?state=yyy` 补全资料
+- `type = "bind"`：绑定场景，`result.bound` 表示绑定结果
+
+#### QQ 新用户补全资料注册
+
+```
+POST /api/auth/qq/complete-profile
+Content-Type: application/json
+
+{
+  "state": "yyy",
+  "username": "用户名（默认预填QQ昵称，重名自动加后缀）",
+  "school": "学校名称",
+  "enrollmentYear": 2024,
+  "className": "1班",
+  "birthday": "2000-01-01",
+  "gender": "male"
+}
+```
+创建账号并直接登录（返回 token/refreshToken）。QQ 快捷注册账号使用占位
+邮箱（`@qq-oauth.local`，不可收信），**不发送任何邮件通知**；用户可在设置页
+修改 QQ 号/绑定真实邮箱后恢复邮件功能。
+
+#### 解绑 QQ
+
+```
+POST /api/auth/qq/unbind
+Authorization: Bearer token
+```
+需登录。QQ 快捷注册账号（占位 QQ 号）禁止解绑，返回 400。
+
+#### 查询 QQ 绑定状态
+
+```
+GET /api/auth/qq/bind-status
+Authorization: Bearer token
+```
+需登录。返回 `{ qqBound, qqPlaceholder, configured }`，设置页渲染绑定卡片。
+
+---
+
 ### 验证登录状态
 
 ```

@@ -174,9 +174,11 @@ async function authenticateUser(req, res, next) {
 
     // 密码变更后旧令牌失效检查（安全）：token 签发时间早于密码变更时间 → 拒绝
     // 覆盖忘记密码重置 / 修改密码后，旧 token（含其他设备）立即失效
+    // 容差 1 秒：passwordChangedAt 为毫秒精度、token iat 为秒精度，同一秒内
+    // 注册/变更后立即签发的 token 不应被误判为"密码已变更"
     if (user.passwordChangedAt && result.decoded.iat) {
       const changedAt = new Date(user.passwordChangedAt).getTime();
-      if (result.decoded.iat * 1000 < changedAt) {
+      if (result.decoded.iat * 1000 + 1000 < changedAt) {
         return res.status(401).json({
           success: false,
           message: '登录已失效，请重新登录',

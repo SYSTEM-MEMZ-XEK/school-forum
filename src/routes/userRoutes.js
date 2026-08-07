@@ -103,6 +103,24 @@ router.post('/logout', userController.logout);
 // 管理员登出
 router.post('/admin/logout', userController.adminLogout);
 
+// ===== QQ 快捷登录 =====
+// QQ 登录配置状态（登录页判断是否显示按钮）
+router.get('/auth/qq/status', userController.getQqStatus);
+// 获取 QQ 授权 URL（登录场景，无需登录）
+router.get('/auth/qq/authorize-url', userController.getQqAuthorizeUrl);
+// 获取 QQ 授权 URL（绑定场景，需登录）
+router.get('/auth/qq/authorize-url-bind', authenticateUser, userController.getQqAuthorizeUrl);
+// QQ 授权回调（QQ 服务器重定向）
+router.get('/auth/qq/callback', userController.qqCallback);
+// 前端取 QQ 授权结果（state 为凭证）
+router.get('/auth/qq/result', userController.getQqResult);
+// QQ 新用户补全资料并注册
+router.post('/auth/qq/complete-profile', userController.qqCompleteProfile);
+// 解绑 QQ
+router.post('/auth/qq/unbind', authenticateUser, userController.unbindQq);
+// 查询 QQ 绑定状态（设置页）
+router.get('/auth/qq/bind-status', authenticateUser, userController.getQqBindStatus);
+
 // 验证用户登录状态（optionalAuth：有JWT时验证，无JWT时放行）
 router.post('/auth/verify', optionalAuth, userController.verifyAuth);
 

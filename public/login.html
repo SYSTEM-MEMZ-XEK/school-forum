@@ -210,6 +210,15 @@
           <button id="confirm-register" class="login-button">立即注册</button>
         </div>
 
+        <!-- QQ 快捷登录（配置后显示；管理员 tab 隐藏） -->
+        <div class="qq-login-section" id="qq-login-section" style="display:none;">
+          <div class="qq-divider"><span>或</span></div>
+          <button type="button" class="qq-login-btn" onclick="qqLoginStart()">
+            <i class="fab fa-qq"></i> QQ 快捷登录
+          </button>
+          <p class="qq-login-hint">使用 QQ 授权登录，新用户自动注册，头像昵称自动获取</p>
+        </div>
+
         <div class="back-link">
           <a href="/"><i class="fas fa-arrow-left"></i> 返回论坛首页</a>
         </div>

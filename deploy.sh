@@ -770,6 +770,19 @@ configure_project() {
             add_missing "邮件服务 (SMTP) 未配置，如需发送邮件请编辑 .env 中的 SMTP_* 配置"
         fi
 
+        print_section "QQ 快捷登录配置（可选，需在 QQ 互联 connect.qq.com 申请应用）"
+        prompt_read qq_app_id "QQ 互联 AppID (留空跳过): " ""
+        if [[ -n "$qq_app_id" ]]; then
+            prompt_read qq_app_secret "QQ 互联 AppSecret: " "" "silent"
+            prompt_read qq_redirect_uri "授权回调地址 (必须与QQ互联后台一致, 例如 https://域名/api/auth/qq/callback): " ""
+            add_missing "QQ_APP_ID=$qq_app_id"
+            add_missing "QQ_APP_SECRET=$qq_app_secret"
+            add_missing "QQ_REDIRECT_URI=$qq_redirect_uri"
+            log_info "QQ 快捷登录已配置，登录页将显示 QQ 登录按钮"
+        else
+            add_missing "QQ 快捷登录未配置，如需启用请编辑 .env 中的 QQ_APP_ID/QQ_APP_SECRET/QQ_REDIRECT_URI"
+        fi
+
         print_section "CORS 白名单"
         prompt_read cors_origin "CORS 白名单 (多个用逗号分隔, 默认 http://localhost:2080): " "http://localhost:2080"
 

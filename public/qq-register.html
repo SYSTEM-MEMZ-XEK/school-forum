@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完善资料 - 校园论坛</title>
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+  <div id="notificationArea" class="notification-area"></div>
+
+  <div class="login-container">
+    <div class="login-wrapper">
+      <!-- 左侧欢迎区域 -->
+      <div class="login-welcome">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <i class="fab fa-qq"></i>
+          </div>
+          <h1 class="welcome-title">欢迎加入校园论坛</h1>
+          <p class="welcome-subtitle">
+            您的 QQ 身份已认证<br>
+            完善以下信息即可完成注册
+          </p>
+          <ul class="features-list">
+            <li><i class="fas fa-check-circle"></i> 头像昵称已从 QQ 自动获取</li>
+            <li><i class="fas fa-check-circle"></i> 学校班级信息用于实名社区</li>
+            <li><i class="fas fa-check-circle"></i> 后续可在设置中修改</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 右侧表单区域 -->
+      <div class="login-form-area">
+        <div class="form-header">
+          <h2 class="form-title">完善注册资料</h2>
+          <p class="form-subtitle">带 * 为必填项，学校/班级用于社区归属展示</p>
+        </div>
+
+        <!-- QQ 用户信息 -->
+        <div class="qq-prefill-card">
+          <img id="qq-avatar" class="qq-prefill-avatar" src="" alt="QQ头像" style="display:none;">
+          <div class="qq-prefill-info">
+            <strong id="qq-nickname">QQ 用户</strong>
+            <span>通过 QQ 授权登录，无需密码</span>
+          </div>
+        </div>
+
+        <div class="form-section active" id="qq-register-form">
+          <div class="form-group">
+            <label for="username-qq">用户名 *</label>
+            <input type="text" id="username-qq" placeholder="设置您的用户名" maxlength="20" required>
+            <small class="form-tip">已预填 QQ 昵称，可修改</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="school-qq">学校名称 *</label>
+              <select id="school-qq" required>
+                <option value="">请选择学校</option>
+                <!-- 学校选项将由JS动态生成 -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="enrollment-year-qq">入学年份 *</label>
+              <select id="enrollment-year-qq" required>
+                <option value="">请选择入学年份</option>
+                <!-- 年份选项将由JS动态生成 -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="class-qq">班级 *</label>
+              <select id="class-qq" required disabled>
+                <option value="">请先选择学校与年份</option>
+                <!-- 班级选项将由JS动态生成 -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="birthday-qq">出生日期</label>
+              <input type="date" id="birthday-qq">
+            </div>
+            <div class="form-group">
+              <label for="gender-qq">性别</label>
+              <select id="gender-qq">
+                <option value="">请选择性别</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="confirm-qq-register" class="login-button">
+            <i class="fab fa-qq"></i> 完成注册并登录
+          </button>
+        </div>
+
+        <div class="back-link">
+          <a href="login.html"><i class="fas fa-arrow-left"></i> 返回登录页</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils.js" defer></script>
+  <script src="js/qq-register.js" defer></script>
+</body>
+</html>

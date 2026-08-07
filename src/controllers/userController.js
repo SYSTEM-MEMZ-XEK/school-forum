@@ -21,7 +21,8 @@ const {
 } = require('../utils/validationUtils');
 const { sendVerificationEmail, verifyCode, sendNewDeviceLoginEmail } = require('../utils/emailUtils');
 const { parseUserAgent } = require('../utils/userAgent');
-const { userCache, notificationCache, captchaCache } = require('../utils/redisUtils');
+const { userCache, notificationCache, captchaCache, qqCache } = require('../utils/redisUtils');
+const qqOAuth = require('../utils/qqOAuth');
 const logger = require('../utils/logger');
 const User = require('../models/User');
 
@@ -666,7 +667,8 @@ const userController = {
         } catch (noticeError) {
           logger.logError('创建新设备登录通知失败', { error: noticeError.message, userId: user.id });
         }
-        if (user.email) {
+        // 占位邮箱（QQ快捷注册用户未绑定真实邮箱）不发送邮件，避免退信打扰发件人
+        if (user.email && !user.email.endsWith('@qq-oauth.local')) {
           sendNewDeviceLoginEmail(user.email, {
             device: uaInfo.device,
             os: uaInfo.os,
@@ -1948,6 +1950,246 @@ const userController = {
       logger.logError('导入用户数据失败', { error: error.message, userId: req.user?.id });
       res.status(500).json(generateErrorResponse('服务器内部错误', 500));
     }
+  },
+
+  // ==================== QQ 快捷登录 ====================
+
+  /**
+   * 获取 QQ 授权 URL（type=login 无需登录；type=bind 需登录）
+   * GET /api/auth/qq/authorize-url?type=login
+   * GET /api/auth/qq/authorize-url-bind （authenticateUser 中间件注入 req.user）
+   */
+  async getQqAuthorizeUrl(req, res) {
+    try {
+      if (!qqOAuth.isConfigured()) {
+        return res.status(400).json(generateErrorResponse('QQ登录未配置，请联系管理员'));
+      }
+      const type = req.query.type === 'bind' ? 'bind' : 'login';
+      const state = uuidv4();
+      const session = { type };
+      if (type === 'bind' && req.user) {
+        session.userId = req.user.id;
+      }
+      await qqCache.set(state, session);
+      const url = qqOAuth.getAuthorizeUrl(state);
+      res.json(generateSuccessResponse({ url, state }, 'OK'));
+    } catch (error) {
+      logger.logError('获取QQ授权URL失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  /**
+   * QQ 授权回调（QQ 服务器重定向到此处）
+   * GET /api/auth/qq/callback?code=xxx&state=yyy
+   * 处理结果写入会话，302 重定向到前端 qq-callback.html?state=yyy
+   */
+  async qqCallback(req, res) {
+    const { code, state } = req.query;
+    const failRedirect = (msg) => {
+      const url = `/qq-callback.html?state=${encodeURIComponent(state || '')}&error=1&message=${encodeURIComponent(msg || 'QQ授权失败')}`;
+      res.redirect(url);
+    };
+
+    try {
+      if (!code || !state) return failRedirect('QQ授权参数缺失');
+      const session = await qqCache.get(state);
+      if (!session) return failRedirect('QQ授权会话已过期，请重新登录');
+
+      let profile;
+      try {
+        profile = await qqOAuth.getQqProfile(code);
+      } catch (e) {
+        logger.logError('QQ授权回调获取用户信息失败', { error: e.message, state });
+        return failRedirect(e.message || 'QQ授权失败');
+      }
+
+      // 该 openid 是否已注册
+      const existing = await User.findOne({ qqOpenId: profile.openid }).lean();
+
+      if (session.type === 'bind') {
+        // ===== 绑定场景（需登录）=====
+        if (existing) {
+          session.result = existing.id === session.userId
+            ? { bound: true, same: true, nickname: profile.nickname, avatar: profile.avatar }
+            : { bound: false, error: '该QQ已绑定其他账号' };
+        } else {
+          await updateUser(session.userId, { qqOpenId: profile.openid, avatar: profile.avatar || null });
+          session.result = { bound: true, nickname: profile.nickname, avatar: profile.avatar };
+        }
+        await qqCache.set(state, session);
+        return res.redirect(`/qq-callback.html?state=${encodeURIComponent(state)}`);
+      }
+
+      // ===== 登录场景 =====
+      if (existing) {
+        // 已有账号：构建登录响应
+        const payload = await buildAuthPayload(existing, req);
+        session.profile = profile;
+        session.result = { needProfile: false, ...payload.responseData };
+      } else {
+        // 新用户：预注册，前端补全资料
+        session.profile = profile;
+        session.result = { needProfile: true };
+      }
+      await qqCache.set(state, session);
+      return res.redirect(`/qq-callback.html?state=${encodeURIComponent(state)}`);
+    } catch (error) {
+      logger.logError('QQ授权回调失败', { error: error.message, state });
+      return failRedirect('QQ授权处理失败');
+    }
+  },
+
+  /**
+   * 前端取 QQ 授权结果（state 为凭证，会话 TTL 10 分钟兜底）
+   * GET /api/auth/qq/result?state=xxx
+   */
+  async getQqResult(req, res) {
+    try {
+      const { state } = req.query;
+      if (!state) return res.status(400).json(generateErrorResponse('参数缺失'));
+      const session = await qqCache.get(state);
+      if (!session) return res.status(404).json(generateErrorResponse('QQ授权会话已过期，请重新登录'));
+      const profile = session.profile || {};
+      res.json(generateSuccessResponse({
+        type: session.type,
+        result: session.result || null,
+        prefill: profile.nickname ? {
+          nickname: profile.nickname,
+          avatar: profile.avatar || '',
+          gender: profile.gender || ''
+        } : null,
+        state
+      }, 'OK'));
+    } catch (error) {
+      logger.logError('获取QQ授权结果失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  /**
+   * QQ 新用户补全资料并注册（学校/班级/入学年份等手动设置）
+   * POST /api/auth/qq/complete-profile
+   * body: { state, username, school, enrollmentYear, className, birthday?, gender? }
+   */
+  async qqCompleteProfile(req, res) {
+    try {
+      const { state, username, school, enrollmentYear, className, birthday, gender } = req.body;
+      if (!state) return res.status(400).json(generateErrorResponse('参数缺失'));
+      const session = await qqCache.get(state);
+      if (!session || !session.profile || !session.profile.openid) {
+        return res.status(400).json(generateErrorResponse('QQ授权会话已过期，请重新登录'));
+      }
+      const profile = session.profile;
+
+      // 防重复：openid 可能已被注册（如另一浏览器同时完成补全）
+      if (await User.findOne({ qqOpenId: profile.openid })) {
+        return res.status(400).json(generateErrorResponse('该QQ已绑定账号，请直接登录'));
+      }
+
+      if (!username || !username.trim()) return res.status(400).json(generateErrorResponse('用户名不能为空'));
+      if (!school || !school.trim()) return res.status(400).json(generateErrorResponse('学校不能为空'));
+      if (!className || !className.trim()) return res.status(400).json(generateErrorResponse('班级不能为空'));
+
+      // 用户名冲突加后缀
+      let finalUsername = username.trim();
+      let suffix = 1;
+      while (await isUsernameExists(finalUsername)) {
+        finalUsername = `${username.trim()}_${suffix++}`;
+      }
+
+      const year = enrollmentYear ? (parseInt(enrollmentYear, 10) || new Date().getFullYear()) : new Date().getFullYear();
+      const currentGrade = calculateCurrentGrade(year);
+      // openid 为 32 位十六进制，取末 10 位生成占位 QQ/邮箱（唯一；用户可后续在设置中修改）
+      const openidSuffix = profile.openid.slice(-10);
+
+      const newUser = {
+        id: uuidv4(),
+        qq: `q${openidSuffix}`,
+        qqOpenId: profile.openid,
+        username: finalUsername,
+        email: `qq${openidSuffix}@qq-oauth.local`,
+        password: require('crypto').randomBytes(16).toString('hex'), // 随机密码，QQ用户通过QQ登录
+        passwordChangedAt: new Date(),
+        school: school.trim(),
+        enrollmentYear: year,
+        className: className.trim(),
+        grade: currentGrade,
+        birthday: birthday || null,
+        gender: gender || profile.gender || '',
+        avatar: profile.avatar || null,
+        createdAt: new Date().toISOString(),
+        lastLogin: null,
+        postCount: 0,
+        commentCount: 0,
+        isActive: true,
+        settings: {},
+        loginDevices: []
+      };
+
+      const created = await createUser(newUser);
+      await qqCache.del(state); // 一次性消费
+
+      // 构建登录响应
+      const payload = await buildAuthPayload(created, req);
+      res.json(generateSuccessResponse(payload.responseData, '注册成功'));
+    } catch (error) {
+      logger.logError('QQ补全资料注册失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  /**
+   * 解绑 QQ（QQ 快捷注册占位账号禁止解绑，否则无法登录）
+   * POST /api/auth/qq/unbind （authenticateUser）
+   */
+  async unbindQq(req, res) {
+    try {
+      const userId = req.user.id;
+      const user = await getUserById(userId);
+      if (!user) return res.status(404).json(generateErrorResponse('用户不存在'));
+      if (!user.qqOpenId) return res.status(400).json(generateErrorResponse('当前账号未绑定QQ'));
+      // q 开头 + 10 位 hex 为占位号，解绑后无法登录
+      if (typeof user.qq === 'string' && /^q[a-f0-9]{10}$/.test(user.qq)) {
+        return res.status(400).json(generateErrorResponse('该账号为QQ快捷注册，解绑后将无法登录，暂不支持解绑'));
+      }
+      await updateUser(userId, { qqOpenId: null });
+      res.json(generateSuccessResponse({}, 'QQ解绑成功'));
+    } catch (error) {
+      logger.logError('QQ解绑失败', { error: error.message, userId: req.user.id });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  /**
+   * 查询 QQ 绑定状态（设置页用）
+   * GET /api/auth/qq/bind-status （authenticateUser）
+   */
+  async getQqBindStatus(req, res) {
+    try {
+      const user = await getUserById(req.user.id);
+      if (!user) return res.status(404).json(generateErrorResponse('用户不存在'));
+      res.json(generateSuccessResponse({
+        qqBound: !!user.qqOpenId,
+        qqPlaceholder: !!(typeof user.qq === 'string' && /^q[a-f0-9]{10}$/.test(user.qq)),
+        configured: qqOAuth.isConfigured()
+      }, 'OK'));
+    } catch (error) {
+      logger.logError('查询QQ绑定状态失败', { error: error.message });
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
+  },
+
+  /**
+   * QQ 登录配置状态（登录页判断是否显示按钮）
+   * GET /api/auth/qq/status
+   */
+  async getQqStatus(req, res) {
+    try {
+      res.json(generateSuccessResponse({ configured: qqOAuth.isConfigured() }, 'OK'));
+    } catch (error) {
+      res.status(500).json(generateErrorResponse('服务器内部错误', 500));
+    }
   }
 };
 
@@ -2144,6 +2386,122 @@ function generateCaptchaSvg(code) {
 
   // 渲染顺序：背景 → 字符 → 干扰元素（字符被干扰覆盖，增加识别难度）
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="#f0f0f0" rx="4"/>${chars}${curves}${lines}${dots}${blocks}</svg>`;
+}
+
+/**
+ * 构建登录成功响应（JWT 签发 + 新设备检测 + 站内/邮件提醒）——QQ 登录复用
+ * 与 login 控制器逻辑一致，返回 { responseData }
+ */
+async function buildAuthPayload(user, req) {
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                   req.headers['x-real-ip'] ||
+                   req.connection?.remoteAddress ||
+                   req.socket?.remoteAddress ||
+                   req.ip;
+
+  const {
+    generateAccessToken,
+    generateRefreshToken,
+    generateAdminToken
+  } = require('../middleware/jwtAuth');
+
+  const { getAdminUsers } = require('../config/constants');
+  const adminUsers = getAdminUsers();
+  const isAdmin = adminUsers.includes(user.qq) || adminUsers.includes(user.id);
+
+  const accessToken = generateAccessToken(user.id, { username: user.username, qq: user.qq });
+  const refreshToken = generateRefreshToken(user.id);
+  let adminToken = null;
+  if (isAdmin) adminToken = generateAdminToken(user.id, { username: user.username, qq: user.qq });
+
+  // 新设备登录检测
+  const uaInfo = parseUserAgent(req.headers['user-agent']);
+  const isMobile = /移动/.test(uaInfo.device);
+  const deviceFingerprint = [uaInfo.source, uaInfo.browser, uaInfo.os, isMobile ? 'mobile' : 'desktop'].join('|');
+  const nowIso = new Date().toISOString();
+  let loginDevices = user.loginDevices || [];
+  const existingDevice = loginDevices.find(d => d && d.fingerprint === deviceFingerprint);
+  const isNewDevice = !existingDevice;
+
+  const deviceRecord = {
+    fingerprint: deviceFingerprint,
+    source: uaInfo.source,
+    browser: uaInfo.browser,
+    os: uaInfo.os,
+    device: uaInfo.device,
+    ip: clientIp,
+    lastLoginAt: nowIso,
+    count: (existingDevice ? existingDevice.count || 0 : 0) + 1
+  };
+  loginDevices = loginDevices.filter(d => d && d.fingerprint !== deviceFingerprint);
+  loginDevices.unshift(deviceRecord);
+  loginDevices = loginDevices.slice(0, 10);
+
+  const currentGrade = calculateCurrentGrade(user.enrollmentYear);
+  await updateUser(user.id, { lastLogin: nowIso, grade: currentGrade, loginDevices });
+
+  // 新设备：站内消息 + 邮件提醒
+  if (isNewDevice) {
+    const deviceNotice = `检测到新设备登录：${uaInfo.device || '未知设备'}\n`
+      + `系统：${uaInfo.os || '未知'}\n`
+      + `IP：${clientIp}\n`
+      + `时间：${new Date().toLocaleString('zh-CN', { hour12: false })}\n\n`
+      + '如非本人操作，请尽快修改密码保护账号安全';
+    try {
+      await createNotification({
+        id: uuidv4(),
+        userId: user.id,
+        target: 'user',
+        type: 'system',
+        systemType: 'new_device',
+        title: '新设备登录提醒',
+        message: deviceNotice,
+        timestamp: nowIso,
+        read: false
+      });
+    } catch (e) {
+      logger.logError('创建新设备登录通知失败', { error: e.message, userId: user.id });
+    }
+    // 占位邮箱（QQ快捷注册用户未绑定真实邮箱）不发送邮件，避免退信打扰发件人
+    if (user.email && !user.email.endsWith('@qq-oauth.local')) {
+      sendNewDeviceLoginEmail(user.email, {
+        device: uaInfo.device,
+        os: uaInfo.os,
+        ip: clientIp,
+        time: new Date().toLocaleString('zh-CN', { hour12: false })
+      });
+    }
+  }
+
+  user.lastLogin = nowIso;
+  user.grade = currentGrade;
+  user.loginDevices = loginDevices;
+
+  logger.logUserAction('QQ快捷登录', user.id, user.username, { isAdmin, ip: clientIp });
+  logger.logSecurityEvent('qq_login_success', { userId: user.id, username: user.username, isAdmin, ip: clientIp });
+
+  // 兼容 Mongoose document 与 lean 对象
+  const { password: _, _id, __v, ...safeUser } = user.toObject ? user.toObject() : { ...user };
+  await userCache.set(user.id, safeUser);
+
+  const responseData = {
+    user: safeUser,
+    isAdmin,
+    token: accessToken,
+    refreshToken,
+    isNewDevice,
+    device: isNewDevice ? {
+      source: uaInfo.source,
+      browser: uaInfo.browser,
+      os: uaInfo.os,
+      device: uaInfo.device,
+      ip: clientIp,
+      time: nowIso
+    } : null
+  };
+  if (isAdmin) responseData.adminToken = adminToken;
+
+  return { responseData };
 }
 
 module.exports = userController;
