@@ -236,6 +236,11 @@ app.use((req, res, next) => {
     limit = sec.rateLimitComment || 20;
     windowMs = (sec.rateLimitCommentWindow || 60) * 1000;
     message = '评论过于频繁，请稍后再试';
+  } else if (req.method === 'GET' && (path.includes('/messages/unread') || path.includes('/notifications') || path.includes('/messages/conversations') || path.includes('/updates'))) {
+    // 前端轮询接口（未读数/通知列表）：宽松限流，避免多标签页/定时轮询误触 429
+    limit = 300;
+    windowMs = 60 * 1000;
+    message = '请求过于频繁，请稍后再试';
   } else {
     // 通用 API 限流
     limit = sec.rateLimitGeneral || 100;

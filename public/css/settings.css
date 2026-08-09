@@ -755,7 +755,8 @@
   bottom: 0;
   background-color: var(--border-color);
   transition: 0.3s;
-  border-radius: var(--radius-md);
+  /* 开关轨道保留圆形（胶囊），不受全局直角影响 */
+  border-radius: 26px;
 }
 
 .toggle-slider:before {

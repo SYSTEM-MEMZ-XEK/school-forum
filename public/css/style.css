@@ -138,7 +138,8 @@ header {
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-md);
+  /* 搜索框保留圆角（胶囊），不受全局直角影响 */
+  border-radius: 25px;
   padding: 0 5px;
   transition: var(--transition);
 }
@@ -1635,6 +1636,17 @@ textarea {
 /* 次要/取消按钮 */
 .btn-cancel,
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--btn-padding-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  line-height: 1;
   background: var(--background-light);
   color: var(--text-color);
   border: 1px solid var(--border-color);
@@ -1648,6 +1660,17 @@ textarea {
 /* 成功/确认按钮 */
 .btn-success,
 .btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--btn-padding-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  line-height: 1;
   background: var(--success-color);
   color: white;
   border: none;
@@ -1660,6 +1683,17 @@ textarea {
 
 /* 危险按钮 */
 .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--btn-padding-md);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  line-height: 1;
   background: var(--error-color);
   color: white;
   border: none;
