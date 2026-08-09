@@ -235,16 +235,27 @@ const simpleEditManager = {
     }
 
     try {
-      // 创建 markdown-it 实例并配置（简化配置，只支持基本markdown）
+      // 创建 markdown-it 实例（支持表格 + 代码高亮）
+      const hljsGlobal = window.hljs;
       this.state.md = markdownItGlobal({
         html: false, // 禁用原始 HTML 防 XSS
         linkify: true, // 自动将 URL 转换为链接
         typographer: true, // 启用 typographer 扩展
-        // 移除highlight配置，不支持代码高亮
-        highlight: null
+        highlight: hljsGlobal ? function(str, lang) {
+          if (lang && hljsGlobal.getLanguage(lang)) {
+            try {
+              return hljsGlobal.highlight(str, { language: lang }).value;
+            } catch (e) { /* 高亮失败回退默认 */ }
+          }
+          try {
+            return hljsGlobal.highlightAuto(str).value;
+          } catch (e) {
+            return '';
+          }
+        } : null
       });
 
-      console.log('Markdown 渲染器初始化完成（简化配置）');
+      console.log('Markdown 渲染器初始化完成（支持表格与代码高亮）');
     } catch (error) {
       console.error('初始化 markdown 渲染器失败:', error);
     }

@@ -785,3 +785,31 @@ input[type="file"] {
 [data-theme="dark"] .md-btn:hover {
   background: rgba(43, 108, 176, 0.2);
 }
+/* ===== 预览区表格 ===== */
+.preview-area table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+
+.preview-area th,
+.preview-area td {
+  border: 1px solid var(--border-color, #e4e6e8);
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.preview-area th {
+  background: var(--background-hover, #f0f1f2);
+  font-weight: 600;
+  color: var(--text-color, #1f2328);
+}
+
+.preview-area tr:nth-child(even) td {
+  background: var(--background-light, #f6f7f8);
+}
