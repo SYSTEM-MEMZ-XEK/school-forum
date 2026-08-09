@@ -1,5 +1,16 @@
 // 帖子管理模块（使用 markdown-it 和 highlight.js）
 const postsManager = {
+  // HTML 转义（委托 utils.escapeHtml，带兜底；updateCategoryNavBar 等依赖此方法）
+  escapeHtml: function(text) {
+    if (typeof utils !== 'undefined' && utils.escapeHtml) {
+      return utils.escapeHtml(text);
+    }
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+  },
+
   // 全局状态
   state: {
     posts: [],
@@ -343,8 +354,9 @@ const postsManager = {
     if (!navBar || !this.state.categories.length) return;
 
     const categoriesHtml = this.state.categories
-      .filter(cat => cat.isActive)
-      .sort((a, b) => a.order - b.order)
+      // isActive !== false 容错：/api/posts 快照缺 isActive 字段时仍显示
+      .filter(cat => cat.isActive !== false)
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
       .map(cat => `
         <a href="category.html?id=${cat.id}" 
            class="category-nav-item ${this.state.currentCategoryId === cat.id ? 'active' : ''}" 
