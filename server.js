@@ -226,8 +226,10 @@ app.use((req, res, next) => {
     limit = sec.rateLimitLogin || 5;
     windowMs = (sec.rateLimitLoginWindow || 60) * 1000;
     message = '登录尝试过于频繁，请60秒后再试';
-  } else if (path.includes('/posts') && req.method === 'POST') {
-    // 发帖：中等限流
+  } else if (path === '/api/posts' && req.method === 'POST') {
+    // 发帖（仅创建帖子接口）：中等限流
+    // 注意：必须精确匹配，path.includes('/posts') 会把点赞/点踩/评论
+    // （路径含 /posts/:id/...）都算发帖，导致没发帖也触发限流
     limit = sec.rateLimitPost || 10;
     windowMs = (sec.rateLimitPostWindow || 60) * 1000;
     message = '发帖过于频繁，请稍后再试';
