@@ -1593,7 +1593,7 @@ textarea {
   font-size: var(--btn-font-size);
   font-weight: 500;
   border-radius: var(--radius-md);
-  border: none;
+  border: 1px solid var(--border-color);
   cursor: pointer;
   transition: var(--transition-fast);
   line-height: 1;
@@ -1625,7 +1625,7 @@ textarea {
 .btn-primary {
   background: var(--primary-color);
   color: white;
-  border: none;
+  border: 1px solid var(--primary-dark);
 }
 
 .btn-primary:hover {
@@ -1674,7 +1674,7 @@ textarea {
   line-height: 1;
   background: var(--success-color);
   color: white;
-  border: none;
+  border: 1px solid var(--success-dark);
 }
 
 .btn-success:hover,
@@ -1697,7 +1697,7 @@ textarea {
   line-height: 1;
   background: var(--error-color);
   color: white;
-  border: none;
+  border: 1px solid var(--error-dark);
 }
 
 .btn-danger:hover {
@@ -1708,7 +1708,7 @@ textarea {
 .btn-warning {
   background: var(--warning-color);
   color: white;
-  border: none;
+  border: 1px solid var(--warning-dark);
 }
 
 .btn-warning:hover {
@@ -1719,7 +1719,7 @@ textarea {
 .btn-info {
   background: var(--info-color);
   color: white;
-  border: none;
+  border: 1px solid var(--info-dark);
 }
 
 .btn-info:hover {
@@ -4089,7 +4089,7 @@ textarea {
 .btn-save-tag {
   background: var(--primary-color);
   color: white;
-  border: none;
+  border: 1px solid var(--primary-dark);
   padding: var(--btn-padding-md);
   border-radius: var(--radius-md);
   font-size: var(--btn-font-size);

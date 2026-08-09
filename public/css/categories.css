@@ -78,3 +78,8 @@
   margin-bottom: 12px;
   display: block;
 }
+
+/* 全部栏目页：内容单列占满容器（避免继承 index 的 2fr 1fr 布局把栏目网格挤到右侧 1fr 列） */
+.categories-page .main-content {
+  grid-template-columns: 1fr;
+}
