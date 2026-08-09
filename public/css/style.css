@@ -195,7 +195,8 @@ header {
   border: none;
   color: white;
   padding: 8px 18px;
-  border-radius: var(--radius-md);
+  /* 搜索按钮与搜索框一致保留圆角 */
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;

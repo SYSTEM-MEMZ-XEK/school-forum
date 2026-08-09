@@ -605,6 +605,20 @@ input[type="file"] {
   display: none;
 }
 
+/* checkbox 场景：隐藏 radio 圆形指示器，checkbox 走自定义样式 */
+.visibility-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.visibility-option input[type="checkbox"] + .visibility-radio {
+  display: none;
+}
+
 .visibility-option input[type="radio"]:checked + .visibility-radio {
   border-color: var(--primary-color);
   background: var(--primary-color);
