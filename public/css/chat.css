@@ -169,7 +169,7 @@
   color: var(--primary-color);
   background: rgba(74, 144, 226, 0.1);
   padding: 4px 8px;
-  border-radius: 10px;
+  border-radius: 0;
 }
 
 /* 会话列表 */
@@ -231,7 +231,7 @@
   color: white;
   font-size: 11px;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -394,7 +394,7 @@
 
 .relation-tag {
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: 0;
   font-size: 11px;
 }
 
@@ -999,7 +999,7 @@
 .conversations-list::-webkit-scrollbar-thumb,
 .contactable-users::-webkit-scrollbar-thumb {
   background: var(--border-color);
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .messages-list::-webkit-scrollbar-thumb:hover,

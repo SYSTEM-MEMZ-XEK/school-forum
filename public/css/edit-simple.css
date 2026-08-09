@@ -60,7 +60,7 @@
   background: var(--background-light);
   color: var(--primary-color);
   border: none;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 14px;
   transition: var(--transition);
@@ -104,7 +104,7 @@
   width: 100%;
   padding: 15px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
@@ -126,7 +126,7 @@
   flex: 1;
   padding: 15px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--background-card);
   overflow-y: auto;
   line-height: 1.6;
@@ -161,7 +161,7 @@
 .preview-area code {
   background: var(--code-bg);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
   color: var(--code-text);
@@ -170,7 +170,7 @@
 .preview-area pre {
   background: var(--code-bg);
   padding: 15px;
-  border-radius: 6px;
+  border-radius: 0;
   overflow-x: auto;
   margin: 1em 0;
   border: 1px solid var(--code-border);
@@ -210,7 +210,7 @@
 .preview-area img {
   max-width: 100%;
   height: auto;
-  border-radius: 6px;
+  border-radius: 0;
   margin: 1em 0;
 }
 
@@ -229,7 +229,7 @@
 
 .image-upload-area, .text-upload-area {
   border: 2px dashed var(--border-color);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 30px 20px;
   text-align: center;
   cursor: pointer;
@@ -271,7 +271,7 @@
   position: relative;
   width: 80px;
   height: 80px;
-  border-radius: 6px;
+  border-radius: 0;
   overflow: hidden;
   border: 1px solid var(--border-color);
 }
@@ -310,7 +310,7 @@
   margin-top: 15px;
   padding: 10px;
   background: var(--primary-light);
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid var(--border-color);
 }
 
@@ -325,7 +325,7 @@
   color: var(--text-light);
   cursor: pointer;
   padding: 5px;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .remove-text-btn:hover {
@@ -344,7 +344,7 @@
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 16px;
   font-weight: bold;
@@ -448,7 +448,7 @@
   background: var(--background-light);
   color: var(--primary-color);
   border: none;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 14px;
   transition: var(--transition);
@@ -590,7 +590,7 @@ input[type="file"] {
   gap: 12px;
   padding: 12px 15px;
   background: var(--background-card);
-  border-radius: 10px;
+  border-radius: 0;
   border: 2px solid var(--border-color);
   cursor: pointer;
   transition: var(--transition);
@@ -668,7 +668,7 @@ input[type="file"] {
 .category-select-container {
   padding: 12px 15px;
   background: var(--background-card);
-  border-radius: 10px;
+  border-radius: 0;
   border: 1px solid var(--border-color);
 }
 
@@ -676,7 +676,7 @@ input[type="file"] {
   width: 100%;
   padding: 10px 15px;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 14px;
   color: var(--text-color);
   background: var(--background-color);

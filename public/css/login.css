@@ -205,7 +205,7 @@
   color: white;
   border: none;
   padding: 16px 24px;
-  border-radius: 10px;
+  border-radius: 0;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -256,7 +256,7 @@ input[type="text"][id="verification-code"] {
   width: 100%;
   padding: 16px 20px;
   border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 0;
   font-size: 15px;
   background: var(--background-card);
   transition: var(--transition);
@@ -279,7 +279,7 @@ select {
   width: 100%;
   padding: 16px 20px;
   border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 0;
   font-size: 15px;
   background: var(--background-card);
   transition: var(--transition);
@@ -389,7 +389,7 @@ input[type="date"]::-webkit-date-and-time-value {
   color: white;
   border: none;
   padding: 18px 30px;
-  border-radius: 10px;
+  border-radius: 0;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -587,7 +587,7 @@ input[type="date"]::-webkit-date-and-time-value {
 .password-strength-bar {
   height: 4px;
   background: #e0e0e0;
-  border-radius: 2px;
+  border-radius: 0;
   overflow: hidden;
   margin-bottom: 6px;
 }
@@ -595,7 +595,7 @@ input[type="date"]::-webkit-date-and-time-value {
 .password-strength-meter {
   height: 100%;
   width: 0;
-  border-radius: 2px;
+  border-radius: 0;
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
@@ -622,7 +622,7 @@ input[type="date"]::-webkit-date-and-time-value {
   width: 130px;
   height: 48px;
   border: 1px solid #ddd;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   cursor: pointer;
   transition: opacity 0.2s, border-color 0.2s;
@@ -692,7 +692,7 @@ input[type="date"]::-webkit-date-and-time-value {
   height: 2px;
   background: var(--background-hover, #eee);
   margin: 0 12px;
-  border-radius: 1px;
+  border-radius: 0;
 }
 
 /* 表单底部链接 */
@@ -746,7 +746,7 @@ input[type="date"]::-webkit-date-and-time-value {
   background: #12b7f5;
   color: #fff;
   border: none;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -793,7 +793,7 @@ input[type="date"]::-webkit-date-and-time-value {
   gap: 12px;
   padding: 24px 16px;
   text-align: center;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
 }
 .qq-callback-result i {
   font-size: 42px;
@@ -823,7 +823,7 @@ input[type="date"]::-webkit-date-and-time-value {
   padding: 8px 14px;
   background: #fff;
   border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
 }
 .qq-bound-user img {
   width: 34px;
@@ -844,7 +844,7 @@ input[type="date"]::-webkit-date-and-time-value {
   padding: 12px 14px;
   background: var(--background-light, #f6f7f8);
   border: 1px solid var(--border-color, #e4e6e8);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   margin-bottom: 18px;
 }
 .qq-prefill-avatar {

@@ -110,7 +110,7 @@
   gap: 15px;
   padding: 15px;
   background: var(--background-light);
-  border-radius: 10px;
+  border-radius: 0;
   cursor: pointer;
   transition: var(--transition);
   border: 1px solid var(--border-color);
@@ -260,7 +260,7 @@
 /* 帖子样式继承自主页 */
 .following-posts-container .post {
   background: var(--background-light);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 20px;
   transition: var(--transition);
   border: 1px solid var(--border-color);

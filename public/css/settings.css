@@ -227,7 +227,7 @@
 .theme-header {
   height: 20px;
   background: var(--primary-color);
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
 }
 
 .theme-content {
@@ -634,7 +634,7 @@
 .password-strength {
   height: 4px;
   background: var(--border-color);
-  border-radius: 2px;
+  border-radius: 0;
   margin-top: 8px;
   overflow: hidden;
 }
@@ -643,7 +643,7 @@
   height: 100%;
   width: 0;
   transition: width 0.3s ease;
-  border-radius: 2px;
+  border-radius: 0;
 }
 
 .strength-weak {
@@ -1075,7 +1075,7 @@
   background: var(--border-color);
   margin: 0 15px;
   margin-bottom: 25px;
-  border-radius: 2px;
+  border-radius: 0;
   transition: var(--transition);
   max-width: 100px;
 }
@@ -1293,7 +1293,7 @@
   justify-content: space-between;
   padding: 12px 16px;
   background: var(--background-light);
-  border-radius: 10px;
+  border-radius: 0;
   border: 1px solid var(--border-color);
   transition: var(--transition);
 }
@@ -1555,7 +1555,7 @@
   align-items: flex-start;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
-  border-radius: 10px;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 24px;
 }
@@ -1625,7 +1625,7 @@
   padding: 14px 16px;
   background: var(--background-light);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 0;
   cursor: pointer;
   transition: var(--transition);
   position: relative;
@@ -1644,7 +1644,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid var(--border-color);
-  border-radius: 5px;
+  border-radius: 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1738,7 +1738,7 @@
 .export-progress {
   background: var(--background-light);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -1755,14 +1755,14 @@
 .export-progress-bar {
   height: 6px;
   background: var(--border-color);
-  border-radius: 3px;
+  border-radius: 0;
   overflow: hidden;
 }
 
 .export-progress-fill {
   height: 100%;
   background: var(--primary-color);
-  border-radius: 3px;
+  border-radius: 0;
   transition: width 0.4s ease;
   width: 0%;
 }
@@ -1923,7 +1923,7 @@
   align-items: flex-start;
   background: #f0fdf4;
   border: 1px solid #86efac;
-  border-radius: 10px;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 24px;
 }
@@ -2017,7 +2017,7 @@
   padding: 12px 16px;
   background: var(--primary-light);
   border: 1px solid var(--primary-color);
-  border-radius: 10px;
+  border-radius: 0;
   margin-top: 10px;
 }
 
@@ -2129,7 +2129,7 @@
 .import-result-row {
   background: var(--background-light);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -2189,7 +2189,7 @@
 .qq-bind-card {
   background: var(--background-light, #f6f7f8);
   border: 1px solid var(--border-color, #e4e6e8);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   padding: 14px 16px;
 }
 .qq-bind-loading {
