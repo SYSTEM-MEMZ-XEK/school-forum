@@ -132,6 +132,12 @@ const favoriteController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
+      // 归属校验（2026-08-10 渗透测试修复：IDOR）——只能查看自己或管理员查看任意用户
+      const viewer = await User.findOne({ id: req.user.id }).select('isAdmin').lean();
+      if (req.user.id !== userId && !(viewer && viewer.isAdmin)) {
+        return res.status(403).json(generateErrorResponse('无权查看该用户的收藏'));
+      }
+
       // 获取用户的收藏记录（按收藏时间倒序）
       const favorites = await Favorite.getUserFavorites(userId, tagId || null);
       const favPostIds = favorites.map(f => f.postId);
@@ -203,6 +209,12 @@ const favoriteController = {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
       }
 
+      // 归属校验（2026-08-10 渗透测试修复：IDOR）
+      const viewer = await User.findOne({ id: req.user.id }).select('isAdmin').lean();
+      if (req.user.id !== userId && !(viewer && viewer.isAdmin)) {
+        return res.status(403).json(generateErrorResponse('无权查看该用户的收藏'));
+      }
+
       const count = await Favorite.countDocuments({ userId });
       
       res.json(generateSuccessResponse({ count }));
@@ -252,6 +264,12 @@ const favoriteController = {
 
       if (!userId) {
         return res.status(400).json(generateErrorResponse('用户ID不能为空'));
+      }
+
+      // 归属校验（2026-08-10 渗透测试修复：IDOR）——收藏标签为隐私信息，仅本人或管理员可见
+      const viewer = await User.findOne({ id: req.user.id }).select('isAdmin').lean();
+      if (req.user.id !== userId && !(viewer && viewer.isAdmin)) {
+        return res.status(403).json(generateErrorResponse('无权查看该用户的收藏标签'));
       }
 
       const tags = await FavoriteTag.getUserTags(userId);

@@ -5,8 +5,8 @@ const { authenticateUser } = require('../middleware/jwtAuth');
 
 // ============ 标签管理（放在前面，避免被通配路由捕获） ============
 
-// 获取用户所有标签 — 可公开查看他人标签，无需认证
-router.get('/favorites/tags/:userId', favoriteController.getUserTags);
+// 获取用户所有标签 — 需登录，仅本人或管理员可见（2026-08-10 渗透测试修复：IDOR）
+router.get('/favorites/tags/:userId', authenticateUser, favoriteController.getUserTags);
 
 // 创建标签
 router.post('/favorites/tags', authenticateUser, favoriteController.createTag);
@@ -28,11 +28,11 @@ router.post('/favorites/batch/delete', authenticateUser, favoriteController.batc
 // 批量移动收藏到标签
 router.post('/favorites/batch/move', authenticateUser, favoriteController.batchMoveToTag);
 
-// 获取用户收藏列表 — 可公开查看他人收藏，无需认证
-router.get('/favorites/user/:userId', favoriteController.getUserFavorites);
+// 获取用户收藏列表 — 需登录，仅本人或管理员可见（2026-08-10 渗透测试修复：IDOR）
+router.get('/favorites/user/:userId', authenticateUser, favoriteController.getUserFavorites);
 
-// 获取用户收藏数量 — 无需认证
-router.get('/favorites/user/:userId/count', favoriteController.getFavoriteCount);
+// 获取用户收藏数量 — 需登录，仅本人或管理员可见（2026-08-10 渗透测试修复：IDOR）
+router.get('/favorites/user/:userId/count', authenticateUser, favoriteController.getFavoriteCount);
 
 // ============ 收藏管理（带 postId 参数的路由放在最后） ============
 

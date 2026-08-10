@@ -770,9 +770,11 @@ const userController = {
       // 根据帖子可见性过滤帖子
       const filteredPosts = filterPostsByVisibility(filteredPostsByTime, userId, viewerId, isFollower);
       
-      // 根据隐私设置过滤用户信息
-      const safeUser = filterUserInfoByPrivacy(user, isSelf, isFollower);
-      
+      // 根据隐私设置过滤用户信息（白名单制：他人仅公开字段，敏感 PII 不下发）
+      // 管理员查看任意档案时与本人同等可见（后台审计需要）
+      const viewer = viewerId && !isSelf ? await User.findOne({ id: viewerId }).select('isAdmin').lean() : null;
+      const safeUser = filterUserInfoByPrivacy(user, isSelf, isFollower, !!(viewer && viewer.isAdmin));
+
       // 计算用户统计数据
       const userStats = {
         postCount: filteredPosts.length,
@@ -780,7 +782,7 @@ const userController = {
         totalLikes: filteredPosts.reduce((sum, post) => sum + (post.likes || 0), 0),
         totalViews: filteredPosts.reduce((sum, post) => sum + (post.viewCount || 0), 0),
         joinDate: user.createdAt,
-        lastLogin: user.lastLogin
+        lastLogin: isSelf ? user.lastLogin : null
       };
       
       res.json(generateSuccessResponse({
@@ -2251,63 +2253,53 @@ function filterPostsByVisibility(posts, authorId, viewerId, isFollower) {
   });
 }
 
-// 辅助函数：根据隐私设置过滤用户信息
-function filterUserInfoByPrivacy(user, isSelf, isFollower) {
-  const { password, ...safeUser } = user;
-  
-  // 如果是自己，显示所有信息
-  if (isSelf) {
+// 辅助函数：根据身份与隐私设置过滤用户信息
+// 安全规则（2026-08-10 渗透测试修复：修复 IDOR / PII 过度暴露）：
+// - 本人 / 管理员：返回完整档案（仍剔除 password / qqOpenId 等内部字段）
+// - 其他用户：仅返回公开白名单字段（id/username/avatar/school/grade/
+//   enrollmentYear/className/postCount/commentCount/createdAt/isAdmin）+
+//   settings.signature + 用户通过隐私设置显式公开的 gender/birthday
+//   （profileVisibility 设为 public 或 followers 且查看者是粉丝）；
+//   email / qq / loginDevices / lastLogin / settings(除 signature) /
+//   qqOpenId 等敏感字段一律不下发
+function filterUserInfoByPrivacy(user, isSelf, isFollower, isAdminViewer) {
+  // 内部字段永远不出接口
+  const { password, qqOpenId, ...safeUser } = user;
+
+  // 本人或管理员：显示完整档案
+  if (isSelf || isAdminViewer) {
     return safeUser;
   }
-  
+
   const profileVisibility = user.settings?.privacy?.profileVisibility || {};
-  
-  // 检查某个字段是否可见
+
+  // 字段是否可见：仅显式设置为 public 或（followers 且查看者是粉丝）
   const isFieldVisible = (field) => {
-    const visibility = profileVisibility[field] || 'public';
+    const visibility = profileVisibility[field];
     if (visibility === 'public') return true;
     if (visibility === 'followers') return isFollower;
-    if (visibility === 'self') return false;
-    return true;
+    return false; // 未设置 / self → 不公开
   };
-  
-  // 过滤个人信息
-  const filteredUser = { ...safeUser };
-  
-  if (!isFieldVisible('gender')) {
-    filteredUser.gender = '';
-  }
-  
-  if (!isFieldVisible('birthday')) {
-    filteredUser.birthday = null;
-  }
-  
-  if (!isFieldVisible('school')) {
-    filteredUser.school = '';
-    filteredUser.grade = '';
-    filteredUser.className = '';
-  }
-  
-  if (!isFieldVisible('signature')) {
-    if (filteredUser.settings) {
-      filteredUser.settings = { ...filteredUser.settings, signature: '' };
-    } else {
-      filteredUser.settings = { signature: '' };
+
+  // 白名单：固定公开字段
+  const filteredUser = {};
+  for (const field of ['id', 'username', 'avatar', 'school', 'grade', 'enrollmentYear', 'className', 'postCount', 'commentCount', 'createdAt', 'isAdmin']) {
+    if (safeUser[field] !== undefined) {
+      filteredUser[field] = safeUser[field];
     }
   }
-  
-  if (!isFieldVisible('joinDate')) {
-    filteredUser.createdAt = null;
+
+  // 签名（前端从 settings.signature 读取，保持结构）
+  filteredUser.settings = { signature: safeUser.settings?.signature || '' };
+
+  // 用户显式公开的可选字段
+  if (isFieldVisible('gender') && safeUser.gender) {
+    filteredUser.gender = safeUser.gender;
   }
-  
-  if (!isFieldVisible('lastLogin')) {
-    filteredUser.lastLogin = null;
+  if (isFieldVisible('birthday') && safeUser.birthday) {
+    filteredUser.birthday = safeUser.birthday;
   }
-  
-  // 敏感标识字段：仅自己可见（不可通过设置公开）
-  filteredUser.qq = isSelf ? filteredUser.qq : '';
-  filteredUser.email = isSelf ? filteredUser.email : '';
-  
+
   return filteredUser;
 }
 
